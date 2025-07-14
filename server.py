@@ -64,7 +64,7 @@ main_sck.listen(4) # количество доступных подключен�
 print('Сервер открыт')
 
 players = []
-colors = ['red','blue','yellow','green']
+colors = ['red', 'blue', 'yellow', 'green']
 random.shuffle(colors)
 is_game_started = False
 

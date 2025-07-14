@@ -18,7 +18,7 @@ from functions.resolution_choice import resolution_definition
 pg.init()
 pg.mixer.init()  # для звука
 
-resolution, resolution_folder, piece_color_coefficient, bars_coordinates, btn_coordinates, btn_text_coordinates, btn_font, profile_coordinates, start_btn_textboxes_coordinates, btn_radius, cubes_coordinates = resolution_definition()
+resolution, resolution_folder, piece_color_coefficient, bars_coordinates, btn_coordinates, btn_text_coordinates, btn_font, profile_coordinates, start_btn_textboxes_coordinates, btn_radius, cubes_coordinates, speed = resolution_definition()
 
 FPS = 60
 TITLE = 'Monopoly v0.7'
@@ -333,16 +333,17 @@ def move(color, cube1, cube2):
                 diff_x = end[0] - start[0]
                 diff_y = end[1] - start[1]
 
+                ii = 0
                 if min(diff_x, diff_y) != 0:
-                    x_step = diff_x / min(diff_x, diff_y)
-                    y_step = diff_y / min(diff_x, diff_y)
+                    x_step = diff_x / (min(diff_x, diff_y) * ((cube1 + cube2) / speed))
+                    y_step = diff_y / (min(diff_x, diff_y) * ((cube1 + cube2) / speed))
                 else:
-                    x_step = diff_x / max(diff_x, diff_y)
-                    y_step = diff_y / max(diff_x, diff_y)
+                    x_step = diff_x / (max(diff_x, diff_y) * ((cube1 + cube2) / speed))
+                    y_step = diff_y / (max(diff_x, diff_y) * ((cube1 + cube2) / speed))
 
-                for ii in range(tile_width):
-                    time.sleep(dt/(2 * ((1 + i + ii/10) * (cube1 + cube2) / 10)))  # была 1/120, но dt это ~1/60 => (1/60)/2=1/120
-
+                for ii in range(round(tile_width * ((cube1 + cube2) / speed))):
+                    # time.sleep(dt/(2 * ((1 + i + ii/10) * (cube1 + cube2) / 10)))  # была 1/120, но dt это ~1/60 => (1/60)/2=1/120
+                    time.sleep(dt)
                     x_sign = 1
                     y_sign = 1
 

@@ -29,6 +29,7 @@ def resolution_definition():
                                                (1110, 534, 136, 38), # кнопка "Подключиться"
                                                (1110, 592, 136, 38)] # кнопка "Начать игру"
             cubes_coordinates = [(1109, 20), (1195, 20)]
+            speed = 15
             is_resolution_selected = True
 
         elif resolution_index == '2':
@@ -54,7 +55,8 @@ def resolution_definition():
                                                (1689, 837, 201, 57),  # кнопка "Подключиться"
                                                (1689, 914, 201, 57)]  # кнопка "Начать игру"
             cubes_coordinates = [(1689, 30), (1784, 30)]
+            speed = 30
             is_resolution_selected = True
         else:
             print('Введены некорректные данные\n')
-    return resolution, resolution_folder, piece_color_coefficient, bars_coordinates, btn_coordinates, btn_text_coordinates, btn_font, profile_coordinates, start_btn_textboxes_coordinates, btn_radius, cubes_coordinates
+    return resolution, resolution_folder, piece_color_coefficient, bars_coordinates, btn_coordinates, btn_text_coordinates, btn_font, profile_coordinates, start_btn_textboxes_coordinates, btn_radius, cubes_coordinates, speed
