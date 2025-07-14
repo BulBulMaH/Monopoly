@@ -1,264 +1,350 @@
 import pygame as pg
 import socket as sck
 import random
-import pygame_textinput as txt_inp
 import time
+import threading
+import math
 
 pg.init()
-allProperty = [ # [name, family, textX, textY, color, price, buildPrice, tax1, tax2, tax3, tax4, tax5, tax6, tax7]
-    ['Начало', 'Угловые локации', 'Отсюда начинается игра. При прохождении этого поля, вам даётся 200G','','','','','','','','','','','',''],
-    ['Иван 1', 'Иваны', 129, 105, 'black', 50, 60, 2, 4, 10, 30, 90, 160, 250, 0],
-    ['Груда вопросительных яиц 1', 'Груды вопросительных яиц', 'Тяните карту!','','','','','','','','','','','',''],
-    ['Иван 2', 'Иваны', 253, 105, 'black', 50, 60, 4, 8, 20, 60, 180, 320, 450, 0],
-    ['Глеб 1', 'Глебы', 311, 105, 'white','',-200,'','','','','','','',''],
-    ['Егор 1', 'Егоры', 381, 105, 'black','',200,'','','','','','','',''],
-    ['Василий 1', 'Василии', 448, 105, 'black', 50, 100, 6, 12, 30, 90, 270, 400, 550, 0],
-    ['Вопросительное яйцо 1', 'Вопросительные яйца', 'Тяните карту!','','','','','','','','','','','',''],
-    ['penis.', 'Василии', 580, 105, 'black', 50, 100, 6, 12, 30, 90, 270, 400, 550, 0],
-    ['Василий 3', 'Василии', 640, 105, 'black', 50, 100, 8, 16, 40, 100, 300, 450, 600, 0],
-    ['Тюрьма', 'Угловые локации', 'Вы - злобный нарушитель!', 100, 50,'','','','','','','','','',''],
-    ['Доминика 1', 'Доминики', 678, 124, 'black', 100, 140, 10, 20, 50, 150, 450, 625, 750, 0],
-    ['Данил 1', 'Данилы', 678, 185, 'black','',250,'','','','','','','',''],
-    ['Доминика 2', 'Доминики', 678, 249, 'black', 100, 140, 10, 20, 50, 150, 450, 625, 750, 0],
-    ['Доминика 3', 'Доминики', 678, 314, 'black', 100, 140, 12, 24, 60, 180, 500, 700, 900, 0],
-    ['Егор 2', 'Егоры', 678, 380, 'black','',200,'','','','','','','',''],
-    ['Артём 1', 'Артёмы', 678, 446, 'black', 100, 180, 14, 28, 70, 200, 550, 750, 950, 0],
-    ['Груда вопросительных яиц 2', 'Груды вопросительных яиц', 'Тяните карту!','','','','','','','','','','','',''],
-    ['Артём 2', 'Артёмы', 678, 579, 'black', 100, 180, 14, 28, 70, 200, 550, 750, 950, 0],
-    ['Артём 3', 'Артёмы', 678, 637, 'black', 100, 180, 16, 32, 80, 220, 600, 800, 1000, 0],
-    ['Ничего', 'Угловые локации', 'Самая безопасная локация. Ведь так же?','','','','','','','','','','','',''],
-    ['Никита 1', 'Никиты', 639, 681, 'black', 150, 220, 22, 44, 110, 330, 800, 975, 1150, 0],
-    ['Вопросительное яйцо 1', 'Вопросительные яйца', 'Тяните карту!','','','','','','','','','','','',''],
-    ['Никита 2', 'Никиты', 514, 681, 'black', 150, 220, 22, 44, 110, 330, 800, 975, 1150, 0],
-    ['Никита 3', 'Никиты', 448, 681, 'black', 150, 220, 24, 48, 120, 360, 850, 1025, 1200, 0],
-    ['Егор 3', 'Егоры', 382, 681, 'black','',200,'','','','','','','',''],
-    ['Василий Киммель 1', 'Киммели', 314, 681, 'black', 150, 260, 18, 36, 90, 250, 700, 875, 1050, 0],
-    ['Василий Киммель 2', 'Киммели', 249, 681, 'black', 150, 260, 18, 36, 90, 250, 700, 875, 1050, 0],
-    ['Данил 1', 'Данилы', 185, 681, 'black','',250,'','','','','','','',''],
-    ['Василий Киммель 3', 'Киммели', 124, 681, 'black', 150, 260, 20, 40, 100, 300, 750, 925, 1100, 0],
-    ['Туда', 'Угловые локации', 'Тууудаааа!','','','','','','','','','','','',''],
-    ['Даниил 1', 'Даниилы', 105, 633, 'black', 200, 300, 26, 52, 130, 390, 900, 1100, 1275, 0],
-    ['Даниил 2', 'Даниилы', 105, 578, 'black', 200, 300, 26, 52, 130, 390, 900, 1100, 1275, 0],
-    ['Груда вопросительных яиц 1', 'Груды вопросительных яиц', 'Тяните карту!','','','','','','','','','',''],
-    ['Даниил 3', 'Даниилы', 105, 444, 'black', 200, 300, 28, 56, 150, 450, 1000, 1200, 1400, 0],
-    ['Егор 1', 'Егоры', 105, 379, 'black','',200,'','','','','','','',''],
-    ['Вопросительное яйцо 1', 'Вопросительные яйца', 'Тяните карту!','','','','','','','','','','','',''],
-    ['Дмитрий 1', 'Дмитрии', 105, 247, 'black', 200, 350, 35, 70, 175, 500, 1100, 1300, 1500, 0],
-    ['Глеб 1', 'Глебы', 105, 178, 'white','',-100,'','','','','','','',''],
-    ['Дмитрий 2', 'Дмитрии', 105, 124, 'black', 200, 350, 50, 100, 200, 600, 1400, 1700, 1200, 0]
-    ]
-quesEgg = [
-    'Вам надо к Егору',
-    'Вам надо к Егору',
-    'Вам надо к Егору',
-    'Вы - злобный нарушитель и вам надо в тюрьму',
-    'Артём отдаёт вам часть долга в размере 50~. (но Артём переложил ответственность на банк)',
-    'Вам надо к Данилу', #?
-    'Вам к щедрому Дмитрию',
-    'Вам надо к первой Доминике',
-    'Вам надо пройти к началу',
-    'Артём заставляет Вас дать ему в долг 15~.',
-    'Вам нужно к опасному Никите',
-    'Артём сегодня очень щедрый и отдаёт Вам 150~. (но Артём переложил ответственность на банк)',
-    'Впереди страшные вещи. Вернитесь на три клетки назад',
-    'Вы сможете выйти из тюрьмы' #придумать механику
-]
-quesEggs = [
-    'Артём отдаёт Вам 20~',
-    'Артём отдаёт Вам 25~. (но Артём переложил ответственность на банк)',
-    'Артём щедрый и отдаёт Вам 100~. (но Артём переложил ответственность на банк)',
-    'Вам нужно заплатить налог на звёзды. За одну звезду - 50~',
-    'все платят Вам 10~',
-    'Артём насильно забирает у Вас в долг 100~',
-    'Вам надо пройти к началу',
-    'Артём никогда не был таким щедрым и отдаёт Вам 200~. (но Артём переложил ответственность на банк)',
-    'Вы - злобный нарушитель и вам надо в тюрьму',
-    'Артём выплачивает часть долга в размере 100~. (но Артём переложил ответственность на банк)',
-    'Артём выплачивает часть долга в размере 100~. (но Артём переложил ответственность на банк)',
-    'Артём отдаёт Вам часть долга в размере 50~. (но Артём переложил ответственность на банк)',
-    'Артём умоляет Вас дать ему в долг 50~. Вы соглашаетесь. Я сказал соглашаетесь!',
-    'Артём обворовывает Вас на 50~. Вы записали эту сумму в счёт долга',
-    'Артём случайно уронил 10~ и сказал, что это плата по долгу. Вы получили 10~',
-    'Вы сможете выйти из тюрьмы'  # придумать механику
-]
+clock = pg.time.Clock()
 
-screen = pg.display.set_mode((1280,797))
-pg.display.set_caption('Monopoly v0.2') #название игры
-background = pg.image.load('resources/main imgs/board/board.png') #объявление поля
-font = pg.font.Font('resources/fonts/bulbulpoly.ttf',int(15.8090625))
-mainFont = pg.font.Font('resources/fonts/cardsfont.ttf',int(14))
-priceFont = pg.font.Font('resources/fonts/bulbulpoly-2.ttf',int(7))
-red = pg.image.load('resources/main imgs/players/redPlayer.png')
-buttonTexture = pg.image.load('resources/main imgs/interactive/button.png')
-buttonPressed = pg.image.load('resources/main imgs/interactive/buttonPressed.png')
-buttonMouseCollided = pg.image.load('resources/main imgs/interactive/buttonMouseCollided.png')
-connectButton = pg.Rect(860,129,134,36)
-playButton = pg.Rect(860,194,134,36)
-buyButton = pg.Rect(860,373,134,36)
-ipInput = pg.Rect(861,24,134,36)
-nameInput = pg.Rect(861,64,134,36)
-manager = txt_inp.TextInputManager(validator = lambda input: len(input) <= 12)
-nameTxtInp = txt_inp.TextInputVisualizer(manager = manager,font_object = font,font_color = 'white',cursor_color = 'white')
-ipTxtInp = txt_inp.TextInputVisualizer(manager = manager,font_object = font,font_color = 'white',cursor_color = 'white')
-piecesImg = ['resources/main imgs/players/bluePlayer.png',
-             'resources/main imgs/players/greenPlayer.png',
-             'resources/main imgs/players/redPlayer.png',
-             'resources/main imgs/players/yellowPlayer.png']
-isPlayerPropHor = ['resources/main imgs/board/property/isBluePropHor',
-                   'resources/main imgs/board/property/isGreenPropHor',
-                   'resources/main imgs/board/property/isRedPropHor',
-                   'resources/main imgs/board/property/isYellowPropHor']
-isPlayerPropVer = ['resources/main imgs/board/property/isBluePropVer',
-                   'resources/main imgs/board/property/isGreenPropVer',
-                   'resources/main imgs/board/property/isRedPropVer',
-                   'resources/main imgs/board/property/isYellowPropVer']
-money = 1500
-pos1, pos2 = 0, 0
-name = ''
-color = ''
-property = []
-inPrison = False
-piecePos = 0
-allData = []
-oldAllData = ['1']
-isConnPressed = False
-pieceCol_defined = False
-piece = ''
-piec = 0
-pieceX, pieceY = 23, 23
-q = 0
-angle = 0 - 90
-true = True
-while true:
-    screen.fill((64,64,64))
-    screen.blit(background,(0,0)) #инициализация поля
-    screen.blit(buttonTexture,(859,128)) #подключиться
-    screen.blit(buttonTexture,(859,194)) #играть
-    screen.blit(buttonTexture,(859,372)) #купить
-    screen.blit(mainFont.render('подключиться',False,'black'), (864, 127))
-    screen.blit(mainFont.render('играть', False, 'black'), (900, 194))
-    screen.blit(mainFont.render('позиция: ' + str(piecePos), False, 'white'), (860, 317))
-    screen.blit(mainFont.render('купить', False, 'black'), (900, 372))
+print('Введите разрешение экрана:\n1 - 1280x720\n2 - 1920x1080')
+resBool = False
+while not resBool:
+    resNum = int(input())
+    if resNum == 1:
+        res = (1280,650)
+        resFolder = '720p'
+        pieceColorCoef = 28
+        barsCoords = (582, 2)
+        btnCoords = [(953, 20, 136, 38),(953, 78, 136, 38)]
+        btnTextCoords = [(963,24),(993,82)]
+        btnFont = pg.font.Font('resources/fonts/bulbulpoly-3.ttf',25)
+        profileCoords = [[[669, 20], [830, 46], [674, 48]],
+                         [[669, 169], [830, 195], [674, 197]],
+                         [[669, 318], [830, 344], [674, 346]],
+                         [[669, 467], [830, 493], [674, 495]]]
+        resBool = True
+    elif resNum == 2:
+        res = (1920,1001)
+        resFolder = '1080p'
+        pieceColorCoef = 42
+        barsCoords = (897,3)
+        btnCoords = [(1455, 30, 204, 57),(1455, 117, 204, 57)]
+        btnTextCoords = [(1475,40),(1514,127)]
+        btnFont = pg.font.Font('resources/fonts/bulbulpoly-3.ttf', int(37.5))
+        profileCoords = [[[1028, 30], [1262, 66], [1034, 69]],
+                         [[1028, 249], [1262, 285], [1034, 288]],
+                         [[1028, 468], [1262, 504], [1034, 507]],
+                         [[1028, 687], [1262, 723], [1034, 726]]]
+        resBool = True
+    else:
+        print('Введены некорректные данные')
 
-    # отрисовка цен
-    for face in range(len(allProperty)):
-        for pos1 in range(12):
-            for pos2 in range(face + 1): # иначе он не видит посл. клетку
-                pass
-        # print(allProperty[pos2][0], len(allProperty[pos2]))
-        if type(allProperty[pos2][2]) is not str:
-            priceTextVal = str(allProperty[pos2][6]) + '~'
-            if pos2 > 10 and pos2 < 20:
-                priceText = pg.transform.rotate(priceFont.render(priceTextVal, False, (allProperty[pos2][4])), angle)
-            elif pos2 > 30 and pos2 < 40:
-                priceText = pg.transform.rotate(priceFont.render(priceTextVal, False, (allProperty[pos2][4])), 90)
-            else:
-                priceText = priceFont.render(priceTextVal, False, (allProperty[pos2][4]))
-            screen.blit(priceText,(allProperty[pos2][2], allProperty[pos2][3]))
+positionsFile = open(f'resources/{resFolder}/text values/positions.txt')
+positionsTemp = positionsFile.readlines()
+positionsFile.close()
+positions = []
+for i in range(len(positionsTemp)):
+    positions.append(positionsTemp[i].split(','))
+    positions[i][1] = positions[i][1][:-1]
+positionsTemp = []
+for i in range(len(positions)):
+    for ii in range(len(positions[i])):
+        positions[i][ii] = int(positions[i][ii])
+
+class Player():
+    def __init__(self,color):
+        self.piecePos = 0
+        self.name = ''
+        self.property = []
+        self.color = color
+        self.money = 1500
+        self.main = False
+        self.x = positions[0][0]
+        self.y = positions[0][1]
+        self.baseX = positions[0][0]
+        self.baseY = positions[0][1]
+
+    def mainColor(self,mainColor):
+        self.color = mainColor
+        self.main = True
+        print('Основной цвет:',self.color)
+
+class Tiles():
+    def __init__(self, positionNumber,inf):
+        inflist = inf.split(',')
+        self.position = int(inflist[0])
+        self.buyable = inflist[1]
+        self.type = inflist[2]
+        self.family = inflist[3]
+        self.descr = inflist[4]
+        self.xText = int(inflist[5])
+        self.yText = int(inflist[6])
+        self.priceTxt = inflist[7]
+        self.color = inflist[8]
+        self.angle = int(inflist[9])
+
+allTiles = []
+test = open(f'resources/{resFolder}/text values/kletki.txt', 'r')
+inf = test.readlines()
+test.close()
+for i in range(40):
+    allTiles.append(Tiles(i,inf[i]))
+inf = []
+
+redPlayer = Player('red')
+greenPlayer = Player('green')
+yellowPlayer = Player('yellow')
+bluePlayer = Player('blue')
+global buy_btn_active
+buy_btn_active = False
+
+allPlayers = [redPlayer,greenPlayer,yellowPlayer,bluePlayer]
+players = []
+
+sock = sck.socket(sck.AF_INET, sck.SOCK_STREAM)
+sock.setsockopt(sck.IPPROTO_TCP, sck.TCP_NODELAY, 1)
+
+connected = False
+while not connected:
+    try:
+        sock.connect(('26.197.29.62', 1247))
+        connected = True
+    except:
+        print('Не удалось подключиться')
+
+screen = pg.display.set_mode(res)
+pg.display.set_caption('Monopoly v0.3') #название игры
+background = pg.image.load(f'resources/{resFolder}/board.png')
+bars = pg.image.load(f'resources/{resFolder}/bars.png')
+
+font = pg.font.Font('resources/fonts/bulbulpoly-3.ttf',25)
+buttonTexture = pg.image.load(f'resources/{resFolder}/button.png')
+buttonPressed = pg.image.load(f'resources/{resFolder}/buttonPressed.png')
+buttonMouseCollided = pg.image.load(f'resources/{resFolder}/buttonMouseCollided.png')
+buttonDisabled = pg.image.load(f'resources/{resFolder}/buttonDisabled.png')
+
+profilePicture = pg.image.load(f'resources/{resFolder}/profile/profile.png')
+
+cubeButton = pg.Rect(btnCoords[0][0],btnCoords[0][1],btnCoords[0][2],btnCoords[0][3])
+buyButton = pg.Rect(btnCoords[1][0],btnCoords[1][1],btnCoords[1][2],btnCoords[1][3])
+
+global startSpeed
+startSpeed = 3
+xStart = positions[0][0]
+yStart = positions[0][1]
+running = True
+
+def blitItems(screen,background,buttonTexture,font):
+    screen.blit(background, (0, 0))  # инициализация поля
+    screen.blit(buttonTexture, (btnCoords[0][0],btnCoords[0][1]))  # играть
+    screen.blit(buttonTexture, (btnCoords[1][0],btnCoords[1][1]))  # купить
+
+    screen.blit(font.render('Бросить кубы', False, 'black'), (btnTextCoords[0][0],btnTextCoords[0][1]))
+    # screen.blit(mainFont.render('позиция: ' + str(piecePos), False, 'white'), (860, 317))
+    screen.blit(font.render('Купить', False, 'black'), (btnTextCoords[1][0], btnTextCoords[1][1]))
+
+    # screen.blit(pg.image.load('resources/main imgs/debug/номера клеток.png'),(0, 0))
+
+    for player in players:
+        playerNumber = players.index(player)
+        screen.blit(profilePicture, (profileCoords[playerNumber][0][0], profileCoords[playerNumber][0][1]))
+        screen.blit(pg.image.load(f'resources/{resFolder}/profile/{player.color}Profile.png'),
+                    (profileCoords[playerNumber][1][0], profileCoords[playerNumber][1][1]))
+        screen.blit(btnFont.render(f'{player.money}~', False, 'black'),
+                    (profileCoords[playerNumber][2][0], profileCoords[playerNumber][2][1] - 10))
+        positionUpdate(positions, player.color, player.baseX, player.baseY)
+
+        for company in player.property:
+            screen.blit(pg.image.load(f'resources/{resFolder}/{player.color}Property.png'),((int(positions[company][0])), int(positions[company][1])))
+
+    screen.blit(bars, barsCoords)
 
 
+def pricePrinting():
+    for tile in allTiles:
+        text = font.render(f'{tile.priceTxt}~', False, tile.color)
+        text_rect = text.get_rect()
+        text_rect.center = (tile.xText,tile.yText)
+        priceText = pg.transform.rotate(text,tile.angle)
+
+        screen.blit(priceText, text_rect)
+
+def positionUpdate(positions, color, x, y):
+    for player in players:
+        if player.color == 'green':
+            player.x = x + pieceColorCoef
+        elif player.color == 'yellow':
+            player.y = y + pieceColorCoef
+        elif player.color == 'blue':
+            player.x = x + pieceColorCoef
+            player.y = y + pieceColorCoef
+        screen.blit(pg.image.load(f'resources/{resFolder}/{player.color}Piece.png'), (player.x,player.y))
+
+def move(color, piesePos, cube1, cube2):
+    global buy_btn_active
+    buyBtnActive = False
+    for player in players:
+        if player.color == color:
+            global startSpeed
+
+            for i in range(int(cube1) + int(cube2)):
+                start = [positions[player.piece_position][0], positions[player.piece_position][1]]
+                if player.piece_position + 1 <= 39:
+                    end = [positions[player.piece_position + 1][0],
+                           positions[player.piece_position + 1][1]]
+                else:
+                    end = [positions[player.piece_position - 39][0],
+                           positions[player.piece_position - 39][1]]
+                player.piece_position += 1
+                if player.piece_position > 39:
+                    player.piece_position = 0
+                player.baseX = start[0]
+                player.baseY = start[1]
+                differenceX = end[0] - player.baseX
+                differenceY = end[1] - player.baseY
+                while abs(differenceX) >= abs(end[0] - player.baseX) and abs(differenceY) >= abs(end[1] - player.baseY):
+                    print('\n')
+                    print(f'i: {i}, cube 1: {cube1}, cube 2: {cube2}')
+                    differenceX = end[0] - player.baseX
+                    differenceY = end[1] - player.baseY
+                    clock.tick(60)
+                    print(f'Скорость: {startSpeed}')
+
+                    xStep = (end[0] - start[0]) / start[0]
+                    yStep = (end[1] - start[1]) / start[1]
+
+                    print(f'Coarse steps: {xStep}, {yStep}.')
+
+                    xStep /= max(abs(xStep), abs(yStep))
+                    yStep /= max(abs(xStep), abs(yStep))
+
+                    print(f'xStep: {xStep}, yStep: {yStep}, цвет: {player.color}')
+                    print(differenceX,differenceY,'РАЗНИЦА')
+
+                    player.baseX += xStep * startSpeed
+                    player.baseY += yStep * startSpeed
+
+                    print(f'Старт: {start}, конец: {end}.')
+                    positionUpdate(positions, player.color, player.baseX, player.baseY)
+                    print(f'Позиция: {player.x, player.y}, X: {player.baseX}, Y: {player.baseY}, ------------------------ позиция: {player.piece_position}')
+                player.baseX = positions[player.piece_position][0]
+                player.baseY = positions[player.piece_position][1]
+                positionUpdate(positions, player.color, player.baseX, player.baseY)
+            buyBtnCheck(players)
+            print(f'Новая позиция у {player.color}: {player.piece_position}. Координаты: {player.x}, {player.y} / {positions[player.piece_position][0]}, {positions[player.piece_position][1]}')
+            for player2 in players:
+                print(player2.color, player2.x, player2.y, player2.piece_position)
+        # startSpeed = 1.5
+
+def handle_connection(sock, positions):
+    while True:
+        data_temp = sock.recv(1024).decode()
+        data = data_temp.replace('test','').split('|')
+        if data[0] != '':
+            print('Информация получена:', data)
+        if data[0] == 'color main':
+            if data[1] == 'red':
+                redPlayer.mainColor(data[1])
+            elif data[1] == 'green':
+                greenPlayer.mainColor(data[1])
+            elif data[1] == 'yellow':
+                yellowPlayer.mainColor(data[1])
+            elif data[1] == 'blue':
+                bluePlayer.mainColor(data[1])
+
+        elif data[0] == 'move':
+            move(data[1], data[2], data[3], data[4])
+
+        elif data[0] == 'playersData':
+            data.remove('playersData')
+            for allPlayer in allPlayers:
+                for i in data:
+                    if i == allPlayer.color:
+                        if allPlayer not in players:
+                            players.append(allPlayer)
+            for player in players:
+                if player.color == data[0]:
+                    player.money = int(data[1])
+                    player.piece_position = int(data[2])
+                    player.x = positions[player.piece_position][0]
+                    player.y = positions[player.piece_position][1]
+
+        elif data[0] == 'property':
+            for player in players:
+                if data[2] == player.color:
+                    player.property.append(int(data[1]))
+                    print('У',player.color,'есть',player.property)
+                    buyBtnCheck(players)
+
+        elif data[0] == 'money':
+            for player in players:
+                if data[1] == player.color:
+                    player.money = int(data[2])
+
+        if not running:
+            break
+
+def eventsCheck(players):
     events = pg.event.get()
     for event in events:
-        if event.type == pg.MOUSEBUTTONDOWN and playButton.collidepoint(event.pos):
-            firCube = random.randint(1, 6)
-            secCube = random.randint(1, 6)
-            sumCubes = firCube + secCube
-            piecePosX = sumCubes * 66
-            print('Первый куб:',firCube,', второй куб:',secCube,', сумма:',sumCubes)
-            for ee in range(sumCubes):
-                pg.display.update()
-                for piecePosX in range(66):
-                    q += 1
-
-                    if q/66 >= 1:
-                        piecePos +=1
-                        q = 0
-                        #print(piecePos)
-                        if piecePos == 1:
-                            pieceX = 107
-                        elif piecePos == 10:
-                            pieceX = 720
-                        elif piecePos == 11:
-                            pieceY = 107
-                        elif piecePos == 20:
-                            pieceY = pieceX
-                        elif piecePos == 21:
-                            pieceX = 635
-                        elif piecePos == 30:
-                            pieceX = 23
-                        elif piecePos == 31:
-                            pieceY = 635
-                        elif piecePos == 40:
-                            pieceY = 23
-                            pieceX = pieceY
-                            piecePos = 0
-                    if pieceX <= 720 and pieceY <= 100:
-                        pieceX += 1
-                    elif pieceX > 720 and pieceY < 720:
-                        pieceY += 1
-                    elif pieceX > 23 and pieceY > 720:
-                        pieceX -= 1
-                    elif pieceX >= 23 and pieceY <= 721:
-                        pieceY -= 1
-
-        if event.type == pg.MOUSEBUTTONDOWN and event.button == 1 and connectButton.collidepoint(event.pos) and not isConnPressed:
-            isConnPressed = True
-            name = (f'{nameTxtInp.value}')
-            screen.blit(buttonPressed,(859, 128))
-            # print(f'Подтверждён IP: {ipTxtInp.value}')
-            print('Подтверждён ник:', name)
-            sock = sck.socket(sck.AF_INET, sck.SOCK_STREAM)
-            sock.setsockopt(sck.IPPROTO_TCP, sck.TCP_NODELAY, 1)
-            sock.connect(('26.197.29.62', 1247))
-            sock.send(f'name {nameTxtInp.value}'.encode())
-            data = sock.recv(1024).decode()  # получение состояния поля
-            if 'color' in data:
-                color = data[6:]
-                print('Цвет получен:', color)
-                for piec in range(len(piecesImg)):
-                    if color in piecesImg[piec]:
-                        print('Отрисован',piecesImg[piec])
-                        piece = pg.image.load(piecesImg[piec])
-                        pieceCol_defined = True
-        if event.type == pg.MOUSEBUTTONDOWN and event.button == 1 and buyButton.collidepoint(event.pos):
-            print('buy')
-            if type(allProperty[piecePos][2]) is not str and type(allProperty[piecePos][14]) is not str and allProperty[piecePos][14] < 1:
-                allProperty[piecePos][14] += 1
-                property.append(allProperty[piecePos])
-                sock.send(y.encode())
-                print('Информация отправлена:', allData)
-                if (piecePos > 0 and piecePos < 10) or (piecePos > 20 and piecePos < 30):
-                    for i in range(len(isPlayerPropVer)):
-                        if color in isPlayerPropVer[i]:
-                            print('test')
+        if event.type == pg.MOUSEBUTTONDOWN and cubeButton.collidepoint(pg.mouse.get_pos()):
+            print('Кнопка "Бросить кубы" нажата')
+            screen.blit(buttonPressed, (btnCoords[0][0], btnCoords[0][1]))
+            screen.blit(font.render('Бросить кубы', False, 'black'), (btnTextCoords[0][0],btnTextCoords[0][1]))
+            for player in players:
+                if player.main:
+                    moveCommand = f'move|{player.color}'
+                    sock.send(moveCommand.encode())
+                    print('Команда отправлена:',moveCommand)
+        if event.type == pg.MOUSEBUTTONDOWN and buyButton.collidepoint(pg.mouse.get_pos()) and buy_btn_active:
+            print('Кнопка "Купить" нажата')
+            screen.blit(buttonPressed, (btnCoords[1][0], btnCoords[1][1]))
+            screen.blit(font.render('Купить', False, 'black'), (btnTextCoords[1][0],btnTextCoords[1][1]))
+            for player in players:
+                if player.main:
+                    buyCommand = 'buy|' + str(player.piece_position)
+                    sock.send(buyCommand.encode())
+                    print('Команда отправлена:', buyCommand)
+        if not buy_btn_active:
+            screen.blit(buttonDisabled, (btnCoords[1][0], btnCoords[1][1]))
+            screen.blit(font.render('Купить', False, 'black'), (btnTextCoords[1][0], btnTextCoords[1][1]))
         if event.type == pg.QUIT:
-            true = False
-            pg.quit()
-    try:
-        screen.blit(mainFont.render('значения кубов: ' + str(firCube) + ', ' + str(secCube), False, 'white'), (860, 259))
-    except:
-        pass
-    nameTxtInp.update(events)
-    screen.blit(nameTxtInp.surface, (861, 64))
-    if pieceCol_defined:
-        screen.blit(piece,(pieceX,pieceY))
-    if playButton.collidepoint(pg.mouse.get_pos()):
-        screen.blit(buttonMouseCollided, (859,194))
-        screen.blit(mainFont.render('играть', False, (105,105,105)), (900, 194))
-    if connectButton.collidepoint(pg.mouse.get_pos()) and not isConnPressed:
-        screen.blit(buttonMouseCollided,(859,128))
-        screen.blit(mainFont.render('подключиться', False, (105,105,105)), (864, 127))
-    if buyButton.collidepoint(pg.mouse.get_pos()):
-        screen.blit(buttonMouseCollided, (859,372))
-        screen.blit(mainFont.render('купить', False, (105,105,105)), (900, 372))
-    if isConnPressed:
-        allData = [name, color, piecePos, inPrison, property, money]
-        if allData != oldAllData:
-            oldAllData = allData
-            for i in range(len(allData)):
-                data1 = str(color) + '|' + str(allData[i]) + ','
-                sock.send(data1.encode())
-                print('Информация отправлена:', data1)
+            running = False
 
+def buyBtnCheck(players):
+    global buy_btn_active
+    for player in players:
+        if player.main and allTiles[player.piece_position].buyable == 'True' and player.piece_position not in player.property:
+            if player.money - int(allTiles[player.piece_position].priceTxt) > 0:
+                buyBtnActive = True
+            else:
+                buyBtnActive = False
+        else:
+            buyBtnActive = False
+
+def buttonAnim(buttonMouseCollided,buttonDisabled):
+    if cubeButton.collidepoint(pg.mouse.get_pos()):
+        screen.blit(buttonMouseCollided, (btnCoords[0][0],btnCoords[0][1]))
+        screen.blit(btnFont.render('Бросить кубы', False, (128,128,128)), (btnTextCoords[0][0],btnTextCoords[0][1]))
+    if buyButton.collidepoint(pg.mouse.get_pos()) and buy_btn_active:
+        screen.blit(buttonMouseCollided, (btnCoords[1][0],btnCoords[1][1]))
+        screen.blit(btnFont.render('Купить', False, (128,128,128)), (btnTextCoords[1][0],btnTextCoords[1][1]))
+    if not buy_btn_active:
+        screen.blit(buttonDisabled, (btnCoords[1][0], btnCoords[1][1]))
+        screen.blit(btnFont.render('Купить', False, (128, 128, 128)), (btnTextCoords[1][0], btnTextCoords[1][1]))
+
+
+
+connHandler = threading.Thread(target = handle_connection, args=(sock,positions,), name='ConnectionHandler')
+connHandler.start()
+
+while running:
+    blitItems(screen,background,buttonTexture,btnFont)
+    pricePrinting()
+    eventsCheck(players)
+    buttonAnim(buttonMouseCollided,buttonDisabled)
     pg.display.update()
-    time.sleep(0.01)
+    clock.tick(60)
+pg.quit()
