@@ -16,6 +16,7 @@ class Player():
         self.imprisoned = False
         self.money = 1500
         self.ready = False
+        self.on_move = False
 
     def connect(self, colors):
         new_sck, address = main_sck.accept()
@@ -43,6 +44,7 @@ class Player():
         self.imprisoned = False
         self.money = 1500
         self.ready = False
+        self.on_move = False
 
 class Tiles():
     def __init__(self, inf):
@@ -125,6 +127,7 @@ def receive_data():
             except:
                 pass
 
+
 def players_send():
     players_data = ''
     property_data = ''
@@ -194,7 +197,6 @@ def game_start_check():
                     player.conn.send('gameStarted'.encode())
         except:
             pass
-
 
 
 receive_handler = threading.Thread(target=receive_data, name='receive_handler')
