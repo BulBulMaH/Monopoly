@@ -10,9 +10,9 @@ class Player:
         self.y = positions[0][1]
         self.baseX = positions[0][0]
         self.baseY = positions[0][1]
+        self.on_move = False
 
-    def main_color(self, main_color, name):
+    def main_color(self, main_color):
         self.color = main_color
-        self.name = name
         self.main = True
         print('Основной цвет:',self.color)

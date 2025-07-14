@@ -2,6 +2,7 @@ import pygame as pg
 import socket as sck
 import threading
 import time
+import traceback
 import pygame_widgets
 from pygame_widgets.button import Button
 from pygame_widgets.textbox import TextBox
@@ -19,7 +20,7 @@ pg.mixer.init()  # для звука
 resolution, resolution_folder, piece_color_coefficient, bars_coordinates, btn_coordinates, btn_text_coordinates, btn_font, profile_coordinates, start_btn_textboxes_coordinates, btn_radius = resolution_definition()
 
 FPS = 60
-TITLE = 'Monopoly v0.6'
+TITLE = 'Monopoly v0.7'
 screen = pg.display.set_mode(resolution)
 pg.display.set_caption(TITLE)
 clock = pg.time.Clock()
@@ -34,21 +35,89 @@ profile_picture = pg.image.load(f'resources/{resolution_folder}/profile/profile.
 bars = pg.image.load(f'resources/{resolution_folder}/bars.png')
 font = pg.font.Font('resources/fonts/bulbulpoly-3.ttf',25)
 
+throw_cubes_disabled_btn = pg.image.load(f'resources/{resolution_folder}/buttons/throw_cubes_disabled.png')
+buy_disabled_btn = pg.image.load(f'resources/{resolution_folder}/buttons/buy_disabled.png')
+pay_disabled_btn = pg.image.load(f'resources/{resolution_folder}/buttons/pay_disabled.png')
+connect_disabled_btn = pg.image.load(f'resources/{resolution_folder}/buttons/connect_disabled.png')
+ready_disabled_btn = pg.image.load(f'resources/{resolution_folder}/buttons/ready_disabled.png')
+
 all_players = [Player('red', positions),
                Player('blue', positions),
                Player('yellow', positions),
-               Player('green', positions),]
+               Player('green', positions)]
 players = []
 state = {'buy_btn_active': False,
+         'pay_btn_active': False,
          'is_game_started': False,
-         'ready': False}
-name = ''
+         'ready': False,
+         'connected': False,
+         'double': False}
+
+
+def throw_cubes():
+    for player in players:
+        if player.on_move and state['is_game_started']:
+            print('Кнопка "Бросить кубы" нажата')
+            for player2 in players:
+                if player2.main:
+                    move_command = 'move'
+                    sock.send(move_command.encode())
+                    information_sent('Команда отправлена', move_command)
+                    player2.on_move = False
+
+
+def buy():
+    if state['is_game_started'] and state['buy_btn_active']:
+        print('Кнопка "Купить" нажата')
+        for player in players:
+            if player.main:
+                buy_command = 'buy|' + str(player.piece_position)
+                sock.send(buy_command.encode())
+                information_sent('Команда отправлена', buy_command)
+                if state['double']:
+                    player.on_move = True
+                else:
+                    player_move_change()
+
+
+def pay():
+    if state['is_game_started'] and state['pay_btn_active']:
+        print('Кнопка "Оплатить" нажата')
+        for player in players:
+            if player.main:
+                pay_command = 'pay|' + str(player.piece_position)
+                sock.send(pay_command.encode())
+                information_sent('Команда отправлена', pay_command)
+                if state['double']:
+                    player.on_move = True
+                else:
+                    player_move_change()
+
+
+def debug_output():
+    print(f'\nPlayers: {players}')
+    for player in players:
+        print(f'       piece_position: {player.piece_position}\n'
+              f'       name: {player.name}\n'
+              f'       property: {player.property}\n'
+              f'       color: {player.color}\n'
+              f'       money: {player.money}\n'
+              f'       main: {player.main}\n'
+              f'       x: {player.x}\n'
+              f'       y: {player.y}\n'
+              f'       baseX: {player.baseX}\n'
+              f'       baseY: {player.baseY}\n'
+              f'       on_move: {player.on_move}\n')
+    print(f'State: buy_btn_active: {state['buy_btn_active']}'
+          f'\n       pay_btn_active: {state['pay_btn_active']}'
+          f'\n       is_game_started: {state['is_game_started']}'
+          f'\n       ready: {state['ready']}'
+          f'\n       connected: {state['connected']}'
+          f'\n       double: {state['double']}')
 
 
 def connect():
-    global connected, name
-    connected = False
-    if not state['is_game_started'] and not connected:
+    if not state['is_game_started'] and not state['connected']:
         try:
             ip = ip_textbox.getText()
             port = port_textbox.getText()
@@ -60,7 +129,8 @@ def connect():
                 port = int(port_textbox.getText())
             sock.connect((ip, port))
             name = name_textbox.getText()
-            connected = True
+            sock.send(f'name|{name}'.encode())
+            state['connected'] = True
             new_connection('Подключено к', f'{ip}:{port}')
         except:
             print(f'{"\033[31m{}".format('Не удалось подключиться')}{'\033[0m'}') # красный
@@ -68,10 +138,13 @@ def connect():
 
 def start_game():
     global state
-    if connected:
+    if state['connected'] and not state['ready']:
         sock.send('ready'.encode())
         state['ready'] = True
 
+# ^
+# |
+# Функционал кнопок
 
 def all_tiles_get():
     all_tiles = []
@@ -91,31 +164,28 @@ def blit_items():
     screen.blit(background, (0, 0))  # инициализация поля
     for player in players:
         player_index = players.index(player)
-        screen.blit(profile_picture, (profile_coordinates[player_index][0][0], profile_coordinates[player_index][0][1]))
+        screen.blit(profile_picture,
+                    (profile_coordinates[player_index][0][0],
+                     profile_coordinates[player_index][0][1]))
+
         screen.blit(pg.image.load(f'resources/{resolution_folder}/profile/{player.color}Profile.png'),
-                    (profile_coordinates[player_index][1][0], profile_coordinates[player_index][1][1]))
+                    (profile_coordinates[player_index][1][0],
+                     profile_coordinates[player_index][1][1]))
+
         screen.blit(btn_font.render(f'{player.money}~', False, 'black'),
-                    (profile_coordinates[player_index][2][0], profile_coordinates[player_index][2][1] - 10))
-        position_update(player.color)
+                    (profile_coordinates[player_index][2][0],
+                     profile_coordinates[player_index][2][1]))
+
+        screen.blit(btn_font.render(player.name, False, 'black'),
+                    (profile_coordinates[player_index][3][0],
+                     profile_coordinates[player_index][3][1]))
 
         for company in player.property:
             screen.blit(pg.image.load(f'resources/{resolution_folder}/{player.color}Property.png'), ((int(positions[company][0])), int(positions[company][1])))
 
+        position_update(player.color)
+
     screen.blit(bars, bars_coordinates)
-
-
-def buy_btn_check(color):
-    global state, players
-    for player in players:
-        if player.main and player.color == color:
-            for allPlayer in players:
-                if (all_tiles[player.piece_position].buyable == 'True' and
-                    player.piece_position not in allPlayer.property and
-                    player.money - int(all_tiles[player.piece_position].priceTxt) > 0):
-                    state['buy_btn_active'] = True
-                else:
-                    state['buy_btn_active'] = False
-                print(f'Состояние buy_btn_active установлено на {state['buy_btn_active']}')
 
 
 def position_update(color):
@@ -137,42 +207,49 @@ def position_update(color):
 
 
 def handle_connection():
-    global all_players, players, state
+    global players, state, all_tiles
     while True:
         try:
             data_temp = sock.recv(1024).decode()
             data = data_temp.replace('test','').split('|')
             if data[0] != '':
                 information_received('Информация получена', data)
+
             if data[0] == 'color main':
                 for allPlayer in all_players:
                     if allPlayer.color == data[1]:
-                        allPlayer.main_color(data[1], name)
+                        allPlayer.main_color(data[1])
 
             elif data[0] == 'move':
-                move(data[1], int(data[3]), int(data[4]))
+                move(data[1], int(data[2]), int(data[3]))
+                for player in players:
+                    if player.main and player.color == data[1]:
+                        state['double'] = int(data[2]) == int(data[3])
+                        if state['double']:
+                            player.on_move = True
 
             elif data[0] == 'playersData':
-                data.remove('playersData')
                 for allPlayer in all_players:
                     for i in data:
                         if i == allPlayer.color:
                             if allPlayer not in players:
                                 players.append(allPlayer)
                 for player in players:
-                    if player.color == data[0]:
-                        player.money = int(data[1])
-                        player.piece_position = int(data[2])
+                    if player.color == data[1]:
+                        player.money = int(data[2])
+                        player.piece_position = int(data[3])
                         player.baseX = positions[player.piece_position][0]
                         player.baseY = positions[player.piece_position][1]
+                        player.name = data[4]
                         position_update(player.color)
 
             elif data[0] == 'property':
                 for player in players:
-                    if data[2] == player.color:
-                        player.property.append(int(data[1]))
+                    if data[1] == player.color:
+                        player.property.append(int(data[2]))
                         print(f'У {player.color} есть {player.property}')
-                        buy_btn_check(data[2])
+                        all_tiles[int(data[2])].owned = True
+                        buy_btn_check(data[1])
 
             elif data[0] == 'money':
                 for player in players:
@@ -187,10 +264,19 @@ def handle_connection():
             elif data[0] == 'gameStarted':
                 state['is_game_started'] = True
 
+            elif data[0] == 'onMove':
+                for player in players:
+                    if player.color == data[1]:
+                        player.on_move = True
+                    else:
+                        player.on_move = False
+
             if not running:
                 break
-        except:
+        except OSError:
             pass
+        except:
+            print(f'{"\033[31m{}".format(traceback.format_exc())}{'\033[0m'}')
 
 
 def move(color, cube1, cube2):
@@ -243,37 +329,17 @@ def move(color, cube1, cube2):
                 # print(f'\nИГРОК {player.color} НА НОВОЙ КЛЕТКЕ {player.piece_position}!')
             player.baseX = positions[player.piece_position][0]
             player.baseY = positions[player.piece_position][1]
+            print(1)
             buy_btn_check(player.color)
+            print(2)
+            pay_btn_check()
+            print(3)
             if player.main:
+                if all_tiles[player.piece_position].family in ['Угловые', 'Яйца', 'Яйцо']:
+                    player_move_change()  # TODO: поменять, когда будет функционал
+                if player.piece_position in player.property:
+                    player_move_change()
                 sock.send('moved'.encode())
-
-
-def throw_cubes():
-    if state['is_game_started']:
-        print('Кнопка "Бросить кубы" нажата')
-        for player in players:
-            if player.main:
-                move_command = 'move'
-                sock.send(move_command.encode())
-                information_sent('Команда отправлена', move_command)
-
-
-def buy():
-    if state['is_game_started'] and state['buy_btn_active']:
-        print('Кнопка "Купить" нажата')
-        for player in players:
-            if player.main:
-                buy_command = 'buy|' + str(player.piece_position)
-                sock.send(buy_command.encode())
-                information_sent('Команда отправлена', buy_command)
-
-
-def debug_output():
-    global players, state
-    print(f'\nPlayers: {players}'
-          f'\nState: buy_btn_active: {state['buy_btn_active']}'
-          f'\n       is_game_started: {state['is_game_started']}'
-          f'\n       ready: {state['ready']}')
 
 
 def delta_time(old_time):
@@ -285,26 +351,37 @@ def delta_time(old_time):
 
 def event_handler():
     events = pg.event.get()
-    pygame_widgets.update(events)
     for event in events:
         if event.type == pg.QUIT:
             global running
             running = False
+    pygame_widgets.update(events)
 
 
 def price_printing():
     for tile in all_tiles:
         if tile.priceTxt != '':
-            text = font.render(f'{tile.priceTxt}~', False, tile.color)
-            text_rect = text.get_rect()
-            text_rect.center = (tile.xText,tile.yText)
+            if tile.position == 4 or tile.position == 38 or not tile.owned:
+                text = font.render(f'{tile.priceTxt}~', False, tile.color)
+            else:
+                price = tile.penis_income_calculation()
+                text = font.render(f'{price}~', False, tile.color)
+            text_rect = text.get_rect(center=(tile.xText,tile.yText))
             price_text = pg.transform.rotate(text,tile.angle)
 
             screen.blit(price_text, text_rect)
 
 
+def player_move_change():
+    for player in players:
+        if player.main:
+            next_player_command = 'nextPlayer'
+            sock.send(next_player_command.encode())
+            information_sent('Команда отправлена', next_player_command)
+
+
 def buttons():
-    global cube_button, buy_button, name_textbox, ip_textbox, port_textbox, connect_button, start_button, debug_button
+    global cube_button, buy_button, pay_button, name_textbox, ip_textbox, port_textbox, connect_button, start_button, debug_button
     cube_button = Button(screen,
                          btn_coordinates[0][0],
                          btn_coordinates[0][1],
@@ -338,6 +415,23 @@ def buttons():
                         font=btn_font,
                         text='Купить',
                         onClick=buy)
+
+    pay_button = Button(screen,
+                        btn_coordinates[2][0],
+                        btn_coordinates[2][1],
+                        btn_coordinates[2][2],
+                        btn_coordinates[2][3],
+                        inactiveColour=(255, 255, 255),
+                        inactiveBorderColour=(0, 0, 0),
+                        hoverColour=(255, 255, 255),
+                        hoverBorderColour=(105, 105, 105),
+                        pressedColour=(191, 191, 191),
+                        pressedBorderColour=(0, 0, 0),
+                        borderThickness=3,
+                        radius=btn_radius,
+                        font=btn_font,
+                        text='Оплатить',
+                        onClick=pay)
 
     name_textbox = TextBox(screen,
                            start_btn_textboxes_coordinates[0][0],
@@ -433,6 +527,84 @@ def buttons():
                           text='debug',
                           onClick=debug_output)
 
+# Проверки
+# |
+# V
+
+def active_buttons_check():
+    for player in players:
+        if player.main:
+            if not player.on_move:
+                screen.blit(throw_cubes_disabled_btn,
+                            (btn_coordinates[0][0],
+                             btn_coordinates[0][1],
+                             btn_coordinates[0][2],
+                             btn_coordinates[0][3]))
+
+    if not state['is_game_started']:
+        screen.blit(throw_cubes_disabled_btn,
+                    (btn_coordinates[0][0],
+                     btn_coordinates[0][1],
+                     btn_coordinates[0][2],
+                     btn_coordinates[0][3]))
+
+    if not state['is_game_started'] or not state['buy_btn_active']:
+        screen.blit(buy_disabled_btn,
+                    (btn_coordinates[1][0],
+                    btn_coordinates[1][1],
+                    btn_coordinates[1][2],
+                    btn_coordinates[1][3]))
+
+    if not state['is_game_started'] or not state['pay_btn_active']:
+        screen.blit(pay_disabled_btn,
+                    (btn_coordinates[2][0],
+                    btn_coordinates[2][1],
+                    btn_coordinates[2][2],
+                    btn_coordinates[2][3]))
+
+    if state['is_game_started'] or state['connected']:
+        screen.blit(connect_disabled_btn,
+                    (start_btn_textboxes_coordinates[3][0],
+                            start_btn_textboxes_coordinates[3][1],
+                            start_btn_textboxes_coordinates[3][2],
+                            start_btn_textboxes_coordinates[3][3]))
+
+    if state['is_game_started'] or state['ready']:
+        screen.blit(ready_disabled_btn,
+                    (start_btn_textboxes_coordinates[4][0],
+                            start_btn_textboxes_coordinates[4][1],
+                            start_btn_textboxes_coordinates[4][2],
+                            start_btn_textboxes_coordinates[4][3]))
+
+
+def pay_btn_check():
+    global state
+    if state['is_game_started']:
+        for player in players:
+            if player.main:
+                if player.piece_position == 4 or player.piece_position == 38:
+                    state['pay_btn_active'] = True
+                else:
+                    for player2 in players:
+                        if not player2.main:
+                            if player.piece_position in player2.property:
+                                state['pay_btn_active'] = True
+                            else:
+                                state['pay_btn_active'] = False
+
+
+def buy_btn_check(color):
+    global state, players
+    for player in players:
+        if player.main and player.color == color:
+            if all_tiles[player.piece_position].buyable:
+                if (not all_tiles[player.piece_position].owned and
+                player.money - int(all_tiles[player.piece_position].priceTxt) > 0):
+                    state['buy_btn_active'] = True
+                else:
+                    state['buy_btn_active'] = False
+                print(f'Состояние buy_btn_active установлено на {state['buy_btn_active']}')
+
 
 buttons()
 
@@ -450,5 +622,6 @@ while running:
     price_printing()
 
     event_handler()
+    active_buttons_check()
     pg.display.flip()
 pg.quit()
