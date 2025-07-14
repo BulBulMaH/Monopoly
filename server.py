@@ -3,6 +3,8 @@ import time
 import random
 import threading
 
+from functions.colored_output import thread_open, new_connection, information_received, information_sent, information_sent_to
+
 class Player():
     def __init__(self,conn,address,color):
         self.conn = conn
@@ -13,18 +15,23 @@ class Player():
         self.color = color
         self.imprisoned = False
         self.money = 1500
+        self.ready = False
 
     def connect(self, colors):
         new_sck, address = main_sck.accept()
         print('Новое подключение:', address)
-        new_sck.setblocking(False)
+        new_sck.setblocking(0)
         self.conn = new_sck
         self.address = address
         colors.pop(0)
         color_data_main = 'color main|' + self.color
         self.conn.send(color_data_main.encode())
         print('Игроку', self.address, 'назначен', self.color, 'цвет')
-        print('Информация отправлена:',color_data_main)
+        information_sent('Информация отправлена', color_data_main)
+
+        game_start_check_handler = threading.Thread(target=game_start_check, name='game_start_check_handler')
+        game_start_check_handler.start()
+        thread_open('Поток открыт', game_start_check_handler.name)
 
     def clear(self):
         self.conn = ''
@@ -32,8 +39,10 @@ class Player():
         self.piece_position = 0
         self.name = ''
         self.property = []
+        self.color = ''
         self.imprisoned = False
         self.money = 1500
+        self.ready = False
 
 class Tiles():
     def __init__(self, inf):
@@ -51,35 +60,26 @@ for i in range(40):
     all_tiles.append(Tiles(information[i]))
 information.clear()
 
-main_sck = sck.socket(sck.AF_INET,sck.SOCK_STREAM)
-main_sck.setsockopt(sck.IPPROTO_TCP,sck.TCP_NODELAY,1)
+main_sck = sck.socket(sck.AF_INET, sck.SOCK_STREAM)
+main_sck.setsockopt(sck.IPPROTO_TCP,sck.TCP_NODELAY, 1)
 main_sck.bind(('26.190.64.4',1247))
-main_sck.setblocking(False)
+main_sck.setblocking(0)
 main_sck.listen(4) # количество доступных подключений
 print('Сервер открыт')
 
-red_player = Player('', '', 'red')
-green_player = Player('', '', 'green')
-yellow_player = Player('', '', 'yellow')
-blue_player = Player('', '', 'blue')
-
-all_players = [Player('', '', 'red'),
-               Player('', '', 'green'),
-               Player('', '', 'yellow'),
-               Player('', '', 'blue')]
 players = []
 colors = ['red','blue','yellow','green']
 random.shuffle(colors)
+is_game_started = False
 
 def receive_data():
     while True:
-        try:
-            for player in players:
+        for player in players:
+            try:
                 data_temp = player.conn.recv(1024).decode()
                 data = data_temp.split('|')
                 if data != '':
                     print('Информация получена:', data)
-
 
                 if data[0] == 'move':
                     cube1 = random.randint(1,6)
@@ -119,15 +119,17 @@ def receive_data():
 
                 if data[0] == 'moved':
                     print(f'Игрок {player.color} переместился.')
-        except:
-            pass
+
+                if data[0] == 'ready':
+                    player.ready = True
+            except:
+                pass
 
 def players_send():
     players_data = ''
     property_data = ''
     for player in players:
         players_data += f'playersData|{player.color}|{player.money}|{player.piece_position}|_'
-        print(players_data)
         if player.property:
             for company in player.property:
                 property_data = company + '|'
@@ -137,27 +139,26 @@ def players_send():
     players_data = players_data.split('_')
     for player2 in players:
         players_data_temp = list(players_data)
-        print(players_data_temp, players_data)
         player2.conn.send(property_data.encode())
-        print(f'Информация отправлена к {player2.color} цвету: {property_data}')
+        information_sent_to('Информация отправлена к', player2.color, property_data)
         for i in range(len(players_data_temp)):
             time.sleep(0.12)
             player2.conn.send(players_data_temp[0].encode())
-            print(f'Информация отправлена к {player2.color} цвету: {players_data_temp[0]}')
+            information_sent_to('Информация отправлена к', player2.color, players_data_temp[0])
+
             players_data_temp.pop(0)
 
 
 def connection():
-    for player in all_players:
-        if player.color == colors[0]:
-            try:
-                player.connect(colors)
-                players.append(player)
-                print(f'Игрок с цветом {player.color} добавлен в список')
-                time.sleep(1)
-                players_send()
-            except:
-                pass
+    player = Player('', '', colors[0])
+    try:
+        player.connect(colors)
+        players.append(player)
+        print(f'Игрок с цветом {player.color} добавлен в список')
+        time.sleep(1)
+        players_send()
+    except:
+        pass
 
 
 def disconnect_check():
@@ -175,19 +176,35 @@ def disconnect_check():
                 for player2 in players:
                     deletion_player_data = 'playerDeleted|' + deleted_color
                     player2.conn.send(deletion_player_data.encode())
-                    print(f'Информация отправлена к {player2.color} цвету: {deletion_player_data}')
+                    information_sent_to('Информация отправлена к', player2.color, deletion_player_data)
             time.sleep(1)
 
 
+def game_start_check():
+    global is_game_started
+    while not is_game_started:
+        all_ready_states = []
+        try:
+            for player in players:
+                all_ready_states.append(player.ready)
+            if False not in all_ready_states and players:
+                is_game_started = True
+                print('Игра начата')
+                for player in players:
+                    player.conn.send('gameStarted'.encode())
+        except:
+            pass
 
-receiveHandler = threading.Thread(target=receive_data, name='receiveHandler')
-receiveHandler.start()
-print('Поток открыт:', receiveHandler.name)
 
-disconnectHandler = threading.Thread(target=disconnect_check, name='disconnectHandler')
-disconnectHandler.start()
-print('Поток открыт:', disconnectHandler.name)
 
-running = True
-while running:
+receive_handler = threading.Thread(target=receive_data, name='receive_handler')
+receive_handler.start()
+thread_open('Поток открыт', receive_handler.name)
+
+disconnect_handler = threading.Thread(target=disconnect_check, name='disconnect_handler')
+disconnect_handler.start()
+thread_open('Поток открыт', disconnect_handler.name)
+
+while not is_game_started:
     connection()
+
