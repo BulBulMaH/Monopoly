@@ -6,46 +6,46 @@ import time
 
 pg.init()
 allProperty = [ # [name, family, textX, textY, color, price, buildPrice, tax1, tax2, tax3, tax4, tax5, tax6, tax7]
-    ['Начало', 'Угловые локации', 'Отсюда начинается игра. При прохождении этого поля, вам даётся 200G','','','','','','','','','','',''],
-    ['Иван 1', 'Иваны', 129, 105, 'black', 60, 50, 2, 4, 10, 30, 90, 160, 250],
-    ['Груда вопросительных яиц 1', 'Груды вопросительных яиц', 'Тяните карту!','','','','','','','','','','',''],
-    ['Иван 2', 'Иваны', 253, 105, 'black', 60, 50, 4, 8, 20, 60, 180, 320, 450],
-    ['Глеб 1', 'Глебы', 311, 105, 'white', -200,'','','','','','','',''],
-    ['Егор 1', 'Егоры', 381, 105, 'black', 200,'','','','','','','',''],
-    ['Василий 1', 'Василии', 448, 105, 'black', 100, 50, 6, 12, 30, 90, 270, 400, 550],
-    ['Вопросительное яйцо 1', 'Вопросительные яйца', 'Тяните карту!','','','','','','','','','','',''],
-    ['penis.', 'Василии', 580, 105, 'black', 100, 50, 6, 12, 30, 90, 270, 400, 550],
-    ['Василий 3', 'Василии', 640, 105, 'black', 100, 50, 8, 16, 40, 100, 300, 450, 600],
-    ['Тюрьма', 'Угловые локации', 'Вы - злобный нарушитель!', 100, 50],
-    ['Доминика 1', 'Доминики', 678, 124, 'black', 140, 100, 10, 20, 50, 150, 450, 625, 750],
-    ['Данил 1', 'Данилы', 678, 185, 'black', 250,'','','','','','','',''],
-    ['Доминика 2', 'Доминики', 678, 249, 'black', 140, 100, 10, 20, 50, 150, 450, 625, 750],
-    ['Доминика 3', 'Доминики', 678, 314, 'black', 140, 100, 12, 24, 60, 180, 500, 700, 900],
-    ['Егор 2', 'Егоры', 678, 380, 'black', 200,'','','','','','','',''],
-    ['Артём 1', 'Артёмы', 678, 446, 'black', 180, 100, 14, 28, 70, 200, 550, 750, 950],
-    ['Груда вопросительных яиц 2', 'Груды вопросительных яиц', 'Тяните карту!','','','','','','','','','','',''],
-    ['Артём 2', 'Артёмы', 678, 579, 'black', 180, 100, 14, 28, 70, 200, 550, 750, 950],
-    ['Артём 3', 'Артёмы', 678, 637, 'black', 180, 100, 16, 32, 80, 220, 600, 800, 1000],
-    ['Ничего', 'Угловые локации', 'Самая безопасная локация. Ведь так же?','','','','','','','','','','',''],
-    ['Никита 1', 'Никиты', 639, 681, 'black', 220, 150, 22, 44, 110, 330, 800, 975, 1150],
-    ['Вопросительное яйцо 1', 'Вопросительные яйца', 'Тяните карту!','','','','','','','','','','',''],
-    ['Никита 2', 'Никиты', 514, 681, 'black', 220, 150, 22, 44, 110, 330, 800, 975, 1150],
-    ['Никита 3', 'Никиты', 448, 681, 'black', 220, 150, 24, 48, 120, 360, 850, 1025, 1200],
-    ['Егор 3', 'Егоры', 382, 681, 'black', 200,'','','','','','','',''],
-    ['Василий Киммель 1', 'Киммели', 314, 681, 'black', 260, 150, 18, 36, 90, 250, 700, 875, 1050],
-    ['Василий Киммель 2', 'Киммели', 249, 681, 'black', 260, 150, 18, 36, 90, 250, 700, 875, 1050],
-    ['Данил 1', 'Данилы', 185, 681, 'black', 250,'','','','','','','',''],
-    ['Василий Киммель 3', 'Киммели', 124, 681, 'black', 260, 150, 20, 40, 100, 300, 750, 925, 1100],
-    ['Туда', 'Угловые локации', 'Тууудаааа!','','','','','','','','','','',''],
-    ['Даниил 1', 'Даниилы', 105, 633, 'black', 300, 200, 26, 52, 130, 390, 900, 1100, 1275],
-    ['Даниил 2', 'Даниилы', 105, 578, 'black', 300, 200, 26, 52, 130, 390, 900, 1100, 1275],
-    ['Груда вопросительных яиц 1', 'Груды вопросительных яиц', 'Тяните карту!'],
-    ['Даниил 3', 'Даниилы', 105, 444, 'black', 300, 200, 28, 56, 150, 450, 1000, 1200, 1400],
-    ['Егор 1', 'Егоры', 105, 379, 'black', 200,'','','','','','','',''],
-    ['Вопросительное яйцо 1', 'Вопросительные яйца', 'Тяните карту!','','','','','','','','','','',''],
-    ['Дмитрий 1', 'Дмитрии', 105, 247, 'black', 350, 200, 35, 70, 175, 500, 1100, 1300, 1500],
-    ['Глеб 1', 'Глебы', 105, 178, 'white', -100,'','','','','','','',''],
-    ['Дмитрий 2', 'Дмитрии', 105, 124, 'black', 350, 200, 50, 100, 200, 600, 1400, 1700, 1200]
+    ['Начало', 'Угловые локации', 'Отсюда начинается игра. При прохождении этого поля, вам даётся 200G','','','','','','','','','','','',''],
+    ['Иван 1', 'Иваны', 129, 105, 'black', 50, 60, 2, 4, 10, 30, 90, 160, 250, 0],
+    ['Груда вопросительных яиц 1', 'Груды вопросительных яиц', 'Тяните карту!','','','','','','','','','','','',''],
+    ['Иван 2', 'Иваны', 253, 105, 'black', 50, 60, 4, 8, 20, 60, 180, 320, 450, 0],
+    ['Глеб 1', 'Глебы', 311, 105, 'white','',-200,'','','','','','','',''],
+    ['Егор 1', 'Егоры', 381, 105, 'black','',200,'','','','','','','',''],
+    ['Василий 1', 'Василии', 448, 105, 'black', 50, 100, 6, 12, 30, 90, 270, 400, 550, 0],
+    ['Вопросительное яйцо 1', 'Вопросительные яйца', 'Тяните карту!','','','','','','','','','','','',''],
+    ['penis.', 'Василии', 580, 105, 'black', 50, 100, 6, 12, 30, 90, 270, 400, 550, 0],
+    ['Василий 3', 'Василии', 640, 105, 'black', 50, 100, 8, 16, 40, 100, 300, 450, 600, 0],
+    ['Тюрьма', 'Угловые локации', 'Вы - злобный нарушитель!', 100, 50,'','','','','','','','','',''],
+    ['Доминика 1', 'Доминики', 678, 124, 'black', 100, 140, 10, 20, 50, 150, 450, 625, 750, 0],
+    ['Данил 1', 'Данилы', 678, 185, 'black','',250,'','','','','','','',''],
+    ['Доминика 2', 'Доминики', 678, 249, 'black', 100, 140, 10, 20, 50, 150, 450, 625, 750, 0],
+    ['Доминика 3', 'Доминики', 678, 314, 'black', 100, 140, 12, 24, 60, 180, 500, 700, 900, 0],
+    ['Егор 2', 'Егоры', 678, 380, 'black','',200,'','','','','','','',''],
+    ['Артём 1', 'Артёмы', 678, 446, 'black', 100, 180, 14, 28, 70, 200, 550, 750, 950, 0],
+    ['Груда вопросительных яиц 2', 'Груды вопросительных яиц', 'Тяните карту!','','','','','','','','','','','',''],
+    ['Артём 2', 'Артёмы', 678, 579, 'black', 100, 180, 14, 28, 70, 200, 550, 750, 950, 0],
+    ['Артём 3', 'Артёмы', 678, 637, 'black', 100, 180, 16, 32, 80, 220, 600, 800, 1000, 0],
+    ['Ничего', 'Угловые локации', 'Самая безопасная локация. Ведь так же?','','','','','','','','','','','',''],
+    ['Никита 1', 'Никиты', 639, 681, 'black', 150, 220, 22, 44, 110, 330, 800, 975, 1150, 0],
+    ['Вопросительное яйцо 1', 'Вопросительные яйца', 'Тяните карту!','','','','','','','','','','','',''],
+    ['Никита 2', 'Никиты', 514, 681, 'black', 150, 220, 22, 44, 110, 330, 800, 975, 1150, 0],
+    ['Никита 3', 'Никиты', 448, 681, 'black', 150, 220, 24, 48, 120, 360, 850, 1025, 1200, 0],
+    ['Егор 3', 'Егоры', 382, 681, 'black','',200,'','','','','','','',''],
+    ['Василий Киммель 1', 'Киммели', 314, 681, 'black', 150, 260, 18, 36, 90, 250, 700, 875, 1050, 0],
+    ['Василий Киммель 2', 'Киммели', 249, 681, 'black', 150, 260, 18, 36, 90, 250, 700, 875, 1050, 0],
+    ['Данил 1', 'Данилы', 185, 681, 'black','',250,'','','','','','','',''],
+    ['Василий Киммель 3', 'Киммели', 124, 681, 'black', 150, 260, 20, 40, 100, 300, 750, 925, 1100, 0],
+    ['Туда', 'Угловые локации', 'Тууудаааа!','','','','','','','','','','','',''],
+    ['Даниил 1', 'Даниилы', 105, 633, 'black', 200, 300, 26, 52, 130, 390, 900, 1100, 1275, 0],
+    ['Даниил 2', 'Даниилы', 105, 578, 'black', 200, 300, 26, 52, 130, 390, 900, 1100, 1275, 0],
+    ['Груда вопросительных яиц 1', 'Груды вопросительных яиц', 'Тяните карту!','','','','','','','','','',''],
+    ['Даниил 3', 'Даниилы', 105, 444, 'black', 200, 300, 28, 56, 150, 450, 1000, 1200, 1400, 0],
+    ['Егор 1', 'Егоры', 105, 379, 'black','',200,'','','','','','','',''],
+    ['Вопросительное яйцо 1', 'Вопросительные яйца', 'Тяните карту!','','','','','','','','','','','',''],
+    ['Дмитрий 1', 'Дмитрии', 105, 247, 'black', 200, 350, 35, 70, 175, 500, 1100, 1300, 1500, 0],
+    ['Глеб 1', 'Глебы', 105, 178, 'white','',-100,'','','','','','','',''],
+    ['Дмитрий 2', 'Дмитрии', 105, 124, 'black', 200, 350, 50, 100, 200, 600, 1400, 1700, 1200, 0]
     ]
 quesEgg = [
     'Вам надо к Егору',
@@ -83,15 +83,15 @@ quesEggs = [
 ]
 
 screen = pg.display.set_mode((1280,797))
-pg.display.set_caption('Monopoly v0.1') #название игры
-background = pg.image.load('resources/images/board/board.png') #объявление поля
+pg.display.set_caption('Monopoly v0.2') #название игры
+background = pg.image.load('resources/main imgs/board/board.png') #объявление поля
 font = pg.font.Font('resources/fonts/bulbulpoly.ttf',int(15.8090625))
 mainFont = pg.font.Font('resources/fonts/cardsfont.ttf',int(14))
 priceFont = pg.font.Font('resources/fonts/bulbulpoly-2.ttf',int(7))
-red = pg.image.load('resources/images/players/redPlayer.png')
-buttonTexture = pg.image.load('resources/images/interactive/button.png')
-buttonPressed = pg.image.load('resources/images/interactive/buttonPressed.png')
-buttonMouseCollided = pg.image.load('resources/images/interactive/buttonMouseCollided.png')
+red = pg.image.load('resources/main imgs/players/redPlayer.png')
+buttonTexture = pg.image.load('resources/main imgs/interactive/button.png')
+buttonPressed = pg.image.load('resources/main imgs/interactive/buttonPressed.png')
+buttonMouseCollided = pg.image.load('resources/main imgs/interactive/buttonMouseCollided.png')
 connectButton = pg.Rect(860,129,134,36)
 playButton = pg.Rect(860,194,134,36)
 buyButton = pg.Rect(860,373,134,36)
@@ -100,10 +100,19 @@ nameInput = pg.Rect(861,64,134,36)
 manager = txt_inp.TextInputManager(validator = lambda input: len(input) <= 12)
 nameTxtInp = txt_inp.TextInputVisualizer(manager = manager,font_object = font,font_color = 'white',cursor_color = 'white')
 ipTxtInp = txt_inp.TextInputVisualizer(manager = manager,font_object = font,font_color = 'white',cursor_color = 'white')
-piecesImg = ['resources/images/players/bluePlayer.png',
-             'resources/images/players/greenPlayer.png',
-             'resources/images/players/redPlayer.png',
-             'resources/images/players/yellowPlayer.png']
+piecesImg = ['resources/main imgs/players/bluePlayer.png',
+             'resources/main imgs/players/greenPlayer.png',
+             'resources/main imgs/players/redPlayer.png',
+             'resources/main imgs/players/yellowPlayer.png']
+isPlayerPropHor = ['resources/main imgs/board/property/isBluePropHor',
+                   'resources/main imgs/board/property/isGreenPropHor',
+                   'resources/main imgs/board/property/isRedPropHor',
+                   'resources/main imgs/board/property/isYellowPropHor']
+isPlayerPropVer = ['resources/main imgs/board/property/isBluePropVer',
+                   'resources/main imgs/board/property/isGreenPropVer',
+                   'resources/main imgs/board/property/isRedPropVer',
+                   'resources/main imgs/board/property/isYellowPropVer']
+money = 1500
 pos1, pos2 = 0, 0
 name = ''
 color = ''
@@ -136,8 +145,9 @@ while true:
         for pos1 in range(12):
             for pos2 in range(face + 1): # иначе он не видит посл. клетку
                 pass
+        # print(allProperty[pos2][0], len(allProperty[pos2]))
         if type(allProperty[pos2][2]) is not str:
-            priceTextVal = str(allProperty[pos2][5]) + '~'
+            priceTextVal = str(allProperty[pos2][6]) + '~'
             if pos2 > 10 and pos2 < 20:
                 priceText = pg.transform.rotate(priceFont.render(priceTextVal, False, (allProperty[pos2][4])), angle)
             elif pos2 > 30 and pos2 < 40:
@@ -156,8 +166,10 @@ while true:
             piecePosX = sumCubes * 66
             print('Первый куб:',firCube,', второй куб:',secCube,', сумма:',sumCubes)
             for ee in range(sumCubes):
+                pg.display.update()
                 for piecePosX in range(66):
                     q += 1
+
                     if q/66 >= 1:
                         piecePos +=1
                         q = 0
@@ -210,6 +222,15 @@ while true:
                         pieceCol_defined = True
         if event.type == pg.MOUSEBUTTONDOWN and event.button == 1 and buyButton.collidepoint(event.pos):
             print('buy')
+            if type(allProperty[piecePos][2]) is not str and type(allProperty[piecePos][14]) is not str and allProperty[piecePos][14] < 1:
+                allProperty[piecePos][14] += 1
+                property.append(allProperty[piecePos])
+                sock.send(y.encode())
+                print('Информация отправлена:', allData)
+                if (piecePos > 0 and piecePos < 10) or (piecePos > 20 and piecePos < 30):
+                    for i in range(len(isPlayerPropVer)):
+                        if color in isPlayerPropVer[i]:
+                            print('test')
         if event.type == pg.QUIT:
             true = False
             pg.quit()
@@ -231,12 +252,13 @@ while true:
         screen.blit(buttonMouseCollided, (859,372))
         screen.blit(mainFont.render('купить', False, (105,105,105)), (900, 372))
     if isConnPressed:
-        allData = [name, color, piecePos, inPrison, property]
+        allData = [name, color, piecePos, inPrison, property, money]
         if allData != oldAllData:
             oldAllData = allData
-            y = str(allData)
-            sock.send(y.encode())
-            print('Информация отправлена:', allData)
+            for i in range(len(allData)):
+                data1 = str(color) + '|' + str(allData[i]) + ','
+                sock.send(data1.encode())
+                print('Информация отправлена:', data1)
 
     pg.display.update()
     time.sleep(0.01)
