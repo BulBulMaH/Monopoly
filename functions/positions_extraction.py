@@ -10,6 +10,4 @@ def positions_extraction(resolution_folder):
     for i in range(len(positions)):
         for ii in range(len(positions[i])):
             positions[i][ii] = int(positions[i][ii])
-
-
     return positions

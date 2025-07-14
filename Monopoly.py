@@ -6,13 +6,12 @@ import pygame_widgets
 from pygame_widgets.button import Button
 from pygame_widgets.textbox import TextBox
 
-from functions.colored_output import thread_open, new_connection, information_received, information_sent, information_sent_to
+from functions.Players_Class_Client_side import Player
+from functions.Tiles_Class import Tiles
+
 from functions.positions_extraction import positions_extraction
+from functions.colored_output import thread_open, information_sent, information_received, new_connection
 from functions.resolution_choice import resolution_definition
-from functions.button_functions import buy, throw_cubes
-from functions.position_update import position_update
-from functions.connection_handler import handle_connection
-from functions.debug import debug_output
 
 pg.init()
 pg.mixer.init()  # для звука
@@ -20,7 +19,7 @@ pg.mixer.init()  # для звука
 resolution, resolution_folder, piece_color_coefficient, bars_coordinates, btn_coordinates, btn_text_coordinates, btn_font, profile_coordinates, start_btn_textboxes_coordinates, btn_radius = resolution_definition()
 
 FPS = 60
-TITLE = 'Monopoly v0.5.1'
+TITLE = 'Monopoly v0.6'
 screen = pg.display.set_mode(resolution)
 pg.display.set_caption(TITLE)
 clock = pg.time.Clock()
@@ -35,89 +34,15 @@ profile_picture = pg.image.load(f'resources/{resolution_folder}/profile/profile.
 bars = pg.image.load(f'resources/{resolution_folder}/bars.png')
 font = pg.font.Font('resources/fonts/bulbulpoly-3.ttf',25)
 
+all_players = [Player('red', positions),
+               Player('blue', positions),
+               Player('yellow', positions),
+               Player('green', positions),]
 players = []
 state = {'buy_btn_active': False,
          'is_game_started': False,
          'ready': False}
 name = ''
-
-cube_button = Button(screen,
-                     btn_coordinates[0][0],
-                     btn_coordinates[0][1],
-                     btn_coordinates[0][2],
-                     btn_coordinates[0][3],
-                     inactiveColour=(255, 255, 255),
-                     inactiveBorderColour=(0, 0, 0),
-                     hoverColour=(255, 255, 255),
-                     hoverBorderColour=(105, 105, 105),
-                     pressedColour=(191, 191, 191),
-                     pressedBorderColour=(0, 0, 0),
-                     borderThickness=3,
-                     radius=btn_radius,
-                     font=font,
-                     text='Бросить кубы',
-                     onClick=throw_cubes,
-                     onClickParams=(players, sock, state))
-
-buy_button = Button(screen,
-                    btn_coordinates[1][0],
-                    btn_coordinates[1][1],
-                    btn_coordinates[1][2],
-                    btn_coordinates[1][3],
-                    inactiveColour=(255, 255, 255),
-                    inactiveBorderColour=(0, 0, 0),
-                    hoverColour=(255, 255, 255),
-                    hoverBorderColour=(105, 105, 105),
-                    pressedColour=(191, 191, 191),
-                    pressedBorderColour=(0, 0, 0),
-                    borderThickness=3,
-                    radius=btn_radius,
-                    font=font,
-                    text='Купить',
-                    onClick=buy,
-                    onClickParams=(state, players, sock))
-
-name_textbox = TextBox(screen,
-                       start_btn_textboxes_coordinates[0][0],
-                       start_btn_textboxes_coordinates[0][1],
-                       start_btn_textboxes_coordinates[0][2],
-                       start_btn_textboxes_coordinates[0][3],
-                       colour=(200, 200, 200),
-                       textColour=(0, 0, 0),
-                       borderThickness=2,
-                       borderColour=(0, 0, 0),
-                       font=font,
-                       radius=btn_radius,
-                       placeholderText='Введите имя',
-                       placeholderTextColour=(128, 128, 128))
-
-ip_textbox = TextBox(screen,
-                       start_btn_textboxes_coordinates[1][0],
-                       start_btn_textboxes_coordinates[1][1],
-                       start_btn_textboxes_coordinates[1][2],
-                       start_btn_textboxes_coordinates[1][3],
-                       colour=(200, 200, 200),
-                       textColour=(0, 0, 0),
-                       borderThickness=2,
-                       borderColour=(0, 0, 0),
-                       font=font,
-                       radius=btn_radius,
-                       placeholderText='IP адрес',
-                       placeholderTextColour=(128, 128, 128))
-
-port_textbox = TextBox(screen,
-                       start_btn_textboxes_coordinates[2][0],
-                       start_btn_textboxes_coordinates[2][1],
-                       start_btn_textboxes_coordinates[2][2],
-                       start_btn_textboxes_coordinates[2][3],
-                       colour=(200, 200, 200),
-                       textColour=(0, 0, 0),
-                       borderThickness=2,
-                       borderColour=(0, 0, 0),
-                       font=font,
-                       radius=btn_radius,
-                       placeholderText='Порт',
-                       placeholderTextColour=(128, 128, 128))
 
 
 def connect():
@@ -136,10 +61,10 @@ def connect():
             sock.connect((ip, port))
             name = name_textbox.getText()
             connected = True
-            print(f'Подключено к {ip}:{port}')
             new_connection('Подключено к', f'{ip}:{port}')
         except:
             print(f'{"\033[31m{}".format('Не удалось подключиться')}{'\033[0m'}') # красный
+
 
 def start_game():
     global state
@@ -148,65 +73,18 @@ def start_game():
         state['ready'] = True
 
 
-connect_button = Button(screen,
-                     start_btn_textboxes_coordinates[3][0],
-                     start_btn_textboxes_coordinates[3][1],
-                     start_btn_textboxes_coordinates[3][2],
-                     start_btn_textboxes_coordinates[3][3],
-                     inactiveColour=(255, 255, 255),
-                     inactiveBorderColour=(0, 0, 0),
-                     hoverColour=(255, 255, 255),
-                     hoverBorderColour=(105, 105, 105),
-                     pressedColour=(191, 191, 191),
-                     pressedBorderColour=(0, 0, 0),
-                     borderThickness=3,
-                     radius=btn_radius,
-                     font=font,
-                     text='Подключиться',
-                     onClick=connect)
-
-start_button = Button(screen,
-                     start_btn_textboxes_coordinates[4][0],
-                     start_btn_textboxes_coordinates[4][1],
-                     start_btn_textboxes_coordinates[4][2],
-                     start_btn_textboxes_coordinates[4][3],
-                     inactiveColour=(255, 255, 255),
-                     inactiveBorderColour=(0, 0, 0),
-                     hoverColour=(255, 255, 255),
-                     hoverBorderColour=(105, 105, 105),
-                     pressedColour=(191, 191, 191),
-                     pressedBorderColour=(0, 0, 0),
-                     borderThickness=3,
-                     radius=btn_radius,
-                     font=font,
-                     text='Готов',
-                     onClick=start_game)
+def all_tiles_get():
+    all_tiles = []
+    test = open(f'resources/{resolution_folder}/text values/kletki.txt', 'r')
+    information = test.readlines()
+    test.close()
+    for i in range(40):
+        all_tiles.append(Tiles(information[i]))
+    information.clear()
+    return all_tiles
 
 
-def debug_output1():
-    global players, state
-    print(f'\nPlayers: {players}'
-          f'\nState: buy_btn_active: {state['buy_btn_active']}'
-          f'\n       is_game_started: {state['is_game_started']}'
-          f'\n       ready: {state['ready']}')
-
-
-debug_button = Button(screen,
-                     954,
-                     592,
-                     136,
-                     38,
-                     inactiveColour=(255, 255, 255),
-                     inactiveBorderColour=(0, 0, 0),
-                     hoverColour=(255, 255, 255),
-                     hoverBorderColour=(105, 105, 105),
-                     pressedColour=(191, 191, 191),
-                     pressedBorderColour=(0, 0, 0),
-                     borderThickness=3,
-                     radius=btn_radius,
-                     font=font,
-                     text='debug',
-                     onClick=debug_output1)
+all_tiles = all_tiles_get()
 
 
 def blit_items():
@@ -218,12 +96,184 @@ def blit_items():
                     (profile_coordinates[player_index][1][0], profile_coordinates[player_index][1][1]))
         screen.blit(btn_font.render(f'{player.money}~', False, 'black'),
                     (profile_coordinates[player_index][2][0], profile_coordinates[player_index][2][1] - 10))
-        position_update(player.color, players, piece_color_coefficient, screen)
+        position_update(player.color)
 
         for company in player.property:
             screen.blit(pg.image.load(f'resources/{resolution_folder}/{player.color}Property.png'), ((int(positions[company][0])), int(positions[company][1])))
 
     screen.blit(bars, bars_coordinates)
+
+
+def buy_btn_check(color):
+    global state, players
+    for player in players:
+        if player.main and player.color == color:
+            for allPlayer in players:
+                if (all_tiles[player.piece_position].buyable == 'True' and
+                    player.piece_position not in allPlayer.property and
+                    player.money - int(all_tiles[player.piece_position].priceTxt) > 0):
+                    state['buy_btn_active'] = True
+                else:
+                    state['buy_btn_active'] = False
+                print(f'Состояние buy_btn_active установлено на {state['buy_btn_active']}')
+
+
+def position_update(color):
+    for player in players:
+        if player.color == color:
+            if color == 'red':
+                player.x = player.baseX
+                player.y = player.baseY
+            elif color == 'green':
+                player.x = player.baseX + piece_color_coefficient
+                player.y = player.baseY
+            elif color == 'yellow':
+                player.x = player.baseX
+                player.y = player.baseY + piece_color_coefficient
+            elif color == 'blue':
+                player.x = player.baseX + piece_color_coefficient
+                player.y = player.baseY + piece_color_coefficient
+            screen.blit(pg.image.load(f'resources/{resolution_folder}/{player.color}Piece.png'), (player.x, player.y))
+
+
+def handle_connection():
+    global all_players, players, state
+    while True:
+        try:
+            data_temp = sock.recv(1024).decode()
+            data = data_temp.replace('test','').split('|')
+            if data[0] != '':
+                information_received('Информация получена', data)
+            if data[0] == 'color main':
+                for allPlayer in all_players:
+                    if allPlayer.color == data[1]:
+                        allPlayer.main_color(data[1], name)
+
+            elif data[0] == 'move':
+                move(data[1], int(data[3]), int(data[4]))
+
+            elif data[0] == 'playersData':
+                data.remove('playersData')
+                for allPlayer in all_players:
+                    for i in data:
+                        if i == allPlayer.color:
+                            if allPlayer not in players:
+                                players.append(allPlayer)
+                for player in players:
+                    if player.color == data[0]:
+                        player.money = int(data[1])
+                        player.piece_position = int(data[2])
+                        player.baseX = positions[player.piece_position][0]
+                        player.baseY = positions[player.piece_position][1]
+                        position_update(player.color)
+
+            elif data[0] == 'property':
+                for player in players:
+                    if data[2] == player.color:
+                        player.property.append(int(data[1]))
+                        print(f'У {player.color} есть {player.property}')
+                        buy_btn_check(data[2])
+
+            elif data[0] == 'money':
+                for player in players:
+                    if data[1] == player.color:
+                        player.money = int(data[2])
+
+            elif data[0] == 'playerDeleted':
+                for player in players:
+                    if player.color == data[1]:
+                        players.remove(player)
+
+            elif data[0] == 'gameStarted':
+                state['is_game_started'] = True
+
+            if not running:
+                break
+        except:
+            pass
+
+
+def move(color, cube1, cube2):
+    global players
+    for player in players:
+        if player.color == color:
+            if player.main:
+                global state
+                state['buy_btn_active'] = False
+            for i in range(cube1 + cube2):
+                start = [positions[player.piece_position][0], positions[player.piece_position][1]]
+                player.piece_position += 1
+                if player.piece_position > 39:
+                    player.piece_position = 0
+                end = [positions[player.piece_position][0], positions[player.piece_position][1]]
+                tile_width = max(abs(positions[player.piece_position][0] - positions[player.piece_position - 1][0]),
+                                 abs(positions[player.piece_position][1] - positions[player.piece_position - 1][1]))
+                diff_x = end[0] - start[0]
+                diff_y = end[1] - start[1]
+
+                if min(diff_x, diff_y) != 0:
+                    x_step = diff_x / min(diff_x, diff_y)
+                    y_step = diff_y / min(diff_x, diff_y)
+                else:
+                    x_step = diff_x / max(diff_x, diff_y)
+                    y_step = diff_y / max(diff_x, diff_y)
+
+                for ii in range(tile_width):
+                    time.sleep(dt/2) # была 1/120, но dt это ~1/60 => (1/60)/2=1/120
+
+                    x_sign = 1
+                    y_sign = 1
+
+                    if 0 < player.piece_position <= 20:
+                        x_sign = 1
+                        y_sign = 1
+                    elif 20 < player.piece_position <= 30:
+                        x_sign = -1
+                        y_sign = 1
+                    elif player.piece_position > 30 or player.piece_position == 0:
+                        x_sign = -1
+                        y_sign = -1
+
+                    # print(dt)
+                    player.baseX += x_step * x_sign # * (0.8 + (cube1 + cube2) / 10) # 0.8 чтобы при кубах
+                    player.baseY += y_step * y_sign # * (0.8 + (cube1 + cube2) / 10) # 1/1 было 1, а 6/6 было 2
+                    position_update(player.color)
+
+                #     print(f'\nЦвет: {player.color}\nСтарт: {start}\nКонец: {end}\nРазница: {diff_x}, {diff_y}\nШаги: {x_step}, {y_step}\nКоординаты игрока: {player.baseX}, {player.baseY}\nПозиция игрока: {player.piece_position}\nШирина клетки: {tile_width}\nЗнаки: {x_sign}, {y_sign}\nПуть (в клетках): {i}')
+                # print(f'\nИГРОК {player.color} НА НОВОЙ КЛЕТКЕ {player.piece_position}!')
+            player.baseX = positions[player.piece_position][0]
+            player.baseY = positions[player.piece_position][1]
+            buy_btn_check(player.color)
+            if player.main:
+                sock.send('moved'.encode())
+
+
+def throw_cubes():
+    if state['is_game_started']:
+        print('Кнопка "Бросить кубы" нажата')
+        for player in players:
+            if player.main:
+                move_command = 'move'
+                sock.send(move_command.encode())
+                information_sent('Команда отправлена', move_command)
+
+
+def buy():
+    if state['is_game_started'] and state['buy_btn_active']:
+        print('Кнопка "Купить" нажата')
+        for player in players:
+            if player.main:
+                buy_command = 'buy|' + str(player.piece_position)
+                sock.send(buy_command.encode())
+                information_sent('Команда отправлена', buy_command)
+
+
+def debug_output():
+    global players, state
+    print(f'\nPlayers: {players}'
+          f'\nState: buy_btn_active: {state['buy_btn_active']}'
+          f'\n       is_game_started: {state['is_game_started']}'
+          f'\n       ready: {state['ready']}')
 
 
 def delta_time(old_time):
@@ -241,16 +291,163 @@ def event_handler():
             global running
             running = False
 
+
+def price_printing():
+    for tile in all_tiles:
+        if tile.priceTxt != '':
+            text = font.render(f'{tile.priceTxt}~', False, tile.color)
+            text_rect = text.get_rect()
+            text_rect.center = (tile.xText,tile.yText)
+            price_text = pg.transform.rotate(text,tile.angle)
+
+            screen.blit(price_text, text_rect)
+
+
+def buttons():
+    global cube_button, buy_button, name_textbox, ip_textbox, port_textbox, connect_button, start_button, debug_button
+    cube_button = Button(screen,
+                         btn_coordinates[0][0],
+                         btn_coordinates[0][1],
+                         btn_coordinates[0][2],
+                         btn_coordinates[0][3],
+                         inactiveColour=(255, 255, 255),
+                         inactiveBorderColour=(0, 0, 0),
+                         hoverColour=(255, 255, 255),
+                         hoverBorderColour=(105, 105, 105),
+                         pressedColour=(191, 191, 191),
+                         pressedBorderColour=(0, 0, 0),
+                         borderThickness=3,
+                         radius=btn_radius,
+                         font=btn_font,
+                         text='Бросить кубы',
+                         onClick=throw_cubes)
+
+    buy_button = Button(screen,
+                        btn_coordinates[1][0],
+                        btn_coordinates[1][1],
+                        btn_coordinates[1][2],
+                        btn_coordinates[1][3],
+                        inactiveColour=(255, 255, 255),
+                        inactiveBorderColour=(0, 0, 0),
+                        hoverColour=(255, 255, 255),
+                        hoverBorderColour=(105, 105, 105),
+                        pressedColour=(191, 191, 191),
+                        pressedBorderColour=(0, 0, 0),
+                        borderThickness=3,
+                        radius=btn_radius,
+                        font=btn_font,
+                        text='Купить',
+                        onClick=buy)
+
+    name_textbox = TextBox(screen,
+                           start_btn_textboxes_coordinates[0][0],
+                           start_btn_textboxes_coordinates[0][1],
+                           start_btn_textboxes_coordinates[0][2],
+                           start_btn_textboxes_coordinates[0][3],
+                           colour=(200, 200, 200),
+                           textColour=(0, 0, 0),
+                           borderThickness=2,
+                           borderColour=(0, 0, 0),
+                           font=btn_font,
+                           radius=btn_radius,
+                           placeholderText='Введите имя',
+                           placeholderTextColour=(128, 128, 128))
+
+    ip_textbox = TextBox(screen,
+                         start_btn_textboxes_coordinates[1][0],
+                         start_btn_textboxes_coordinates[1][1],
+                         start_btn_textboxes_coordinates[1][2],
+                         start_btn_textboxes_coordinates[1][3],
+                         colour=(200, 200, 200),
+                         textColour=(0, 0, 0),
+                         borderThickness=2,
+                         borderColour=(0, 0, 0),
+                         font=btn_font,
+                         radius=btn_radius,
+                         placeholderText='IP адрес',
+                         placeholderTextColour=(128, 128, 128))
+
+    port_textbox = TextBox(screen,
+                           start_btn_textboxes_coordinates[2][0],
+                           start_btn_textboxes_coordinates[2][1],
+                           start_btn_textboxes_coordinates[2][2],
+                           start_btn_textboxes_coordinates[2][3],
+                           colour=(200, 200, 200),
+                           textColour=(0, 0, 0),
+                           borderThickness=2,
+                           borderColour=(0, 0, 0),
+                           font=btn_font,
+                           radius=btn_radius,
+                           placeholderText='Порт',
+                           placeholderTextColour=(128, 128, 128))
+
+
+    connect_button = Button(screen,
+                            start_btn_textboxes_coordinates[3][0],
+                            start_btn_textboxes_coordinates[3][1],
+                            start_btn_textboxes_coordinates[3][2],
+                            start_btn_textboxes_coordinates[3][3],
+                            inactiveColour=(255, 255, 255),
+                            inactiveBorderColour=(0, 0, 0),
+                            hoverColour=(255, 255, 255),
+                            hoverBorderColour=(105, 105, 105),
+                            pressedColour=(191, 191, 191),
+                            pressedBorderColour=(0, 0, 0),
+                            borderThickness=3,
+                            radius=btn_radius,
+                            font=btn_font,
+                            text='Подключиться',
+                            onClick=connect)
+
+    start_button = Button(screen,
+                          start_btn_textboxes_coordinates[4][0],
+                          start_btn_textboxes_coordinates[4][1],
+                          start_btn_textboxes_coordinates[4][2],
+                          start_btn_textboxes_coordinates[4][3],
+                          inactiveColour=(255, 255, 255),
+                          inactiveBorderColour=(0, 0, 0),
+                          hoverColour=(255, 255, 255),
+                          hoverBorderColour=(105, 105, 105),
+                          pressedColour=(191, 191, 191),
+                          pressedBorderColour=(0, 0, 0),
+                          borderThickness=3,
+                          radius=btn_radius,
+                          font=btn_font,
+                          text='Готов',
+                          onClick=start_game)
+
+    debug_button = Button(screen,
+                          954,
+                          592,
+                          136,
+                          38,
+                          inactiveColour=(255, 255, 255),
+                          inactiveBorderColour=(0, 0, 0),
+                          hoverColour=(255, 255, 255),
+                          hoverBorderColour=(105, 105, 105),
+                          pressedColour=(191, 191, 191),
+                          pressedBorderColour=(0, 0, 0),
+                          borderThickness=3,
+                          radius=btn_radius,
+                          font=btn_font,
+                          text='debug',
+                          onClick=debug_output)
+
+
+buttons()
+
 running = True
 
-connHandler = threading.Thread(target = handle_connection, args=(sock,positions,name,running,screen,), name='ConnectionHandler')
-connHandler.start()
+connection_handler = threading.Thread(target = handle_connection, name='connection_handler') # , args=(sock,positions,name,running,screen,)
+connection_handler.start()
+thread_open('Поток открыт', connection_handler.name)
 
 while running:
     clock.tick(FPS)
-    dt = delta_time(prev_time)
+    dt, prev_time = delta_time(prev_time)
 
     blit_items()
+    price_printing()
 
     event_handler()
     pg.display.flip()

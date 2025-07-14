@@ -19,7 +19,7 @@ class Player():
 
     def connect(self, colors):
         new_sck, address = main_sck.accept()
-        print('Новое подключение:', address)
+        new_connection('Новое подключение', address)
         new_sck.setblocking(0)
         self.conn = new_sck
         self.address = address
@@ -79,7 +79,7 @@ def receive_data():
                 data_temp = player.conn.recv(1024).decode()
                 data = data_temp.split('|')
                 if data != '':
-                    print('Информация получена:', data)
+                    information_received('Информация получена', data)
 
                 if data[0] == 'move':
                     cube1 = random.randint(1,6)
@@ -155,7 +155,7 @@ def connection():
         player.connect(colors)
         players.append(player)
         print(f'Игрок с цветом {player.color} добавлен в список')
-        time.sleep(1)
+        time.sleep(0.1)
         players_send()
     except:
         pass
