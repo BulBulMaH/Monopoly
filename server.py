@@ -53,7 +53,7 @@ inf = []
 
 main_sck = sck.socket(sck.AF_INET,sck.SOCK_STREAM)
 main_sck.setsockopt(sck.IPPROTO_TCP,sck.TCP_NODELAY,1)
-main_sck.bind(('26.197.29.62',1247))
+main_sck.bind(('26.190.64.4',1247))
 main_sck.setblocking(0)
 main_sck.listen(4) # количество доступных подключений
 print('Сервер открыт')
@@ -63,18 +63,20 @@ greenPlayer = Player('','','green')
 yellowPlayer = Player('','','yellow')
 bluePlayer = Player('','','blue')
 
-global players
 players = []
+all_players = [redPlayer, greenPlayer, yellowPlayer, bluePlayer]
 colors = ['red','blue','yellow','green']
 random.shuffle(colors)
 
 def receiveData():
     while True:
-        for player in players:
-            try:
+        try:
+            for player in players:
                 data_temp = player.conn.recv(1024).decode()
                 data = data_temp.split('|')
-                print('Информация получена:', data)
+                if data != '':
+                    print('Информация получена:', data)
+
 
                 if data[0] == 'move':
                     cube1 = random.randint(1,6)
@@ -111,8 +113,11 @@ def receiveData():
                         player2.conn.send(propertyData.encode())
                         player2.conn.send(moneyData.encode())
                         print(f'Информация отправлена: {propertyData}, {moneyData}')
-            except:
-                pass
+
+                if data[0] == 'moved':
+                    print(f'Игрок {player.color} переместился.')
+        except:
+            pass
 
 def playersSend():
     playersData = ''
@@ -133,6 +138,7 @@ def playersSend():
         player2.conn.send(propertyData.encode())
         print(f'Информация отправлена к {player2.color} цвету: {propertyData}')
         for i in range(len(playersDataTemp)):
+            time.sleep(0.12)
             player2.conn.send(playersDataTemp[0].encode())
             print(f'Информация отправлена к {player2.color} цвету: {playersDataTemp[0]}')
             playersDataTemp.pop(0)
@@ -164,6 +170,7 @@ def disconnectCheck():
                 player.conn.send('test'.encode())
             except:
                 colors.append(player.color)
+                deleted_color = player.color
                 print(f'Игрок {player.color} отключился.\nЦвет {player.color} возвращён')
                 player.piece_position = 0
                 player.money = 1500
@@ -171,7 +178,11 @@ def disconnectCheck():
                 player.name = ''
                 players.remove(player)
                 playersSend()
-        time.sleep(1)
+                for player2 in players:
+                    deletion_playerData = 'playerDeleted|' + deleted_color
+                    player2.conn.send(deletion_playerData.encode())
+                    print(f'Информация отправлена к {player2.color} цвету: {deletion_playerData}')
+            time.sleep(1)
 
 
 

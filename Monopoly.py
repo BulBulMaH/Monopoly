@@ -1,47 +1,44 @@
 import pygame as pg
 import socket as sck
-import random
-import time
 import threading
-import math
+import time
 
 pg.init()
 clock = pg.time.Clock()
 
-print('Введите разрешение экрана:\n1 - 1280x720\n2 - 1920x1080')
-resBool = False
-while not resBool:
-    resNum = int(input())
-    if resNum == 1:
-        res = (1280,650)
-        resFolder = '720p'
-        pieceColorCoef = 28
-        barsCoords = (582, 2)
-        btnCoords = [(953, 20, 136, 38),(953, 78, 136, 38)]
-        btnTextCoords = [(963,24),(993,82)]
-        btnFont = pg.font.Font('resources/fonts/bulbulpoly-3.ttf',25)
-        profileCoords = [[[669, 20], [830, 46], [674, 48]],
-                         [[669, 169], [830, 195], [674, 197]],
-                         [[669, 318], [830, 344], [674, 346]],
-                         [[669, 467], [830, 493], [674, 495]]]
-        resBool = True
-    elif resNum == 2:
-        res = (1920,1001)
-        resFolder = '1080p'
-        pieceColorCoef = 42
-        barsCoords = (897,3)
-        btnCoords = [(1455, 30, 204, 57),(1455, 117, 204, 57)]
-        btnTextCoords = [(1475,40),(1514,127)]
-        btnFont = pg.font.Font('resources/fonts/bulbulpoly-3.ttf', int(37.5))
-        profileCoords = [[[1028, 30], [1262, 66], [1034, 69]],
-                         [[1028, 249], [1262, 285], [1034, 288]],
-                         [[1028, 468], [1262, 504], [1034, 507]],
-                         [[1028, 687], [1262, 723], [1034, 726]]]
-        resBool = True
+is_resolution_selected = False
+while not is_resolution_selected:
+    resolution_index = int(input('Введите разрешение экрана:\n1 - 1280x720\n2 - 1920x1080\n'))
+    if resolution_index == 1:
+        resolution = (1280, 650)
+        resolution_folder = '720p'
+        piece_color_coefficient = 28
+        bars_coordinates = (582, 2)
+        btn_coordinates = [(953, 20, 136, 38), (953, 78, 136, 38)]
+        btn_text_coordinates = [(963, 24), (993, 82)]
+        btn_font = pg.font.Font('resources/fonts/bulbulpoly-3.ttf', 25)
+        profile_coordinates = [[[669, 20], [830, 46], [674, 48]],
+                               [[669, 169], [830, 195], [674, 197]],
+                               [[669, 318], [830, 344], [674, 346]],
+                               [[669, 467], [830, 493], [674, 495]]]
+        is_resolution_selected = True
+    elif resolution_index == 2:
+        resolution = (1920, 1001)
+        resolution_folder = '1080p'
+        piece_color_coefficient = 42
+        bars_coordinates = (897, 3)
+        btn_coordinates = [(1455, 30, 204, 57), (1455, 117, 204, 57)]
+        btn_text_coordinates = [(1475, 40), (1514, 127)]
+        btn_font = pg.font.Font('resources/fonts/bulbulpoly-3.ttf', int(37.5))
+        profile_coordinates = [[[1028, 30], [1262, 66], [1034, 69]],
+                               [[1028, 249], [1262, 285], [1034, 288]],
+                               [[1028, 468], [1262, 504], [1034, 507]],
+                               [[1028, 687], [1262, 723], [1034, 726]]]
+        is_resolution_selected = True
     else:
         print('Введены некорректные данные')
 
-positionsFile = open(f'resources/{resFolder}/text values/positions.txt')
+positionsFile = open(f'resources/{resolution_folder}/text values/positions.txt')
 positionsTemp = positionsFile.readlines()
 positionsFile.close()
 positions = []
@@ -53,7 +50,7 @@ for i in range(len(positions)):
     for ii in range(len(positions[i])):
         positions[i][ii] = int(positions[i][ii])
 
-class Player():
+class Player:
     def __init__(self,color):
         self.piecePos = 0
         self.name = ''
@@ -66,8 +63,9 @@ class Player():
         self.baseX = positions[0][0]
         self.baseY = positions[0][1]
 
-    def mainColor(self,mainColor):
+    def mainColor(self,mainColor, name):
         self.color = mainColor
+        self.name = name
         self.main = True
         print('Основной цвет:',self.color)
 
@@ -86,7 +84,7 @@ class Tiles():
         self.angle = int(inflist[9])
 
 allTiles = []
-test = open(f'resources/{resFolder}/text values/kletki.txt', 'r')
+test = open(f'resources/{resolution_folder}/text values/kletki.txt', 'r')
 inf = test.readlines()
 test.close()
 for i in range(40):
@@ -97,70 +95,81 @@ redPlayer = Player('red')
 greenPlayer = Player('green')
 yellowPlayer = Player('yellow')
 bluePlayer = Player('blue')
-global buy_btn_active
+
 buy_btn_active = False
 
-allPlayers = [redPlayer,greenPlayer,yellowPlayer,bluePlayer]
+allPlayers = [Player('red'), Player('green'), Player('yellow'), Player('blue')]
 players = []
 
 sock = sck.socket(sck.AF_INET, sck.SOCK_STREAM)
 sock.setsockopt(sck.IPPROTO_TCP, sck.TCP_NODELAY, 1)
 
+# avatarBool = False
+# while not avatarBool:
+#     avatar_path = input('Введите путь к аватару:\n')
+#     try:
+#         avatar = open(avatar_path, 'rb').read()
+#         avatar_size = os.path.getsize(avatar_path)
+#         print(avatar_size)
+#         avatarBool = True
+#     except:
+#         print('Файл не найден')
+
+name = input('Введите имя:\n')
+
 connected = False
 while not connected:
     try:
-        sock.connect(('26.197.29.62', 1247))
+        sock.connect(('26.190.64.4', 1247))
         connected = True
     except:
         print('Не удалось подключиться')
 
-screen = pg.display.set_mode(res)
-pg.display.set_caption('Monopoly v0.3') #название игры
-background = pg.image.load(f'resources/{resFolder}/board.png')
-bars = pg.image.load(f'resources/{resFolder}/bars.png')
+
+# sock.send(avatar)
+
+screen = pg.display.set_mode(resolution)
+pg.display.set_caption('Monopoly v0.4') #название игры
+background = pg.image.load(f'resources/{resolution_folder}/board.png')
+bars = pg.image.load(f'resources/{resolution_folder}/bars.png')
 
 font = pg.font.Font('resources/fonts/bulbulpoly-3.ttf',25)
-buttonTexture = pg.image.load(f'resources/{resFolder}/button.png')
-buttonPressed = pg.image.load(f'resources/{resFolder}/buttonPressed.png')
-buttonMouseCollided = pg.image.load(f'resources/{resFolder}/buttonMouseCollided.png')
-buttonDisabled = pg.image.load(f'resources/{resFolder}/buttonDisabled.png')
+buttonTexture = pg.image.load(f'resources/{resolution_folder}/button.png')
+buttonPressed = pg.image.load(f'resources/{resolution_folder}/buttonPressed.png')
+buttonMouseCollided = pg.image.load(f'resources/{resolution_folder}/buttonMouseCollided.png')
+buttonDisabled = pg.image.load(f'resources/{resolution_folder}/buttonDisabled.png')
 
-profilePicture = pg.image.load(f'resources/{resFolder}/profile/profile.png')
+profilePicture = pg.image.load(f'resources/{resolution_folder}/profile/profile.png')
 
-cubeButton = pg.Rect(btnCoords[0][0],btnCoords[0][1],btnCoords[0][2],btnCoords[0][3])
-buyButton = pg.Rect(btnCoords[1][0],btnCoords[1][1],btnCoords[1][2],btnCoords[1][3])
+cubeButton = pg.Rect(btn_coordinates[0][0], btn_coordinates[0][1], btn_coordinates[0][2], btn_coordinates[0][3])
+buyButton = pg.Rect(btn_coordinates[1][0], btn_coordinates[1][1], btn_coordinates[1][2], btn_coordinates[1][3])
 
-global startSpeed
-startSpeed = 3
-xStart = positions[0][0]
-yStart = positions[0][1]
 running = True
 
 def blitItems(screen,background,buttonTexture,font):
     screen.blit(background, (0, 0))  # инициализация поля
-    screen.blit(buttonTexture, (btnCoords[0][0],btnCoords[0][1]))  # играть
-    screen.blit(buttonTexture, (btnCoords[1][0],btnCoords[1][1]))  # купить
+    screen.blit(buttonTexture, (btn_coordinates[0][0], btn_coordinates[0][1]))  # играть
+    screen.blit(buttonTexture, (btn_coordinates[1][0], btn_coordinates[1][1]))  # купить
 
-    screen.blit(font.render('Бросить кубы', False, 'black'), (btnTextCoords[0][0],btnTextCoords[0][1]))
+    screen.blit(font.render('Бросить кубы', False, 'black'), (btn_text_coordinates[0][0], btn_text_coordinates[0][1]))
     # screen.blit(mainFont.render('позиция: ' + str(piecePos), False, 'white'), (860, 317))
-    screen.blit(font.render('Купить', False, 'black'), (btnTextCoords[1][0], btnTextCoords[1][1]))
+    screen.blit(font.render('Купить', False, 'black'), (btn_text_coordinates[1][0], btn_text_coordinates[1][1]))
 
     # screen.blit(pg.image.load('resources/main imgs/debug/номера клеток.png'),(0, 0))
 
     for player in players:
         playerNumber = players.index(player)
-        screen.blit(profilePicture, (profileCoords[playerNumber][0][0], profileCoords[playerNumber][0][1]))
-        screen.blit(pg.image.load(f'resources/{resFolder}/profile/{player.color}Profile.png'),
-                    (profileCoords[playerNumber][1][0], profileCoords[playerNumber][1][1]))
-        screen.blit(btnFont.render(f'{player.money}~', False, 'black'),
-                    (profileCoords[playerNumber][2][0], profileCoords[playerNumber][2][1] - 10))
+        screen.blit(profilePicture, (profile_coordinates[playerNumber][0][0], profile_coordinates[playerNumber][0][1]))
+        screen.blit(pg.image.load(f'resources/{resolution_folder}/profile/{player.color}Profile.png'),
+                    (profile_coordinates[playerNumber][1][0], profile_coordinates[playerNumber][1][1]))
+        screen.blit(btn_font.render(f'{player.money}~', False, 'black'),
+                    (profile_coordinates[playerNumber][2][0], profile_coordinates[playerNumber][2][1] - 10))
         positionUpdate(positions, player.color, player.baseX, player.baseY)
 
         for company in player.property:
-            screen.blit(pg.image.load(f'resources/{resFolder}/{player.color}Property.png'),((int(positions[company][0])), int(positions[company][1])))
+            screen.blit(pg.image.load(f'resources/{resolution_folder}/{player.color}Property.png'), ((int(positions[company][0])), int(positions[company][1])))
 
-    screen.blit(bars, barsCoords)
-
+    screen.blit(bars, bars_coordinates)
 
 def pricePrinting():
     for tile in allTiles:
@@ -173,70 +182,70 @@ def pricePrinting():
 
 def positionUpdate(positions, color, x, y):
     for player in players:
-        if player.color == 'green':
-            player.x = x + pieceColorCoef
-        elif player.color == 'yellow':
-            player.y = y + pieceColorCoef
-        elif player.color == 'blue':
-            player.x = x + pieceColorCoef
-            player.y = y + pieceColorCoef
-        screen.blit(pg.image.load(f'resources/{resFolder}/{player.color}Piece.png'), (player.x,player.y))
+        if player.color == color:
+            if color == 'red':
+                player.x = x
+                player.y = y
+            elif color == 'green':
+                player.x = x + piece_color_coefficient
+                player.y = y
+            elif color == 'yellow':
+                player.x = x
+                player.y = y + piece_color_coefficient
+            elif color == 'blue':
+                player.x = x + piece_color_coefficient
+                player.y = y + piece_color_coefficient
+            screen.blit(pg.image.load(f'resources/{resolution_folder}/{player.color}Piece.png'), (player.x, player.y))
 
 def move(color, piesePos, cube1, cube2):
-    global buy_btn_active
-    buyBtnActive = False
     for player in players:
         if player.color == color:
-            global startSpeed
-
-            for i in range(int(cube1) + int(cube2)):
+            if player.main:
+                global buy_btn_active
+                buyBtnActive = False
+            for i in range(cube1 + cube2):
                 start = [positions[player.piece_position][0], positions[player.piece_position][1]]
-                if player.piece_position + 1 <= 39:
-                    end = [positions[player.piece_position + 1][0],
-                           positions[player.piece_position + 1][1]]
-                else:
-                    end = [positions[player.piece_position - 39][0],
-                           positions[player.piece_position - 39][1]]
                 player.piece_position += 1
                 if player.piece_position > 39:
                     player.piece_position = 0
-                player.baseX = start[0]
-                player.baseY = start[1]
-                differenceX = end[0] - player.baseX
-                differenceY = end[1] - player.baseY
-                while abs(differenceX) >= abs(end[0] - player.baseX) and abs(differenceY) >= abs(end[1] - player.baseY):
-                    print('\n')
-                    print(f'i: {i}, cube 1: {cube1}, cube 2: {cube2}')
-                    differenceX = end[0] - player.baseX
-                    differenceY = end[1] - player.baseY
-                    clock.tick(60)
-                    print(f'Скорость: {startSpeed}')
+                end = [positions[player.piece_position][0], positions[player.piece_position][1]]
+                tile_width = max(abs(positions[player.piece_position][0] - positions[player.piece_position - 1][0]),
+                                 abs(positions[player.piece_position][1] - positions[player.piece_position - 1][1]))
+                diff_x = end[0] - start[0]
+                diff_y = end[1] - start[1]
 
-                    xStep = (end[0] - start[0]) / start[0]
-                    yStep = (end[1] - start[1]) / start[1]
+                if min(diff_x, diff_y) != 0:
+                    x_step = diff_x / min(diff_x, diff_y)
+                    y_step = diff_y / min(diff_x, diff_y)
+                else:
+                    x_step = diff_x / max(diff_x, diff_y)
+                    y_step = diff_y / max(diff_x, diff_y)
 
-                    print(f'Coarse steps: {xStep}, {yStep}.')
+                for ii in range(tile_width):
+                    time.sleep(1/120)
 
-                    xStep /= max(abs(xStep), abs(yStep))
-                    yStep /= max(abs(xStep), abs(yStep))
+                    if player.piece_position > 0 and player.piece_position <= 20:
+                        x_sign = 1
+                        y_sign = 1
+                    elif player.piece_position > 20 and player.piece_position <= 30:
+                        x_sign = -1
+                        y_sign = 1
+                    elif player.piece_position > 30 or player.piece_position == 0:
+                        x_sign = -1
+                        y_sign = -1
 
-                    print(f'xStep: {xStep}, yStep: {yStep}, цвет: {player.color}')
-                    print(differenceX,differenceY,'РАЗНИЦА')
-
-                    player.baseX += xStep * startSpeed
-                    player.baseY += yStep * startSpeed
-
-                    print(f'Старт: {start}, конец: {end}.')
+                    player.baseX += x_step * x_sign
+                    player.baseY += y_step * y_sign
                     positionUpdate(positions, player.color, player.baseX, player.baseY)
-                    print(f'Позиция: {player.x, player.y}, X: {player.baseX}, Y: {player.baseY}, ------------------------ позиция: {player.piece_position}')
-                player.baseX = positions[player.piece_position][0]
-                player.baseY = positions[player.piece_position][1]
-                positionUpdate(positions, player.color, player.baseX, player.baseY)
-            buyBtnCheck(players)
-            print(f'Новая позиция у {player.color}: {player.piece_position}. Координаты: {player.x}, {player.y} / {positions[player.piece_position][0]}, {positions[player.piece_position][1]}')
-            for player2 in players:
-                print(player2.color, player2.x, player2.y, player2.piece_position)
-        # startSpeed = 1.5
+
+                    print(f'\nЦвет: {player.color}\nСтарт: {start}\nКонец: {end}\nРазница: {diff_x}, {diff_y}\nШаги: {x_step}, {y_step}\nКоординаты игрока: {player.baseX}, {player.baseY}\nПозиция игрока: {player.piece_position}\nШирина клетки: {tile_width}\nЗнаки: {x_sign}, {y_sign}\nПуть (в клетках): {i}')
+                print(f'\nИГРОК {player.color} НА НОВОЙ КЛЕТКЕ {player.piece_position}!')
+            player.baseX = positions[player.piece_position][0]
+            player.baseY = positions[player.piece_position][1]
+            buyBtnCheck(player.color)
+            if player.main:
+                sock.send('moved'.encode())
+
 
 def handle_connection(sock, positions):
     while True:
@@ -245,17 +254,12 @@ def handle_connection(sock, positions):
         if data[0] != '':
             print('Информация получена:', data)
         if data[0] == 'color main':
-            if data[1] == 'red':
-                redPlayer.mainColor(data[1])
-            elif data[1] == 'green':
-                greenPlayer.mainColor(data[1])
-            elif data[1] == 'yellow':
-                yellowPlayer.mainColor(data[1])
-            elif data[1] == 'blue':
-                bluePlayer.mainColor(data[1])
+            for allPlayer in allPlayers:
+                if allPlayer.color == data[1]:
+                    allPlayer.mainColor(data[1], name)
 
         elif data[0] == 'move':
-            move(data[1], data[2], data[3], data[4])
+            move(data[1], data[2], int(data[3]), int(data[4]))
 
         elif data[0] == 'playersData':
             data.remove('playersData')
@@ -268,72 +272,87 @@ def handle_connection(sock, positions):
                 if player.color == data[0]:
                     player.money = int(data[1])
                     player.piece_position = int(data[2])
-                    player.x = positions[player.piece_position][0]
-                    player.y = positions[player.piece_position][1]
+                    player.baseX = positions[player.piece_position][0]
+                    player.baseY = positions[player.piece_position][1]
+                    positionUpdate(positions, player.color, player.baseX, player.baseY)
 
         elif data[0] == 'property':
             for player in players:
                 if data[2] == player.color:
                     player.property.append(int(data[1]))
                     print('У',player.color,'есть',player.property)
-                    buyBtnCheck(players)
+                    buyBtnCheck(data[2])
 
         elif data[0] == 'money':
             for player in players:
                 if data[1] == player.color:
                     player.money = int(data[2])
 
+        elif data[0] == 'playerDeleted':
+            for player in players:
+                if player.color == data[1]:
+                    players.remove(player)
+
         if not running:
             break
 
 def eventsCheck(players):
     events = pg.event.get()
+
     for event in events:
         if event.type == pg.MOUSEBUTTONDOWN and cubeButton.collidepoint(pg.mouse.get_pos()):
             print('Кнопка "Бросить кубы" нажата')
-            screen.blit(buttonPressed, (btnCoords[0][0], btnCoords[0][1]))
-            screen.blit(font.render('Бросить кубы', False, 'black'), (btnTextCoords[0][0],btnTextCoords[0][1]))
+            screen.blit(buttonPressed, (btn_coordinates[0][0], btn_coordinates[0][1]))
+            screen.blit(font.render('Бросить кубы', False, 'black'), (btn_text_coordinates[0][0], btn_text_coordinates[0][1]))
             for player in players:
                 if player.main:
                     moveCommand = f'move|{player.color}'
                     sock.send(moveCommand.encode())
                     print('Команда отправлена:',moveCommand)
+
         if event.type == pg.MOUSEBUTTONDOWN and buyButton.collidepoint(pg.mouse.get_pos()) and buy_btn_active:
             print('Кнопка "Купить" нажата')
-            screen.blit(buttonPressed, (btnCoords[1][0], btnCoords[1][1]))
-            screen.blit(font.render('Купить', False, 'black'), (btnTextCoords[1][0],btnTextCoords[1][1]))
+            screen.blit(buttonPressed, (btn_coordinates[1][0], btn_coordinates[1][1]))
+            screen.blit(font.render('Купить', False, 'black'), (btn_text_coordinates[1][0], btn_text_coordinates[1][1]))
             for player in players:
                 if player.main:
                     buyCommand = 'buy|' + str(player.piece_position)
                     sock.send(buyCommand.encode())
                     print('Команда отправлена:', buyCommand)
-        if not buy_btn_active:
-            screen.blit(buttonDisabled, (btnCoords[1][0], btnCoords[1][1]))
-            screen.blit(font.render('Купить', False, 'black'), (btnTextCoords[1][0], btnTextCoords[1][1]))
+
         if event.type == pg.QUIT:
+            global running
             running = False
 
-def buyBtnCheck(players):
+def buyBtnCheck(color):
     global buy_btn_active
     for player in players:
-        if player.main and allTiles[player.piece_position].buyable == 'True' and player.piece_position not in player.property:
-            if player.money - int(allTiles[player.piece_position].priceTxt) > 0:
-                buyBtnActive = True
-            else:
-                buyBtnActive = False
-        else:
-            buyBtnActive = False
+        if player.main and player.color == color:
+            for allPlayer in players:
+                if (allTiles[player.piece_position].buyable == 'True' and
+                        player.piece_position not in allPlayer.property and
+                        player.money - int(allTiles[player.piece_position].priceTxt) > 0):
+
+                    buyBtnActive = True
+                else:
+                    buyBtnActive = False
+
+
+    if not buyBtnActive:
+        screen.blit(buttonDisabled, (btn_coordinates[1][0], btn_coordinates[1][1]))
+        screen.blit(font.render('Купить', False, 'black'), (btn_text_coordinates[1][0], btn_text_coordinates[1][1]))
+    print(f'\nКнопка покупки объявлена {buyBtnActive}')
 
 def buttonAnim(buttonMouseCollided,buttonDisabled):
     if cubeButton.collidepoint(pg.mouse.get_pos()):
-        screen.blit(buttonMouseCollided, (btnCoords[0][0],btnCoords[0][1]))
-        screen.blit(btnFont.render('Бросить кубы', False, (128,128,128)), (btnTextCoords[0][0],btnTextCoords[0][1]))
+        screen.blit(buttonMouseCollided, (btn_coordinates[0][0], btn_coordinates[0][1]))
+        screen.blit(btn_font.render('Бросить кубы', False, (128, 128, 128)), (btn_text_coordinates[0][0], btn_text_coordinates[0][1]))
     if buyButton.collidepoint(pg.mouse.get_pos()) and buy_btn_active:
-        screen.blit(buttonMouseCollided, (btnCoords[1][0],btnCoords[1][1]))
-        screen.blit(btnFont.render('Купить', False, (128,128,128)), (btnTextCoords[1][0],btnTextCoords[1][1]))
+        screen.blit(buttonMouseCollided, (btn_coordinates[1][0], btn_coordinates[1][1]))
+        screen.blit(btn_font.render('Купить', False, (128, 128, 128)), (btn_text_coordinates[1][0], btn_text_coordinates[1][1]))
     if not buy_btn_active:
-        screen.blit(buttonDisabled, (btnCoords[1][0], btnCoords[1][1]))
-        screen.blit(btnFont.render('Купить', False, (128, 128, 128)), (btnTextCoords[1][0], btnTextCoords[1][1]))
+        screen.blit(buttonDisabled, (btn_coordinates[1][0], btn_coordinates[1][1]))
+        screen.blit(btn_font.render('Купить', False, (128, 128, 128)), (btn_text_coordinates[1][0], btn_text_coordinates[1][1]))
 
 
 
@@ -341,7 +360,7 @@ connHandler = threading.Thread(target = handle_connection, args=(sock,positions,
 connHandler.start()
 
 while running:
-    blitItems(screen,background,buttonTexture,btnFont)
+    blitItems(screen, background, buttonTexture, btn_font)
     pricePrinting()
     eventsCheck(players)
     buttonAnim(buttonMouseCollided,buttonDisabled)
