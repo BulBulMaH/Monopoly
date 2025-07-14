@@ -10,10 +10,10 @@ def resolution_definition():
             piece_color_coefficient = 28
             btn_radius = 2
             bars_coordinates = (582, 2)
-            btn_coordinates = [(953, 20, 136, 38), # Бросить кубы
-                               (953, 78, 136, 38), # Купить
+            btn_coordinates = [(953, 20, 136, 38),  # Бросить кубы
+                               (953, 78, 136, 38),  # Купить
                                (953, 136, 136, 38), # Оплатить
-                               (953, 78, 136, 38), # На аукцион
+                               (953, 78, 136, 38),  # На аукцион
                                (953, 78, 136, 38)]
             btn_text_coordinates = [(963, 24),
                                     (993, 82)]
@@ -25,17 +25,22 @@ def resolution_definition():
                                    [[669, 467], [830, 493], [674, 485], [674, 465]]]
             start_btn_textboxes_coordinates = [(1065, 442, 196, 30), # имя
                                                (1065, 488, 134, 30), # IP
-                                               (1202, 488, 59, 30), # порт
+                                               (1202, 488, 59, 30),  # порт
                                                (1110, 534, 136, 38), # кнопка "Подключиться"
                                                (1110, 592, 136, 38)] # кнопка "Начать игру"
+            cubes_coordinates = [(1109, 20), (1195, 20)]
             is_resolution_selected = True
+
         elif resolution_index == '2':
             resolution = (1920, 1001)
             resolution_folder = '1080p'
             piece_color_coefficient = 42
             btn_radius = 10
             bars_coordinates = (897, 3)
-            btn_coordinates = [(1455, 30, 204, 57), (1455, 117, 204, 57)]
+            btn_coordinates = [(1455, 30, 204, 57),  # Бросить кубы
+                               (1455, 117, 204, 57), # Купить
+                               (1455, 204, 204, 57), # Оплатить
+                               (1455, 291, 204, 57)] # На аукцион
             btn_text_coordinates = [(1475, 40), (1514, 127)]
             btn_font = pg.font.Font('resources/fonts/bulbulpoly-3.ttf', 25)
             #                         профиль      цвет       деньги        имя
@@ -45,10 +50,11 @@ def resolution_definition():
                                    [[1028, 687], [1262, 723], [1034, 719], [1034, 689]]]
             start_btn_textboxes_coordinates = [(1689, 737, 134, 30),  # имя
                                                (1689, 787, 134, 30),  # IP
-                                               (1826, 787, 59, 30),  # порт
+                                               (1826, 787, 59, 30),   # порт
                                                (1689, 837, 201, 57),  # кнопка "Подключиться"
                                                (1689, 914, 201, 57)]  # кнопка "Начать игру"
+            cubes_coordinates = [(1689, 30), (1784, 30)]
             is_resolution_selected = True
         else:
             print('Введены некорректные данные\n')
-    return resolution, resolution_folder, piece_color_coefficient, bars_coordinates, btn_coordinates, btn_text_coordinates, btn_font, profile_coordinates, start_btn_textboxes_coordinates, btn_radius
+    return resolution, resolution_folder, piece_color_coefficient, bars_coordinates, btn_coordinates, btn_text_coordinates, btn_font, profile_coordinates, start_btn_textboxes_coordinates, btn_radius, cubes_coordinates

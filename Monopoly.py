@@ -4,6 +4,7 @@ import threading
 import time
 import traceback
 import pygame_widgets
+from pygame.draw_py import draw_pixel
 from pygame_widgets.button import Button
 from pygame_widgets.textbox import TextBox
 
@@ -17,7 +18,7 @@ from functions.resolution_choice import resolution_definition
 pg.init()
 pg.mixer.init()  # для звука
 
-resolution, resolution_folder, piece_color_coefficient, bars_coordinates, btn_coordinates, btn_text_coordinates, btn_font, profile_coordinates, start_btn_textboxes_coordinates, btn_radius = resolution_definition()
+resolution, resolution_folder, piece_color_coefficient, bars_coordinates, btn_coordinates, btn_text_coordinates, btn_font, profile_coordinates, start_btn_textboxes_coordinates, btn_radius, cubes_coordinates = resolution_definition()
 
 FPS = 60
 TITLE = 'Monopoly v0.7'
@@ -47,7 +48,7 @@ all_players = [Player('red', positions),
                Player('green', positions)]
 players = []
 state = {'buy_btn_active': False,
-         'pay_btn_active': False,
+         'pay_btn_active': ['False'],
          'is_game_started': False,
          'ready': False,
          'connected': False,
@@ -81,17 +82,33 @@ def buy():
 
 
 def pay():
-    if state['is_game_started'] and state['pay_btn_active']:
-        print('Кнопка "Оплатить" нажата')
-        for player in players:
-            if player.main:
-                pay_command = 'pay|' + str(player.piece_position)
-                sock.send(pay_command.encode())
-                information_sent('Команда отправлена', pay_command)
-                if state['double']:
-                    player.on_move = True
-                else:
-                    player_move_change()
+    global state
+    if state['is_game_started']:
+        if state['pay_btn_active'][0] == 'minus':
+            print('Кнопка "Оплатить" нажата')
+            for player in players:
+                if player.main:
+                    pay_command = 'pay|' + str(player.piece_position)
+                    sock.send(pay_command.encode())
+                    information_sent('Команда отправлена', pay_command)
+                    if state['double']:
+                        player.on_move = True
+                    else:
+                        player_move_change()
+            state['pay_btn_active'] = ['False']
+
+        elif state['pay_btn_active'][0] == 'color':
+            print('Кнопка "Оплатить" нажата')
+            for player in players:
+                if player.main:
+                    pay_command = f'payToColor|{player.piece_position}|{state['pay_btn_active'][1]}'
+                    sock.send(pay_command.encode())
+                    information_sent('Команда отправлена', pay_command)
+                    if state['double']:
+                        player.on_move = True
+                    else:
+                        player_move_change()
+            state['pay_btn_active'] = ['False']
 
 
 def debug_output():
@@ -148,7 +165,7 @@ def start_game():
 
 def all_tiles_get():
     all_tiles = []
-    test = open(f'resources/{resolution_folder}/text values/kletki.txt', 'r')
+    test = open(f'resources/{resolution_folder}/text values/kletki.txt', 'r', encoding='utf-8')
     information = test.readlines()
     test.close()
     for i in range(40):
@@ -210,69 +227,79 @@ def handle_connection():
     global players, state, all_tiles
     while True:
         try:
-            data_temp = sock.recv(1024).decode()
-            data = data_temp.replace('test','').split('|')
-            if data[0] != '':
-                information_received('Информация получена', data)
+            data_unsplit = sock.recv(1024).decode().replace('test','')
+            if data_unsplit != '':
+                information_received('data_unsplit', data_unsplit)
+            data_split_by_types = data_unsplit.split('%')
+            while len(data_split_by_types) > 1:
+                data = data_split_by_types[0].split('|')
 
-            if data[0] == 'color main':
-                for allPlayer in all_players:
-                    if allPlayer.color == data[1]:
-                        allPlayer.main_color(data[1])
+                data_split_by_types.pop(0)
 
-            elif data[0] == 'move':
-                move(data[1], int(data[2]), int(data[3]))
-                for player in players:
-                    if player.main and player.color == data[1]:
-                        state['double'] = int(data[2]) == int(data[3])
-                        if state['double']:
+                if data[0] != '':
+                    information_received('Информация получена', data)
+
+                if data[0] == 'color main':
+                    for allPlayer in all_players:
+                        if allPlayer.color == data[1]:
+                            allPlayer.main_color(data[1])
+
+                elif data[0] == 'move':
+                    move(data[1], int(data[2]), int(data[3]))
+                    for player in players:
+                        if player.main and player.color == data[1]:
+                            state['double'] = int(data[2]) == int(data[3])
+                            if state['double']:
+                                player.on_move = True
+
+                elif data[0] == 'playersData':
+                    for allPlayer in all_players:
+                        for i in data:
+                            if i == allPlayer.color:
+                                if allPlayer not in players:
+                                    players.append(allPlayer)
+                    for player in players:
+                        if player.color == data[1]:
+                            player.money = int(data[2])
+                            player.piece_position = int(data[3])
+                            player.baseX = positions[player.piece_position][0]
+                            player.baseY = positions[player.piece_position][1]
+                            player.name = data[4]
+                            position_update(player.color)
+
+                elif data[0] == 'property':
+                    for player in players:
+                        if data[1] == player.color:
+                            player.property.append(int(data[2]))
+                            print(f'У {player.color} есть {player.property}')
+                            all_tiles[int(data[2])].owned = True
+                            buy_btn_check(data[1])
+
+                elif data[0] == 'money':
+                    for player in players:
+                        if data[1] == player.color:
+                            player.money = int(data[2])
+
+                elif data[0] == 'playerDeleted':
+                    for player in players:
+                        if player.color == data[1]:
+                            players.remove(player)
+
+                elif data[0] == 'gameStarted':
+                    state['is_game_started'] = True
+
+                elif data[0] == 'onMove':
+                    for player in players:
+                        if player.color == data[1]:
                             player.on_move = True
+                        else:
+                            player.on_move = False
 
-            elif data[0] == 'playersData':
-                for allPlayer in all_players:
-                    for i in data:
-                        if i == allPlayer.color:
-                            if allPlayer not in players:
-                                players.append(allPlayer)
-                for player in players:
-                    if player.color == data[1]:
-                        player.money = int(data[2])
-                        player.piece_position = int(data[3])
-                        player.baseX = positions[player.piece_position][0]
-                        player.baseY = positions[player.piece_position][1]
-                        player.name = data[4]
-                        position_update(player.color)
+                elif data[0] == 'error':
+                    print(data[1])
 
-            elif data[0] == 'property':
-                for player in players:
-                    if data[1] == player.color:
-                        player.property.append(int(data[2]))
-                        print(f'У {player.color} есть {player.property}')
-                        all_tiles[int(data[2])].owned = True
-                        buy_btn_check(data[1])
-
-            elif data[0] == 'money':
-                for player in players:
-                    if data[1] == player.color:
-                        player.money = int(data[2])
-
-            elif data[0] == 'playerDeleted':
-                for player in players:
-                    if player.color == data[1]:
-                        players.remove(player)
-
-            elif data[0] == 'gameStarted':
-                state['is_game_started'] = True
-
-            elif data[0] == 'onMove':
-                for player in players:
-                    if player.color == data[1]:
-                        player.on_move = True
-                    else:
-                        player.on_move = False
-
-            if not running:
-                break
+                if not running:
+                    break
         except OSError:
             pass
         except:
@@ -280,7 +307,16 @@ def handle_connection():
 
 
 def move(color, cube1, cube2):
-    global players
+    global players, state
+
+    cube_1_picture = pg.image.load(f'resources/{resolution_folder}/cubes/{cube1}.png')
+    cube_2_picture = pg.image.load(f'resources/{resolution_folder}/cubes/{cube2}.png')
+
+    for i in range(150):
+        time.sleep(dt/2)
+        screen.blit(cube_1_picture, cubes_coordinates[0])
+        screen.blit(cube_2_picture, cubes_coordinates[1])
+
     for player in players:
         if player.color == color:
             if player.main:
@@ -305,7 +341,7 @@ def move(color, cube1, cube2):
                     y_step = diff_y / max(diff_x, diff_y)
 
                 for ii in range(tile_width):
-                    time.sleep(dt/2) # была 1/120, но dt это ~1/60 => (1/60)/2=1/120
+                    time.sleep(dt/(2 * ((1 + i + ii/10) * (cube1 + cube2) / 10)))  # была 1/120, но dt это ~1/60 => (1/60)/2=1/120
 
                     x_sign = 1
                     y_sign = 1
@@ -329,15 +365,13 @@ def move(color, cube1, cube2):
                 # print(f'\nИГРОК {player.color} НА НОВОЙ КЛЕТКЕ {player.piece_position}!')
             player.baseX = positions[player.piece_position][0]
             player.baseY = positions[player.piece_position][1]
-            print(1)
             buy_btn_check(player.color)
-            print(2)
             pay_btn_check()
-            print(3)
+
             if player.main:
-                if all_tiles[player.piece_position].family in ['Угловые', 'Яйца', 'Яйцо']:
+                if all_tiles[player.piece_position].family in ['Угловые', 'Яйца', 'Яйцо'] and not state['double']:
                     player_move_change()  # TODO: поменять, когда будет функционал
-                if player.piece_position in player.property:
+                if player.piece_position in player.property and not state['double']:
                     player_move_change()
                 sock.send('moved'.encode())
 
@@ -360,14 +394,22 @@ def event_handler():
 
 def price_printing():
     for tile in all_tiles:
-        if tile.priceTxt != '':
+        if tile.price != '':
+            tile.text_defining()
             if tile.position == 4 or tile.position == 38 or not tile.owned:
-                text = font.render(f'{tile.priceTxt}~', False, tile.color)
+                text = font.render(tile.text, False, tile.color)
             else:
-                price = tile.penis_income_calculation()
-                text = font.render(f'{price}~', False, tile.color)
-            text_rect = text.get_rect(center=(tile.xText,tile.yText))
-            price_text = pg.transform.rotate(text,tile.angle)
+                text = font.render(tile.text, False, tile.color)
+            price_text = pg.transform.rotate(text, tile.angle)
+
+            offset = 0
+            if tile.angle == -90:
+                offset = round((font.size(tile.text)[0] - 31) / 2)
+            elif tile.angle == 90:
+                offset = round((font.size(tile.text)[0] - 29) / 2)
+
+            text_rect = text.get_rect(center=(tile.xText + offset, tile.yText - offset))
+
 
             screen.blit(price_text, text_rect)
 
@@ -555,7 +597,7 @@ def active_buttons_check():
                     btn_coordinates[1][2],
                     btn_coordinates[1][3]))
 
-    if not state['is_game_started'] or not state['pay_btn_active']:
+    if not state['is_game_started'] or state['pay_btn_active'][0] == 'False':
         screen.blit(pay_disabled_btn,
                     (btn_coordinates[2][0],
                     btn_coordinates[2][1],
@@ -583,14 +625,15 @@ def pay_btn_check():
         for player in players:
             if player.main:
                 if player.piece_position == 4 or player.piece_position == 38:
-                    state['pay_btn_active'] = True
+                    state['pay_btn_active'] = ['minus']
                 else:
                     for player2 in players:
                         if not player2.main:
                             if player.piece_position in player2.property:
-                                state['pay_btn_active'] = True
+                                state['pay_btn_active'] = ['color', player2.color]
                             else:
-                                state['pay_btn_active'] = False
+                                state['pay_btn_active'] = ['False']
+                print(f'Состояние pay_btn_active установлено на {state['pay_btn_active']}')
 
 
 def buy_btn_check(color):
@@ -599,7 +642,7 @@ def buy_btn_check(color):
         if player.main and player.color == color:
             if all_tiles[player.piece_position].buyable:
                 if (not all_tiles[player.piece_position].owned and
-                player.money - int(all_tiles[player.piece_position].priceTxt) > 0):
+                player.money - int(all_tiles[player.piece_position].price) > 0):
                     state['buy_btn_active'] = True
                 else:
                     state['buy_btn_active'] = False
