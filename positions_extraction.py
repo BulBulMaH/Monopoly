@@ -1,5 +1,5 @@
 def positions_extraction(resolution_folder):
-    positions_file = open(f'functions/{resolution_folder}/text values/positions.txt')
+    positions_file = open(f'resources/{resolution_folder}/text values/positions.txt')
     positions_temporary = positions_file.readlines()
     positions_file.close()
     positions = []

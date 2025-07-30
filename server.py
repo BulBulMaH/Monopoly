@@ -4,8 +4,8 @@ import random
 import threading
 import traceback
 
-from functions.colored_output import thread_open, new_connection, information_received, information_sent, information_sent_to
-from functions.Tiles_Class import Tiles
+from colored_output import thread_open, new_connection, information_received, information_sent, information_sent_to
+from Tiles_Class import Tiles
 
 class Player:
     def __init__(self,conn,address,color):
@@ -16,9 +16,12 @@ class Player:
         self.property = []
         self.color = color
         self.imprisoned = False
+        self.prison_break_attempts = 0
+        self.prison_bribe = self.prison_break_attempts * 25
         self.money = 1500
         self.ready = False
         self.on_move = False
+        self.avatar = []
 
     def connect(self, colors):
         new_sck, address = main_sck.accept()
@@ -72,8 +75,8 @@ def receive_data():
     while True:
         for player in players:
             try:
-                data_temp = player.conn.recv(1024).decode()
-                data = data_temp.split('|')
+                data_temp = player.conn.recv(1024)
+                data = data_temp.decode().split('|')
                 if data != ['']:
                     information_received('Информация получена', data)
 
@@ -81,51 +84,102 @@ def receive_data():
                     player.name = data[1]
                     players_send()
 
+                elif data[0] == 'avatar':
+                    player.avatar.append(data_temp)
+                    if data[2] == data[4][:-1]:
+                        players_send()
+
                 elif data[0] == 'move':
                     cube1 = random.randint(1,6)
                     cube2 = random.randint(1,6)
-                    cube_sum = cube1 + cube2
-                    player.piece_position += cube_sum
-                    if player.piece_position > 39:
-                        player.piece_position -= 39
-                        player.money += 200
-                        money_data = f'money|{player.color}|{player.money}%'
+                    double = cube1 == cube2
+
+                    if player.imprisoned:
+                        if double:
+                            player.imprisoned = False
+                            player.prison_break_attempts = 0
+                            prison_data = f'unimprisoned|{player.color}%'
+                            for player2 in players:
+                                player2.conn.send(prison_data.encode())
+                                information_sent('Информация отправлена', prison_data)
+                        else:
+                            player.prison_break_attempts += 1
+
+                        if player.prison_break_attempts >= 3:
+                            prison_bribe_data = f'bribe|{player.prison_bribe}%'
+                            player.conn.send(prison_bribe_data.encode())
+                            information_sent_to('Информация отправлена к', player.color, prison_bribe_data)
+
+                    else:
+                        cube_sum = cube1 + cube2
+                        player.piece_position += cube_sum
+
+                        if player.piece_position == 40:
+                            player.money += 100
+                            money_data = f'money|{player.color}|{player.money}%'
+                            for player2 in players:
+                                player2.conn.send(money_data.encode())
+                                information_sent('Информация отправлена', money_data)
+
+                        if player.piece_position > 39:
+                            player.piece_position -= 40
+                            player.money += 2000 # todo убрать 2000
+                            money_data = f'money|{player.color}|{player.money}%'
+                            for player2 in players:
+                                player2.conn.send(money_data.encode())
+                                information_sent('Информация отправлена', money_data)
+
+                        move_data = f'move|{player.color}|{cube1}|{cube2}%'
                         for player2 in players:
-                            player2.conn.send(money_data.encode())
-                            information_sent('Информация отправлена', money_data)
-                    if player.piece_position == 0:
-                        player.money += 100
-                        money_data = f'money|{player.color}|{player.money}%'
-                        for player2 in players:
-                            player2.conn.send(money_data.encode())
-                            information_sent('Информация отправлена', money_data)
-                    move_data = f'move|{player.color}|{cube1}|{cube2}%'
-                    for player2 in players:
-                        player2.conn.send(move_data.encode())
-                        information_sent('Информация отправлена',move_data)
+                            player2.conn.send(move_data.encode())
+                            information_sent('Информация отправлена', move_data)
+
+                        if player.piece_position == 30:
+                            player.piece_position = 10
+                            player.imprisoned = True
+                            prison_data = f'imprisoned|{player.color}%'
+                            move_data = f'move diagonally|{player.color}|30|10%'
+                            for player2 in players:
+                                player2.conn.send(prison_data.encode())
+                                player2.conn.send(move_data.encode())
+                                information_sent('Информация отправлена', prison_data)
+                                information_sent('Информация отправлена', move_data)
+
+                        elif player.piece_position == 10:
+                            player.piece_position = 30
+                            move_data = f'move diagonally|{player.color}|10|30%'
+                            for player2 in players:
+                                player2.conn.send(move_data.encode())
+                                information_sent('Информация отправлена', move_data)
 
                 elif data[0] == 'nextPlayer':
                     moving_player_changing()
 
                 elif data[0] == 'buy':
-                    player.piece_position = int(data[1])
-                    if player.money >= int(all_tiles[player.piece_position].price):
-                        player.property.append(player.piece_position)
-                        all_tiles[player.piece_position].owned = True
-                        all_tiles[player.piece_position].owner = player.color
-                        for tile in all_tiles:
-                            if tile.family_members == all_tiles[player.piece_position].family:
-                                tile.family_members += 1
-                        player.money -= int(all_tiles[player.piece_position].price)
-                        property_data = f'property|{player.color}|{data[1]}%'
-                        money_data = f'money|{player.color}|{player.money}%'
-                        for player2 in players:
-                            player2.conn.send(property_data.encode())
-                            player2.conn.send(money_data.encode())
-                            information_sent('Информация отправлена', property_data)
-                            information_sent('Информация отправлена', money_data)
+                    if player.piece_position == int(data[1]):
+                        player.piece_position = int(data[1])
+                        if player.money >= int(all_tiles[player.piece_position].price):
+                            player.property.append(player.piece_position)
+                            all_tiles[player.piece_position].owned = True
+                            all_tiles[player.piece_position].owner = player.color
+                            for tile in all_tiles:
+                                if tile.family_members == all_tiles[player.piece_position].family:
+                                    tile.family_members += 1
+                            player.money -= int(all_tiles[player.piece_position].price)
+                            property_data = f'property|{player.color}|{data[1]}%'
+                            money_data = f'money|{player.color}|{player.money}%'
+                            for player2 in players:
+                                player2.conn.send(property_data.encode())
+                                player2.conn.send(money_data.encode())
+                                information_sent('Информация отправлена', property_data)
+                                information_sent('Информация отправлена', money_data)
+                        else:
+                            player.conn.send('error|У вас недостаточно пЭнисов, чтобы это купить. '
+                                             'Вы не должны были получить это сообщение. '
+                                             'Только если у вас чИтЫ??7?%'.encode())
                     else:
-                        player.conn.send('error|У вас недостаточно пЭнисов, чтобы это купить. '
+                        player.conn.send('error|Произошла разсинхронизация, сервер думает, что вы находитесь '
+                                         f'на {player.piece_position} позиции, но у вас позиция {data[1]}. '
                                          'Вы не должны были получить это сообщение. '
                                          'Только если у вас чИтЫ??7?%'.encode())
 
@@ -169,7 +223,13 @@ def receive_data():
                         information_sent('Информация отправлена', money_data1)
                         information_sent('Информация отправлена', money_data2)
 
-
+                elif data[0] == 'pay for prison':
+                    player.money -= player.prison_bribe
+                    player.imprisoned = False
+                    prison_data = f'unimprisoned|{player.color}%'
+                    for player2 in players:
+                        player2.conn.send(prison_data.encode())
+                        information_sent('Информация отправлена', prison_data)
 
             except BlockingIOError:
                 pass
@@ -181,6 +241,10 @@ def players_send():
     for player in players:
         player_data = f'playersData|{player.color}|{player.money}|{player.piece_position}|{player.name}%'
         for player2 in players:
+            for avatar in player.avatar:
+                time.sleep(0.07)
+                player2.conn.send(avatar)
+                print(avatar)
             player2.conn.send(player_data.encode())
             information_sent_to('Информация отправлена к', player2.color, player_data)
 

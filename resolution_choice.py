@@ -23,13 +23,15 @@ def resolution_definition():
                                    [[669, 169], [830, 195], [674, 187], [674, 167]],
                                    [[669, 318], [830, 344], [674, 336], [674, 316]],
                                    [[669, 467], [830, 493], [674, 485], [674, 465]]]
-            start_btn_textboxes_coordinates = [(1065, 442, 196, 30), # имя
-                                               (1065, 488, 134, 30), # IP
-                                               (1202, 488, 59, 30),  # порт
-                                               (1110, 534, 136, 38), # кнопка "Подключиться"
-                                               (1110, 592, 136, 38)] # кнопка "Начать игру"
+            start_btn_textboxes_coordinates = [(1065, 384, 196, 30), # имя
+                                               (1065, 430, 134, 30), # IP
+                                               (1202, 430, 59, 30),  # порт
+                                               (1121, 476, 140, 38), # кнопка "Подключиться"
+                                               (1121, 534, 140, 38), # кнопка выбора аватара
+                                               (1121, 592, 140, 38)] # кнопка "Начать игру"
             cubes_coordinates = [(1109, 20), (1195, 20)]
-            speed = 15
+            avatar_side_size = 100
+            speed = 3
             is_resolution_selected = True
 
         elif resolution_index == '2':
@@ -49,14 +51,16 @@ def resolution_definition():
                                    [[1028, 249], [1262, 285], [1034, 281], [1034, 251]],
                                    [[1028, 468], [1262, 504], [1034, 500], [1034, 470]],
                                    [[1028, 687], [1262, 723], [1034, 719], [1034, 689]]]
-            start_btn_textboxes_coordinates = [(1689, 737, 134, 30),  # имя
-                                               (1689, 787, 134, 30),  # IP
-                                               (1826, 787, 59, 30),   # порт
-                                               (1689, 837, 201, 57),  # кнопка "Подключиться"
+            start_btn_textboxes_coordinates = [(1689, 660, 134, 30),  # имя
+                                               (1689, 710, 134, 30),  # IP
+                                               (1826, 710, 59, 30),   # порт
+                                               (1689, 760, 201, 57),  # кнопка "Подключиться"
+                                               (1689, 837, 201, 57),  # кнопка выбора аватара
                                                (1689, 914, 201, 57)]  # кнопка "Начать игру"
             cubes_coordinates = [(1689, 30), (1784, 30)]
+            avatar_side_size = 150
             speed = 30
             is_resolution_selected = True
         else:
             print('Введены некорректные данные\n')
-    return resolution, resolution_folder, piece_color_coefficient, bars_coordinates, btn_coordinates, btn_text_coordinates, btn_font, profile_coordinates, start_btn_textboxes_coordinates, btn_radius, cubes_coordinates, speed
+    return resolution, resolution_folder, piece_color_coefficient, bars_coordinates, btn_coordinates, btn_text_coordinates, btn_font, profile_coordinates, start_btn_textboxes_coordinates, btn_radius, cubes_coordinates, speed, avatar_side_size

@@ -45,7 +45,7 @@ class Tiles:
                 coef2 = 2
 
                 self.income = int(self.price) / coef
-                self.income = math.ceil(self.income * (coef2 ** self.family_members))
+                self.income = math.ceil(self.income * (coef2 ** (self.family_members - 1)))
         else:
             self.income = int(self.price)
         return self.income
