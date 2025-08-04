@@ -29,7 +29,7 @@ from resolution_choice import resolution_definition
 pg.init()
 pg.mixer.init()  # для звука
 
-resolution, resolution_folder, piece_color_coefficient, bars_coordinates, btn_coordinates, btn_text_coordinates, btn_font, profile_coordinates, start_btn_textboxes_coordinates, btn_radius, cubes_coordinates, speed, avatar_side_size = resolution_definition()
+resolution, resolution_folder, piece_color_coefficient, bars_coordinates, btn_coordinates, btn_font, profile_coordinates, start_btn_textboxes_coordinates, btn_radius, cubes_coordinates, speed, avatar_side_size = resolution_definition()
 
 FPS = 60
 TITLE = 'Monopoly v0.8'
@@ -53,9 +53,11 @@ font = pg.font.Font('resources/fonts/bulbulpoly-3.ttf',25)
 throw_cubes_disabled_btn = pg.image.load(f'resources/{resolution_folder}/buttons/throw_cubes_disabled.png')
 buy_disabled_btn = pg.image.load(f'resources/{resolution_folder}/buttons/buy_disabled.png')
 pay_disabled_btn = pg.image.load(f'resources/{resolution_folder}/buttons/pay_disabled.png')
+shove_penis_disabled_btn = pg.image.load(f'resources/{resolution_folder}/buttons/shove_penis_disabled.png')
+remove_penis_disabled_btn = pg.image.load(f'resources/{resolution_folder}/buttons/remove_penis_disabled.png')
 connect_disabled_btn = pg.image.load(f'resources/{resolution_folder}/buttons/connect_disabled.png')
-ready_disabled_btn = pg.image.load(f'resources/{resolution_folder}/buttons/ready_disabled.png')
 avatar_choose_disabled_btn = pg.image.load(f'resources/{resolution_folder}/buttons/avatar_choose_disabled.png')
+ready_disabled_btn = pg.image.load(f'resources/{resolution_folder}/buttons/ready_disabled.png')
 
 
 def all_tiles_get():
@@ -81,14 +83,21 @@ all_players = [Player('red', positions, resolution_folder, property_family_count
                Player('yellow', positions, resolution_folder, property_family_count),
                Player('green', positions, resolution_folder, property_family_count)]
 players = []
-state = {'buy_btn_active': False,
+state = {'throw_cubes_btn_active': False,
+         'buy_btn_active': False,
          'pay_btn_active': ['False'],
+         'penis_build_btn_active': False,
+         'penis_remove_btn_active': False,
+         'penis_remove_btn_used': False,
+         'all_penises_build_btns_active': False,
+         'all_penises_remove_btns_active': False,
          'is_game_started': False,
          'ready': False,
          'connected': False,
          'double': False,
          'paid': False,
-         'avatar_chosen': False}
+         'avatar_chosen': False,
+         'cube_animation_playing': False}
 
 
 def throw_cubes():
@@ -97,10 +106,13 @@ def throw_cubes():
             print('Кнопка "Бросить кубы" нажата')
             for player2 in players:
                 if player2.main:
-                    move_command = 'move'
+                    move_command = 'move%'
                     sock.send(move_command.encode())
                     information_sent('Команда отправлена', move_command)
                     player2.on_move = False
+                    state['throw_cubes_btn_active'] = False
+                    state['penis_build_btn_active'] = False
+                    state['penis_remove_btn_active'] = False
 
 
 def buy():
@@ -108,13 +120,13 @@ def buy():
         print('Кнопка "Купить" нажата')
         for player in players:
             if player.main:
-                buy_command = 'buy|' + str(player.piece_position)
+                buy_command = f'buy|{player.piece_position}%'
                 sock.send(buy_command.encode())
                 information_sent('Команда отправлена', buy_command)
                 if state['double']:
-                    player.on_move = True
+                    player_move_change(False)
                 else:
-                    player_move_change()
+                    player_move_change(True)
 
 
 def pay():
@@ -124,31 +136,31 @@ def pay():
             print('Кнопка "Оплатить" нажата')
             for player in players:
                 if player.main:
-                    pay_command = 'pay|' + str(player.piece_position)
+                    pay_command = f'pay|{player.piece_position}%'
                     sock.send(pay_command.encode())
                     information_sent('Команда отправлена', pay_command)
                     if state['double']:
-                        player.on_move = True
+                        player_move_change(False)
                     else:
-                        player_move_change()
+                        player_move_change(True)
 
         elif state['pay_btn_active'][0] == 'color':
             print('Кнопка "Оплатить" нажата')
             for player in players:
                 if player.main:
-                    pay_command = f'payToColor|{player.piece_position}|{state['pay_btn_active'][1]}'
+                    pay_command = f'payToColor|{player.piece_position}|{state['pay_btn_active'][1]}%'
                     sock.send(pay_command.encode())
                     information_sent('Команда отправлена', pay_command)
                     if state['double']:
-                        player.on_move = True
+                        player_move_change(False)
                     else:
-                        player_move_change()
+                        player_move_change(True)
 
         elif state['pay_btn_active'][0] == 'prison':
             print('Кнопка "Оплатить" нажата')
             for player in players:
                 if player.main:
-                    pay_command = f'pay for prison|'
+                    pay_command = f'pay for prison%'
                     sock.send(pay_command.encode())
                     information_sent('Команда отправлена', pay_command)
         state['pay_btn_active'] = ['False']
@@ -169,9 +181,16 @@ def debug_output():
               f'       baseX: {player.baseX}\n'
               f'       baseY: {player.baseY}\n'
               f'       on_move: {player.on_move}\n'
-              f'       imprisoned: {player.imprisoned}')
-    print(    f'State: buy_btn_active: {state['buy_btn_active']}\n'
+              f'       imprisoned: {player.imprisoned}\n')
+
+    print(    f'State: throw_cubes_btn_active: {state['throw_cubes_btn_active']}\n'
+              f'       buy_btn_active: {state['buy_btn_active']}\n'
               f'       pay_btn_active: {state['pay_btn_active']}\n'
+              f'       penis_build_btn_active: {state['penis_build_btn_active']}\n'
+              f'       penis_remove_btn_active: {state['penis_remove_btn_active']}\n'
+              f'       penis_remove_btn_used: {state['penis_remove_btn_used']}\n'
+              f'       all_penises_build_btns_active: {state['all_penises_build_btns_active']}\n'
+              f'       all_penises_remove_btns_active: {state['all_penises_remove_btns_active']}\n'
               f'       is_game_started: {state['is_game_started']}\n'
               f'       ready: {state['ready']}\n'
               f'       connected: {state['connected']}\n'
@@ -191,11 +210,14 @@ def connect():
                 port = 1247
             else:
                 port = int(port_textbox.getText())
-            sock.connect((ip, port))
             name = name_textbox.getText()
-            sock.send(f'name|{name}'.encode())
-            state['connected'] = True
-            new_connection('Подключено к', f'{ip}:{port}')
+            if '%' not in name and '|' not in name:
+                sock.connect((ip, port))
+                sock.send(f'name|{name}%'.encode())
+                state['connected'] = True
+                new_connection('Подключено к', f'{ip}:{port}')
+            else:
+                print(f'{"\033[31m{}".format('Ваше имя не должно содержать символов "|" и "%"')}{'\033[0m'}')
         except:
             print(f'{"\033[31m{}".format('Не удалось подключиться')}{'\033[0m'}') # красный
 
@@ -203,8 +225,69 @@ def connect():
 def start_game():
     global state
     if state['connected'] and not state['ready']:
-        sock.send('ready'.encode())
+        sock.send('ready%'.encode())
         state['ready'] = True
+
+
+def penis_build(tile_position):
+    global state
+    print(all_tiles[tile_position].penises)
+    if state['is_game_started'] and state['all_penises_build_btns_active']:
+        for player in players:
+            if player.main:
+                if (all_tiles[tile_position].full_family and
+                        all_tiles[tile_position].penises < 5 and
+                        player.money >= all_tiles[tile_position].penis_price and
+                        all_tiles[tile_position].type == 'buildable' and
+                        all_tiles[tile_position].owner == player.color):
+                    state['penis_build_btn_active'] = False
+                    state['penis_remove_btn_active'] = True
+                    state['all_penises_build_btns_active'] = False
+                    penis_command = f'penis build|{tile_position}%'
+                    sock.send(penis_command.encode())
+                    information_sent('Информация отправлена', penis_command)
+
+    if state['is_game_started'] and state['all_penises_remove_btns_active'] and not state['penis_remove_btn_used']:
+        for player in players:
+            if player.main:
+                print(all_tiles[tile_position].full_family, all_tiles[tile_position].penises < 5, player.money >= all_tiles[tile_position].penis_price, all_tiles[tile_position].type == 'buildable', all_tiles[tile_position].owner == player.color)
+                if (all_tiles[tile_position].full_family and
+                        1 <= all_tiles[tile_position].penises <= 5 and
+                        player.money >= all_tiles[tile_position].penis_price and
+                        all_tiles[tile_position].type == 'buildable' and
+                        all_tiles[tile_position].owner == player.color):
+                    state['penis_remove_btn_active'] = False
+                    state['all_penises_remove_btns_active'] = False
+                    state['penis_remove_btn_used'] = True
+                    penis_command = f'penis remove|{tile_position}%'
+                    sock.send(penis_command.encode())
+                    information_sent('Информация отправлена', penis_command)
+
+
+def penis_build_activation():
+    global state
+    if state['is_game_started'] and state['penis_build_btn_active']:
+        for tile in all_tiles:
+            if tile.full_family:
+                for player in players:
+                    if player.main:
+                        if tile.owner == player.color:
+                            state['all_penises_build_btns_active'] = True
+                            state['all_penises_remove_btns_active'] = False
+
+
+def penis_remove_activation():
+    global state
+    if state['is_game_started'] and state['penis_remove_btn_active'] and not state['penis_remove_btn_used']:
+        for tile in all_tiles:
+            if tile.full_family:
+                if 1 <= tile.penises <= 5:
+                    for player in players:
+                        if player.main:
+                            if tile.owner == player.color:
+                                state['all_penises_remove_btns_active'] = True
+                                state['all_penises_build_btns_active'] = False
+
 
 # ^
 # |
@@ -212,19 +295,20 @@ def start_game():
 
 
 def blit_items():
-    screen.blit(background, (0, 0))  # инициализация поля
+    screen.fill((128, 128, 128))
+    # screen.blit(background, (0, 0))  # инициализация поля
     for player in players:
         player_index = players.index(player)
         screen.blit(player.avatar, (profile_coordinates[player_index][1][0],
                              profile_coordinates[player_index][1][1]))
 
-        screen.blit(pg.image.load(f'resources/{resolution_folder}/profile/{player.color}Profile.png'),
-                    (profile_coordinates[player_index][1][0],
-                     profile_coordinates[player_index][1][1]))
-
         if player.imprisoned:
             screen.blit(player_bars,(profile_coordinates[player_index][1][0],
                              profile_coordinates[player_index][1][1]))
+
+        screen.blit(pg.image.load(f'resources/{resolution_folder}/profile/{player.color}Profile.png'),
+                    (profile_coordinates[player_index][1][0],
+                     profile_coordinates[player_index][1][1]))
 
         screen.blit(profile_picture,
                     (profile_coordinates[player_index][0][0],
@@ -237,13 +321,49 @@ def blit_items():
         screen.blit(btn_font.render(player.name, False, 'black'),
                     (profile_coordinates[player_index][3][0],
                      profile_coordinates[player_index][3][1]))
+    if state['cube_animation_playing']:
+        screen.blit(cube_1_picture, cubes_coordinates[0])
+        screen.blit(cube_2_picture, cubes_coordinates[1])
 
-        for company in player.property:
-            screen.blit(pg.image.load(f'resources/{resolution_folder}/{player.color}Property.png'), ((int(positions[company][0])), int(positions[company][1])))
 
+def blit_board():
+    screen.blit(background, (0, 0))
+
+    for tile in all_tiles:
+        if tile.owned:
+            screen.blit(pg.image.load(f'resources/{resolution_folder}/{tile.owner}Property.png'),
+                        ((int(positions[tile.position][0])), int(positions[tile.position][1])))
+
+        if 1 <= tile.penises <= 5:
+            screen.blit(pg.image.load(f'resources/{resolution_folder}/white penises/{tile.penises}.png'),
+             ((int(positions[tile.position][0])), int(positions[tile.position][1])))
+
+    for player in players:
         position_update(player.color)
 
     screen.blit(bars, bars_coordinates)
+
+
+def price_printing():
+    for tile in all_tiles:
+        if tile.price != '':
+            tile.text_defining()
+            if tile.position == 4 or tile.position == 38 or not tile.owned:
+                text = font.render(tile.text, False, tile.color)
+            else:
+                text = font.render(tile.text, False, tile.color)
+            price_text = pg.transform.rotate(text, tile.angle)
+
+            offset = 0
+            if tile.angle == -90:
+                offset = round((font.size(tile.text)[0] - 31) / 2)
+            elif tile.angle == 90:
+                offset = round((font.size(tile.text)[0] - 29) / 2)
+
+            text_rect = text.get_rect(center=(tile.xText + offset, tile.yText - offset))
+
+
+            screen.blit(price_text, text_rect)
 
 
 def position_update(color):
@@ -265,7 +385,7 @@ def position_update(color):
 
 
 def handle_connection():
-    global players, state, all_tiles, avatar, avatar_file
+    global players, state, all_tiles, avatar, avatar_file, cube_1_picture, cube_2_picture
     avatar = ''
     while running:
         try:
@@ -344,13 +464,15 @@ def handle_connection():
                             for i in range(len(all_tiles)):
                                 if all_tiles[i].family == all_tiles[int(data[2])].family:
                                     all_tiles[i].family_members += 1
+                                    if all_tiles[i].family_members == all_tiles[i].max_family_members:
+                                        all_tiles[i].full_family = True
 
-                            # if all_tiles[int(data[2])].max_family_members == player.property_family_count[all_tiles[int(data[2])].family]:
-                            #     for i in range(len(all_tiles)):
-                            #         if all_tiles[i].family == all_tiles[int(data[2])].family:
-                            #             all_tiles[i].full_family = True
+                            if all_tiles[int(data[2])].full_family:
+                                sock.send(f'full family|{all_tiles[int(data[2])].family}%'.encode())
+                                information_sent('Информация отправлена', f'full family|{all_tiles[int(data[2])].family}')
 
                             print(f'У {player.color} есть {player.property}')
+                            all_tiles[int(data[2])].owner = data[1]
                             all_tiles[int(data[2])].owned = True
                             buy_btn_check(data[1])
 
@@ -375,7 +497,15 @@ def handle_connection():
                             player.on_move = False
 
                         if player.main:
+                            state['throw_cubes_btn_active'] = True
                             state['paid'] = False
+                            state['penis_remove_btn_used'] = False
+                            for tile in all_tiles:
+                                if tile.full_family and tile.owner == player.color and tile.type == 'buildable':
+                                    if not player.imprisoned:
+                                        state['penis_build_btn_active'] = True
+                                    if 1 <= tile.penises <= 5:
+                                        state['penis_remove_btn_active'] = True
 
                 elif data[0] == 'error':
                     print(data[1])
@@ -392,6 +522,26 @@ def handle_connection():
                         if data[1] == player.color:
                             player.imprisoned = False
 
+                    move(data[1], int(data[2]), int(data[3]), False, 0, 0)
+
+                elif data[0] == 'penis built':
+                    all_tiles[int(data[1])].penises += 1
+
+                elif data[0] == 'penis removed':
+                    all_tiles[int(data[1])].penises -= 1
+
+                elif data[0] == 'bribe':
+                    state['throw_cubes_btn_active'] = False
+                    state['pay_btn_active'] = ['prison']
+
+                elif data[0] == 'imprisoned double failed':
+                    cube_1_picture = pg.image.load(f'resources/{resolution_folder}/cubes/{data[2]}.png')
+                    cube_2_picture = pg.image.load(f'resources/{resolution_folder}/cubes/{data[3]}.png')
+                    state['cube_animation_playing'] = True
+                    time.sleep(1.5)
+                    state['cube_animation_playing'] = False
+
+                    print(f'У игрока {data[1]} осталось {3 - int(data[4])} попытки чтобы выйти из тюрьмы')
 
                 if not running:
                     break
@@ -402,16 +552,16 @@ def handle_connection():
 
 
 def move(color, cube1, cube2, diagonal, start_position, end_position):
-    global players, state
+    global players, state, cube_1_picture, cube_2_picture
 
     if not diagonal:
         cube_1_picture = pg.image.load(f'resources/{resolution_folder}/cubes/{cube1}.png')
         cube_2_picture = pg.image.load(f'resources/{resolution_folder}/cubes/{cube2}.png')
 
-        for i in range(150):
-            clock.tick(FPS)
-            screen.blit(cube_1_picture, cubes_coordinates[0])
-            screen.blit(cube_2_picture, cubes_coordinates[1])
+        state['cube_animation_playing'] = True
+        time.sleep(1.5)
+        state['cube_animation_playing'] = False
+
 
         for player in players:
             if player.color == color:
@@ -458,23 +608,23 @@ def move(color, cube1, cube2, diagonal, start_position, end_position):
             if player.main:
                 if all_tiles[player.piece_position].family in ['Угловые', 'Яйца', 'Яйцо']:
                     if not state['double']:
-                        player_move_change()  # TODO: поменять, когда будет функционал
+                        player_move_change(True)  # TODO: поменять, когда будет функционал
                     else:
-                        player.on_move = True
+                        player_move_change(False)
 
                 if player.piece_position in player.property:
                     if not state['double']:
-                        player_move_change()
+                        player_move_change(True)
                     else:
-                        player.on_move = True
-                sock.send('moved'.encode())
+                        player_move_change(False)
+                sock.send('moved%'.encode())
 
     else:
         start = [positions[start_position][0], positions[start_position][1]]
         end = [positions[end_position][0], positions[end_position][1]]
         diff_x = end[0] - start[0]
         diff_y = end[1] - start[1]
-        step_amount = round((diff_x ** 2 + diff_y ** 2) ** 0.5 * speed * dt)
+        step_amount = round((diff_x ** 2 + diff_y ** 2) ** 0.5 * dt / speed)
         x_step = diff_x / step_amount
         y_step = diff_y / step_amount
         for player in players:
@@ -518,6 +668,8 @@ def choose_avatar():
                 if player.main:
                     color = player.color
 
+
+
             image_bytes_encoded_bytes_base64 = base64.b64encode(image_bytes)
             all_sendable_data = []
             sendable_data = f'avatar|{color}|{len(all_sendable_data) + 1}|'.encode()
@@ -534,7 +686,7 @@ def choose_avatar():
 
             for i in all_sendable_data:
                 sock.send(i)
-                time.sleep(0.07)
+                time.sleep(0.1)
 
 
 def event_handler():
@@ -546,43 +698,21 @@ def event_handler():
     pygame_widgets.update(events)
 
 
-def price_printing():
-    for tile in all_tiles:
-        if tile.price != '':
-            tile.text_defining()
-            if tile.position == 4 or tile.position == 38 or not tile.owned:
-                text = font.render(tile.text, False, tile.color)
-            else:
-                text = font.render(tile.text, False, tile.color)
-            price_text = pg.transform.rotate(text, tile.angle)
-
-            offset = 0
-            if tile.angle == -90:
-                offset = round((font.size(tile.text)[0] - 31) / 2)
-            elif tile.angle == 90:
-                offset = round((font.size(tile.text)[0] - 29) / 2)
-
-            text_rect = text.get_rect(center=(tile.xText + offset, tile.yText - offset))
-
-
-            screen.blit(price_text, text_rect)
-
-
-def player_move_change():
+def player_move_change(do_change):
     for player in players:
         if player.main:
-            next_player_command = 'nextPlayer'
+            next_player_command = f'nextPlayer|{do_change}%'
             sock.send(next_player_command.encode())
             information_sent('Команда отправлена', next_player_command)
 
 
 def buttons():
-    global cube_button, buy_button, pay_button, name_textbox, ip_textbox, port_textbox, connect_button, start_button, debug_button, avatar_choose_button
+    global cube_button, buy_button, pay_button, name_textbox, ip_textbox, port_textbox, connect_button, start_button, debug_button, avatar_choose_button, shove_penis_button, remove_penis_button
     cube_button = Button(screen,
-                         btn_coordinates[0][0],
-                         btn_coordinates[0][1],
-                         btn_coordinates[0][2],
-                         btn_coordinates[0][3],
+                         btn_coordinates['throw_cubes'][0],
+                         btn_coordinates['throw_cubes'][1],
+                         btn_coordinates['throw_cubes'][2],
+                         btn_coordinates['throw_cubes'][3],
                          inactiveColour=(255, 255, 255),
                          inactiveBorderColour=(0, 0, 0),
                          hoverColour=(255, 255, 255),
@@ -596,10 +726,10 @@ def buttons():
                          onClick=throw_cubes)
 
     buy_button = Button(screen,
-                        btn_coordinates[1][0],
-                        btn_coordinates[1][1],
-                        btn_coordinates[1][2],
-                        btn_coordinates[1][3],
+                        btn_coordinates['buy'][0],
+                        btn_coordinates['buy'][1],
+                        btn_coordinates['buy'][2],
+                        btn_coordinates['buy'][3],
                         inactiveColour=(255, 255, 255),
                         inactiveBorderColour=(0, 0, 0),
                         hoverColour=(255, 255, 255),
@@ -613,10 +743,10 @@ def buttons():
                         onClick=buy)
 
     pay_button = Button(screen,
-                        btn_coordinates[2][0],
-                        btn_coordinates[2][1],
-                        btn_coordinates[2][2],
-                        btn_coordinates[2][3],
+                        btn_coordinates['pay'][0],
+                        btn_coordinates['pay'][1],
+                        btn_coordinates['pay'][2],
+                        btn_coordinates['pay'][3],
                         inactiveColour=(255, 255, 255),
                         inactiveBorderColour=(0, 0, 0),
                         hoverColour=(255, 255, 255),
@@ -629,11 +759,45 @@ def buttons():
                         text='Оплатить',
                         onClick=pay)
 
+    shove_penis_button = Button(screen,
+                        btn_coordinates['shove_penis'][0],
+                        btn_coordinates['shove_penis'][1],
+                        btn_coordinates['shove_penis'][2],
+                        btn_coordinates['shove_penis'][3],
+                        inactiveColour=(255, 255, 255),
+                        inactiveBorderColour=(0, 0, 0),
+                        hoverColour=(255, 255, 255),
+                        hoverBorderColour=(105, 105, 105),
+                        pressedColour=(191, 191, 191),
+                        pressedBorderColour=(0, 0, 0),
+                        borderThickness=3,
+                        radius=btn_radius,
+                        font=btn_font,
+                        text='Сунуть пЭнис',
+                        onClick=penis_build_activation)
+
+    remove_penis_button = Button(screen,
+                        btn_coordinates['remove_penis'][0],
+                        btn_coordinates['remove_penis'][1],
+                        btn_coordinates['remove_penis'][2],
+                        btn_coordinates['remove_penis'][3],
+                        inactiveColour=(255, 255, 255),
+                        inactiveBorderColour=(0, 0, 0),
+                        hoverColour=(255, 255, 255),
+                        hoverBorderColour=(105, 105, 105),
+                        pressedColour=(191, 191, 191),
+                        pressedBorderColour=(0, 0, 0),
+                        borderThickness=3,
+                        radius=btn_radius,
+                        font=btn_font,
+                        text='Убрать пЭнис',
+                        onClick=penis_remove_activation)
+
     name_textbox = TextBox(screen,
-                           start_btn_textboxes_coordinates[0][0],
-                           start_btn_textboxes_coordinates[0][1],
-                           start_btn_textboxes_coordinates[0][2],
-                           start_btn_textboxes_coordinates[0][3],
+                           start_btn_textboxes_coordinates['name'][0],
+                           start_btn_textboxes_coordinates['name'][1],
+                           start_btn_textboxes_coordinates['name'][2],
+                           start_btn_textboxes_coordinates['name'][3],
                            colour=(200, 200, 200),
                            textColour=(0, 0, 0),
                            borderThickness=2,
@@ -644,10 +808,10 @@ def buttons():
                            placeholderTextColour=(128, 128, 128))
 
     ip_textbox = TextBox(screen,
-                         start_btn_textboxes_coordinates[1][0],
-                         start_btn_textboxes_coordinates[1][1],
-                         start_btn_textboxes_coordinates[1][2],
-                         start_btn_textboxes_coordinates[1][3],
+                         start_btn_textboxes_coordinates['IP'][0],
+                         start_btn_textboxes_coordinates['IP'][1],
+                         start_btn_textboxes_coordinates['IP'][2],
+                         start_btn_textboxes_coordinates['IP'][3],
                          colour=(200, 200, 200),
                          textColour=(0, 0, 0),
                          borderThickness=2,
@@ -658,10 +822,10 @@ def buttons():
                          placeholderTextColour=(128, 128, 128))
 
     port_textbox = TextBox(screen,
-                           start_btn_textboxes_coordinates[2][0],
-                           start_btn_textboxes_coordinates[2][1],
-                           start_btn_textboxes_coordinates[2][2],
-                           start_btn_textboxes_coordinates[2][3],
+                           start_btn_textboxes_coordinates['port'][0],
+                           start_btn_textboxes_coordinates['port'][1],
+                           start_btn_textboxes_coordinates['port'][2],
+                           start_btn_textboxes_coordinates['port'][3],
                            colour=(200, 200, 200),
                            textColour=(0, 0, 0),
                            borderThickness=2,
@@ -672,10 +836,10 @@ def buttons():
                            placeholderTextColour=(128, 128, 128))
 
     avatar_choose_button = Button(screen,
-                            start_btn_textboxes_coordinates[4][0],
-                            start_btn_textboxes_coordinates[4][1],
-                            start_btn_textboxes_coordinates[4][2],
-                            start_btn_textboxes_coordinates[4][3],
+                            start_btn_textboxes_coordinates['choose_avatar'][0],
+                            start_btn_textboxes_coordinates['choose_avatar'][1],
+                            start_btn_textboxes_coordinates['choose_avatar'][2],
+                            start_btn_textboxes_coordinates['choose_avatar'][3],
                             inactiveColour=(255, 255, 255),
                             inactiveBorderColour=(0, 0, 0),
                             hoverColour=(255, 255, 255),
@@ -689,10 +853,10 @@ def buttons():
                             onClick=choose_avatar)
 
     connect_button = Button(screen,
-                            start_btn_textboxes_coordinates[3][0],
-                            start_btn_textboxes_coordinates[3][1],
-                            start_btn_textboxes_coordinates[3][2],
-                            start_btn_textboxes_coordinates[3][3],
+                            start_btn_textboxes_coordinates['connect'][0],
+                            start_btn_textboxes_coordinates['connect'][1],
+                            start_btn_textboxes_coordinates['connect'][2],
+                            start_btn_textboxes_coordinates['connect'][3],
                             inactiveColour=(255, 255, 255),
                             inactiveBorderColour=(0, 0, 0),
                             hoverColour=(255, 255, 255),
@@ -706,10 +870,10 @@ def buttons():
                             onClick=connect)
 
     start_button = Button(screen,
-                          start_btn_textboxes_coordinates[5][0],
-                          start_btn_textboxes_coordinates[5][1],
-                          start_btn_textboxes_coordinates[5][2],
-                          start_btn_textboxes_coordinates[5][3],
+                          start_btn_textboxes_coordinates['ready'][0],
+                          start_btn_textboxes_coordinates['ready'][1],
+                          start_btn_textboxes_coordinates['ready'][2],
+                          start_btn_textboxes_coordinates['ready'][3],
                           inactiveColour=(255, 255, 255),
                           inactiveBorderColour=(0, 0, 0),
                           hoverColour=(255, 255, 255),
@@ -738,63 +902,76 @@ def buttons():
                           font=btn_font,
                           text='debug',
                           onClick=debug_output)
+    for i in range(40):
+        globals()[f'penis_{i}_button'] = Button(screen,
+                                             positions[i][0],
+                                             positions[i][1],
+                                             positions[2][0] - positions[1][0],
+                                             positions[2][0] - positions[1][0],
+                                             onClick=penis_build,
+                                             onClickParams=(i,))
 
 # Проверки
 # |
 # V
 
 def active_buttons_check():
-    for player in players:
-        if player.main:
-            if not player.on_move and not player.imprisoned:
-                # Бросок кубов
-                screen.blit(throw_cubes_disabled_btn,
-                            (btn_coordinates[0][0],
-                                  btn_coordinates[0][1],
-                                  btn_coordinates[0][2],
-                                  btn_coordinates[0][3]))
     # Бросок кубов
-    if not state['is_game_started']:
+    if not state['is_game_started'] or not state['throw_cubes_btn_active']:
         screen.blit(throw_cubes_disabled_btn,
-                    (btn_coordinates[0][0],
-                          btn_coordinates[0][1],
-                          btn_coordinates[0][2],
-                          btn_coordinates[0][3]))
+                         (btn_coordinates['throw_cubes'][0],
+                          btn_coordinates['throw_cubes'][1],
+                          btn_coordinates['throw_cubes'][2],
+                          btn_coordinates['throw_cubes'][3]))
     # Купить
     if not state['is_game_started'] or not state['buy_btn_active']:
         screen.blit(buy_disabled_btn,
-                    (btn_coordinates[1][0],
-                          btn_coordinates[1][1],
-                          btn_coordinates[1][2],
-                          btn_coordinates[1][3]))
+                         (btn_coordinates['buy'][0],
+                          btn_coordinates['buy'][1],
+                          btn_coordinates['buy'][2],
+                          btn_coordinates['buy'][3]))
     # Оплатить
     if not state['is_game_started'] or state['pay_btn_active'][0] == 'False':
         screen.blit(pay_disabled_btn,
-                    (btn_coordinates[2][0],
-                          btn_coordinates[2][1],
-                          btn_coordinates[2][2],
-                          btn_coordinates[2][3]))
+                         (btn_coordinates['pay'][0],
+                          btn_coordinates['pay'][1],
+                          btn_coordinates['pay'][2],
+                          btn_coordinates['pay'][3]))
+    # Сунуть пЭнис
+    if not state['is_game_started'] or not state['penis_build_btn_active']:
+        screen.blit(shove_penis_disabled_btn,
+                         (btn_coordinates['shove_penis'][0],
+                          btn_coordinates['shove_penis'][1],
+                          btn_coordinates['shove_penis'][2],
+                          btn_coordinates['shove_penis'][3]))
+    # Убрать пЭнис
+    if not state['is_game_started'] or not state['penis_remove_btn_active'] or state['penis_remove_btn_used']:
+        screen.blit(remove_penis_disabled_btn,
+                         (btn_coordinates['remove_penis'][0],
+                          btn_coordinates['remove_penis'][1],
+                          btn_coordinates['remove_penis'][2],
+                          btn_coordinates['remove_penis'][3]))
     # Подключиться
     if state['is_game_started'] or state['connected']:
         screen.blit(connect_disabled_btn,
-                    (start_btn_textboxes_coordinates[3][0],
-                          start_btn_textboxes_coordinates[3][1],
-                          start_btn_textboxes_coordinates[3][2],
-                          start_btn_textboxes_coordinates[3][3]))
+                         (start_btn_textboxes_coordinates['connect'][0],
+                          start_btn_textboxes_coordinates['connect'][1],
+                          start_btn_textboxes_coordinates['connect'][2],
+                          start_btn_textboxes_coordinates['connect'][3]))
     # Выбрать аватар
     if not state['connected'] or state['avatar_chosen']:
         screen.blit(avatar_choose_disabled_btn,
-                    (start_btn_textboxes_coordinates[4][0],
-                          start_btn_textboxes_coordinates[4][1],
-                          start_btn_textboxes_coordinates[4][2],
-                          start_btn_textboxes_coordinates[4][3]))
+                         (start_btn_textboxes_coordinates['choose_avatar'][0],
+                          start_btn_textboxes_coordinates['choose_avatar'][1],
+                          start_btn_textboxes_coordinates['choose_avatar'][2],
+                          start_btn_textboxes_coordinates['choose_avatar'][3]))
     # Готов
     if state['is_game_started'] or state['ready']:
         screen.blit(ready_disabled_btn,
-                    (start_btn_textboxes_coordinates[5][0],
-                          start_btn_textboxes_coordinates[5][1],
-                          start_btn_textboxes_coordinates[5][2],
-                          start_btn_textboxes_coordinates[5][3]))
+                         (start_btn_textboxes_coordinates['ready'][0],
+                          start_btn_textboxes_coordinates['ready'][1],
+                          start_btn_textboxes_coordinates['ready'][2],
+                          start_btn_textboxes_coordinates['ready'][3]))
 
 
 def pay_btn_check():
@@ -843,11 +1020,10 @@ thread_open('Поток открыт', connection_handler.name)
 while running:
     clock.tick(FPS)
     dt, prev_time = delta_time(prev_time)
-
     blit_items()
-    price_printing()
-
     event_handler()
+    blit_board()
+    price_printing()
     active_buttons_check()
     pg.display.flip()
 print('Программа завершена')

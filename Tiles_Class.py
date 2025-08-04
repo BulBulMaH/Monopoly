@@ -18,6 +18,10 @@ class Tiles:
         self.angle = int(information_list[9])
         self.max_family_members = int(information_list[10])
         self.family_members = 0
+        if self.type == 'buildable':
+            self.penis_price = round(int(self.price) * 0.63 / 50) * 50
+        else:
+            self.penis_price = 0
         self.penises = 0
         self.income = 0
         self.owned = False
