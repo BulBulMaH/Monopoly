@@ -29,10 +29,10 @@ from resolution_choice import resolution_definition
 pg.init()
 pg.mixer.init()  # для звука
 
-resolution, resolution_folder, piece_color_coefficient, bars_coordinates, btn_coordinates, btn_font, profile_coordinates, start_btn_textboxes_coordinates, btn_radius, cubes_coordinates, speed, avatar_side_size = resolution_definition()
+resolution, resolution_folder, piece_color_coefficient, bars_coordinates, btn_coordinates, btn_font, profile_coordinates, start_btn_textboxes_coordinates, btn_radius, cubes_coordinates, speed, avatar_side_size, exchange_coordinates = resolution_definition()
 
 FPS = 60
-TITLE = 'Monopoly v0.8'
+TITLE = 'Monopoly v0.9'
 screen = pg.display.set_mode(resolution)
 pg.display.set_caption(TITLE)
 clock = pg.time.Clock()
@@ -42,7 +42,11 @@ sock = sck.socket(sck.AF_INET, sck.SOCK_STREAM)
 sock.setsockopt(sck.IPPROTO_TCP, sck.TCP_NODELAY, 1)
 
 positions = positions_extraction(resolution_folder)
-background = pg.image.load(f'resources/{resolution_folder}/board.png')
+background = pg.image.load(f'resources/{resolution_folder}/background.png')
+board = pg.image.load(f'resources/{resolution_folder}/board.png')
+exchange_screen = pg.image.load(f'resources/{resolution_folder}/exchange.png')
+darkening_full = pg.image.load(f'resources/{resolution_folder}/darkening all.png')
+darkening_tile = pg.image.load(f'resources/{resolution_folder}/darkening tile.png')
 profile_picture = pg.image.load(f'resources/{resolution_folder}/profile/profile.png')
 bars = pg.image.load(f'resources/{resolution_folder}/bars.png')
 player_bars = pg.image.load(f'resources/{resolution_folder}/profile/profile_bars.png')
@@ -55,6 +59,7 @@ buy_disabled_btn = pg.image.load(f'resources/{resolution_folder}/buttons/buy_dis
 pay_disabled_btn = pg.image.load(f'resources/{resolution_folder}/buttons/pay_disabled.png')
 shove_penis_disabled_btn = pg.image.load(f'resources/{resolution_folder}/buttons/shove_penis_disabled.png')
 remove_penis_disabled_btn = pg.image.load(f'resources/{resolution_folder}/buttons/remove_penis_disabled.png')
+exchange_disabled_btn = pg.image.load(f'resources/{resolution_folder}/buttons/exchange_disabled.png')
 connect_disabled_btn = pg.image.load(f'resources/{resolution_folder}/buttons/connect_disabled.png')
 avatar_choose_disabled_btn = pg.image.load(f'resources/{resolution_folder}/buttons/avatar_choose_disabled.png')
 ready_disabled_btn = pg.image.load(f'resources/{resolution_folder}/buttons/ready_disabled.png')
@@ -91,6 +96,10 @@ state = {'throw_cubes_btn_active': False,
          'penis_remove_btn_used': False,
          'all_penises_build_btns_active': False,
          'all_penises_remove_btns_active': False,
+         'exchange_btn_active': False,
+         'exchange_player_btn_active': False,
+         'exchange_tile_btn_active': False,
+         'show_exchange_screen': False,
          'is_game_started': False,
          'ready': False,
          'connected': False,
@@ -113,6 +122,7 @@ def throw_cubes():
                     state['throw_cubes_btn_active'] = False
                     state['penis_build_btn_active'] = False
                     state['penis_remove_btn_active'] = False
+                    state['exchange_btn_active'] = False
 
 
 def buy():
@@ -191,12 +201,17 @@ def debug_output():
               f'       penis_remove_btn_used: {state['penis_remove_btn_used']}\n'
               f'       all_penises_build_btns_active: {state['all_penises_build_btns_active']}\n'
               f'       all_penises_remove_btns_active: {state['all_penises_remove_btns_active']}\n'
+              f'       exchange_btn_active: {state['exchange_btn_active']}\n'
+              f'       exchange_player_btn_active: {state['exchange_player_btn_active']}\n'
+              f'       exchange_tile_btn_active: {state['exchange_tile_btn_active']}\n'
+              f'       show_exchange_screen: {state['show_exchange_screen']}\n'
               f'       is_game_started: {state['is_game_started']}\n'
               f'       ready: {state['ready']}\n'
               f'       connected: {state['connected']}\n'
               f'       double: {state['double']}\n'
               f'       paid: {state['paid']}\n'
-              f'       avatar_chosen: {state['avatar_chosen']}\n')
+              f'       avatar_chosen: {state['avatar_chosen']}\n'
+              f'       cube_animation_playing: {state['cube_animation_playing']}\n')
 
 
 def connect():
@@ -229,9 +244,8 @@ def start_game():
         state['ready'] = True
 
 
-def penis_build(tile_position):
+def tile_button(tile_position):
     global state
-    print(all_tiles[tile_position].penises)
     if state['is_game_started'] and state['all_penises_build_btns_active']:
         for player in players:
             if player.main:
@@ -263,6 +277,20 @@ def penis_build(tile_position):
                     sock.send(penis_command.encode())
                     information_sent('Информация отправлена', penis_command)
 
+    if state['is_game_started'] and state['exchange_tile_btn_active']:
+        global exchange_give, exchange_get
+        exchange_give = []
+        exchange_get = []
+        if (all_tiles[tile_position] in available_tiles_for_exchange and
+                all_tiles[tile_position] not in exchange_give and
+                all_tiles[tile_position] not in exchange_get):
+            for player in players:
+                if player.main:
+                    if player.color == all_tiles[tile_position].owner:
+                        exchange_give.append(all_tiles[tile_position])
+                    else:
+                        exchange_get.append(all_tiles[tile_position])
+
 
 def penis_build_activation():
     global state
@@ -289,57 +317,96 @@ def penis_remove_activation():
                                 state['all_penises_build_btns_active'] = False
 
 
+def exchange():
+    global state
+    if state['is_game_started'] and state['exchange_btn_active']:
+        state['exchange_player_btn_active'] = True
+
+
+def player_button(color):
+    global state, available_tiles_for_exchange
+    if state['is_game_started'] and state['exchange_player_btn_active']:
+        available_tiles_for_exchange = []
+        for player in players:
+            if player.main:
+                available_tiles_for_exchange += player.property
+            elif player.color == color:
+                available_tiles_for_exchange += player.property
+        state['exchange_tile_btn_active'] = True
+
+
 # ^
 # |
 # Функционал кнопок
 
 
 def blit_items():
-    screen.fill((128, 128, 128))
-    # screen.blit(background, (0, 0))  # инициализация поля
-    for player in players:
-        player_index = players.index(player)
-        screen.blit(player.avatar, (profile_coordinates[player_index][1][0],
-                             profile_coordinates[player_index][1][1]))
-
-        if player.imprisoned:
-            screen.blit(player_bars,(profile_coordinates[player_index][1][0],
-                             profile_coordinates[player_index][1][1]))
-
-        screen.blit(pg.image.load(f'resources/{resolution_folder}/profile/{player.color}Profile.png'),
-                    (profile_coordinates[player_index][1][0],
-                     profile_coordinates[player_index][1][1]))
-
-        screen.blit(profile_picture,
-                    (profile_coordinates[player_index][0][0],
-                     profile_coordinates[player_index][0][1]))
-
-        screen.blit(btn_font.render(f'{player.money}~', False, 'black'),
-                    (profile_coordinates[player_index][2][0],
-                     profile_coordinates[player_index][2][1]))
-
-        screen.blit(btn_font.render(player.name, False, 'black'),
-                    (profile_coordinates[player_index][3][0],
-                     profile_coordinates[player_index][3][1]))
+    screen.blit(background, (0, 0))
     if state['cube_animation_playing']:
         screen.blit(cube_1_picture, cubes_coordinates[0])
         screen.blit(cube_2_picture, cubes_coordinates[1])
 
+    if state['show_exchange_screen']:
+        screen.blit(darkening_full, (0, 0))
+        for tile in all_tiles:
+            if tile.position not in available_tiles_for_exchange and tile.buyable:
+                screen.blit(darkening_tile,
+                            (int(positions[tile.position][0]), int(positions[tile.position][1])))
+
+        screen.blit(exchange_screen, exchange_coordinates['exchange_screen'])
+        give_text = ''
+        get_text = ''
+        for i in exchange_give:
+            give_text += f'{all_tiles[i].name}\n'
+
+        for i in exchange_get:
+            get_text += f'{all_tiles[i].name}\n'
+
+        screen.blit(font.render(give_text, False, 'black'),
+                    exchange_coordinates['text_give'])
+
+        screen.blit(font.render(get_text, False, 'black'),
+                    exchange_coordinates['text_get'])
+
 
 def blit_board():
-    screen.blit(background, (0, 0))
+    screen.blit(board, (0, 0))
 
     for tile in all_tiles:
         if tile.owned:
             screen.blit(pg.image.load(f'resources/{resolution_folder}/{tile.owner}Property.png'),
-                        ((int(positions[tile.position][0])), int(positions[tile.position][1])))
+                        (int(positions[tile.position][0]), int(positions[tile.position][1])))
 
         if 1 <= tile.penises <= 5:
             screen.blit(pg.image.load(f'resources/{resolution_folder}/white penises/{tile.penises}.png'),
-             ((int(positions[tile.position][0])), int(positions[tile.position][1])))
+             (int(positions[tile.position][0]), int(positions[tile.position][1])))
 
     for player in players:
         position_update(player.color)
+
+        player_index = players.index(player)
+        screen.blit(player.avatar, (profile_coordinates[player_index]['avatar'][0],
+                                    profile_coordinates[player_index]['avatar'][1]))
+
+        if player.imprisoned:
+            screen.blit(player_bars, (profile_coordinates[player_index]['avatar'][0],
+                                      profile_coordinates[player_index]['avatar'][1]))
+
+        screen.blit(pg.image.load(f'resources/{resolution_folder}/profile/{player.color}Profile.png'),
+                    (profile_coordinates[player_index]['avatar'][0],
+                     profile_coordinates[player_index]['avatar'][1]))
+
+        screen.blit(profile_picture,
+                    (profile_coordinates[player_index]['profile'][0],
+                     profile_coordinates[player_index]['profile'][1]))
+
+        screen.blit(font.render(f'{player.money}~', False, 'black'),
+                    (profile_coordinates[player_index]['money'][0],
+                     profile_coordinates[player_index]['money'][1]))
+
+        screen.blit(font.render(player.name, False, 'black'),
+                    (profile_coordinates[player_index]['name'][0],
+                     profile_coordinates[player_index]['name'][1]))
 
     screen.blit(bars, bars_coordinates)
 
@@ -454,6 +521,7 @@ def handle_connection():
                             player.baseY = positions[player.piece_position][1]
                             player.name = data[4]
                             position_update(player.color)
+                    buttons()
 
                 elif data[0] == 'property':
                     for player in players:
@@ -493,8 +561,11 @@ def handle_connection():
                     for player in players:
                         if player.color == data[1]:
                             player.on_move = True
+                            state['throw_cubes_btn_active'] = True
+                            state['exchange_btn_active'] = True
                         else:
                             player.on_move = False
+                            state['throw_cubes_btn_active'] = False
 
                         if player.main:
                             state['throw_cubes_btn_active'] = True
@@ -508,7 +579,7 @@ def handle_connection():
                                         state['penis_remove_btn_active'] = True
 
                 elif data[0] == 'error':
-                    print(data[1])
+                    print(f'Ошибка: {"\033[31m{}".format(data[1])}{'\033[0m'}')
 
                 elif data[0] == 'imprisoned':
                     for player in players:
@@ -707,7 +778,7 @@ def player_move_change(do_change):
 
 
 def buttons():
-    global cube_button, buy_button, pay_button, name_textbox, ip_textbox, port_textbox, connect_button, start_button, debug_button, avatar_choose_button, shove_penis_button, remove_penis_button
+    global cube_button, buy_button, pay_button, name_textbox, ip_textbox, port_textbox, connect_button, start_button, debug_button, avatar_choose_button, shove_penis_button, remove_penis_button, exchange_button
     cube_button = Button(screen,
                          btn_coordinates['throw_cubes'][0],
                          btn_coordinates['throw_cubes'][1],
@@ -792,6 +863,23 @@ def buttons():
                         font=btn_font,
                         text='Убрать пЭнис',
                         onClick=penis_remove_activation)
+
+    exchange_button = Button(screen,
+                             btn_coordinates['exchange'][0],
+                             btn_coordinates['exchange'][1],
+                             btn_coordinates['exchange'][2],
+                             btn_coordinates['exchange'][3],
+                             inactiveColour=(255, 255, 255),
+                             inactiveBorderColour=(0, 0, 0),
+                             hoverColour=(255, 255, 255),
+                             hoverBorderColour=(105, 105, 105),
+                             pressedColour=(191, 191, 191),
+                             pressedBorderColour=(0, 0, 0),
+                             borderThickness=3,
+                             radius=btn_radius,
+                             font=btn_font,
+                             text='Обмен',
+                             onClick=exchange)
 
     name_textbox = TextBox(screen,
                            start_btn_textboxes_coordinates['name'][0],
@@ -904,12 +992,21 @@ def buttons():
                           onClick=debug_output)
     for i in range(40):
         globals()[f'penis_{i}_button'] = Button(screen,
-                                             positions[i][0],
-                                             positions[i][1],
-                                             positions[2][0] - positions[1][0],
-                                             positions[2][0] - positions[1][0],
-                                             onClick=penis_build,
-                                             onClickParams=(i,))
+                                                positions[i][0],
+                                                positions[i][1],
+                                                positions[2][0] - positions[1][0],
+                                                positions[2][0] - positions[1][0],
+                                                onClick=tile_button,
+                                                onClickParams=(i,))
+
+    for player in players:
+        globals()[f'{player.color}_player_button'] = Button(screen,
+                                                            profile_coordinates[players.index(player)]['avatar'][0],
+                                                            profile_coordinates[players.index(player)]['avatar'][1],
+                                                            avatar_side_size,
+                                                            avatar_side_size,
+                                                            onClick=tile_button,
+                                                            onClickParams=(player.color,))
 
 # Проверки
 # |
@@ -951,6 +1048,13 @@ def active_buttons_check():
                           btn_coordinates['remove_penis'][1],
                           btn_coordinates['remove_penis'][2],
                           btn_coordinates['remove_penis'][3]))
+
+    if not state['is_game_started'] or not state['exchange_btn_active']:
+        screen.blit(exchange_disabled_btn,
+                         (btn_coordinates['exchange'][0],
+                          btn_coordinates['exchange'][1],
+                          btn_coordinates['exchange'][2],
+                          btn_coordinates['exchange'][3]))
     # Подключиться
     if state['is_game_started'] or state['connected']:
         screen.blit(connect_disabled_btn,
@@ -1023,6 +1127,7 @@ while running:
     blit_items()
     event_handler()
     blit_board()
+
     price_printing()
     active_buttons_check()
     pg.display.flip()

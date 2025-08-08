@@ -10,7 +10,7 @@ class Tiles:
             self.buyable = False
         self.type = information_list[2]
         self.family = information_list[3]
-        self.descr = information_list[4]
+        self.name = information_list[4]
         self.xText = int(information_list[5])
         self.yText = int(information_list[6])
         self.price = information_list[7]

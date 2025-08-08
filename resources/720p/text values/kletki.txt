@@ -1,40 +1,40 @@
 0,False,nonbuildable,Угловые,Старт,0,0,,black,0,0
-1,True,buildable,Анар,Анар Мамедов,96,64,60,black,0,2
+1,True,buildable,Анар,Анар Мамедов 1,96,64,60,black,0,2
 2,False,nonbuildable,Яйца,Груда вопросительных яиц,0,0,,black,0,0
-3,True,buildable,Анар,Анар Мамедов,210,64,60,black,0,2
+3,True,buildable,Анар,Анар Мамедов 2,210,64,60,black,0,2
 4,False,minus,Глеб,Глеб Кобаль,267,64,-200,white,0,0
-5,True,train,Легенда,Фото из канала "Легенда",324,64,200,black,0,4
-6,True,buildable,Василий,Василий Иванов,381,64,100,black,0,3
+5,True,train,Легенда,Зеркало,324,64,200,black,0,4
+6,True,buildable,Василий,Василий Иванов 1,381,64,100,black,0,3
 7,False,nonbuildable,Яйцо,Вопросительное яйцо,0,0,,black,0,0
 8,True,buildable,Василий,penis.,495,64,100,black,0,3
-9,True,buildable,Василий,Василий Иванов,552,64,100,black,0,3
+9,True,buildable,Василий,Василий Иванов 2,552,64,100,black,0,3
 10,False,nonbuildable,Угловые,Тюрьма,0,0,,black,0,0
-11,True,buildable,Доминика,Доминика Негреску,586,96,140,black,-90,3
-12,True,infrastructure,Варя,Варвара Репина,586,153,150,black,-90,2
-13,True,buildable,Доминика,Доминика Негреску,586,210,140,black,-90,3
-14,True,buildable,Доминика,Доминика Негреску,586,267,140,black,-90,3
-15,True,train,Легенда,Фото из канала "Легенда",586,324,200,black,-90,4
-16,True,buildable,Артём,Артём Жигунов,586,381,180,black,-90,3
+11,True,buildable,Доминика,Доминика Негреску 1,586,96,140,black,-90,3
+12,True,infrastructure,Варя,Варвара Репина 1,586,153,150,black,-90,2
+13,True,buildable,Доминика,Доминика Негреску 2,586,210,140,black,-90,3
+14,True,buildable,Доминика,Доминика Негреску 3,586,267,140,black,-90,3
+15,True,train,Легенда,Директор,586,324,200,black,-90,4
+16,True,buildable,Артём,Артём Жигунов 1,586,381,180,black,-90,3
 17,False,nonbuildable,Яйца,Груда вопросительных яиц,0,0,,black,0,0
-18,True,buildable,Артём,Артём Жигунов,586,495,180,black,-90,3
-19,True,buildable,Артём,Артём Жигунов,586,552,180,black,-90,3
+18,True,buildable,Артём,Артём Жигунов 2,586,495,180,black,-90,3
+19,True,buildable,Артём,Артём Жигунов 3,586,552,180,black,-90,3
 20,False,nonbuildable,Угловые,???,0,0,,black,0,0
-21,True,buildable,Никита,Никита Никонов,552,581,220,black,0,3
+21,True,buildable,Никита,Никита Никонов 1,552,581,220,black,0,3
 22,False,nonbuildable,Яйцо,Вопросительное яйцо,0,0,,black,0,0
-23,True,buildable,Никита,Никита Никонов,438,581,220,black,0,3
-24,True,buildable,Никита,Никита Никонов,381,581,220,black,0,3
-25,True,train,Легенда,Фото из канала "Легенда" (почти),324,581,200,black,0,4
-26,True,buildable,Егор,Егор Родин,267,581,260,black,0,3
-27,True,buildable,Егор,Егор Родин,210,581,260,black,0,3
-28,True,infrastructure,Варя,Варвара Репина,153,581,150,black,0,2
-29,True,buildable,Егор,Егор Родин,96,581,260,black,0,3
+23,True,buildable,Никита,Никита Никонов 2,438,581,220,black,0,3
+24,True,buildable,Никита,Никита Никонов 3,381,581,220,black,0,3
+25,True,train,Легенда,Мурад с Иваном,324,581,200,black,0,4
+26,True,buildable,Егор,Егор Родин 1,267,581,260,black,0,3
+27,True,buildable,Егор,Егор Родин 2,210,581,260,black,0,3
+28,True,infrastructure,Варя,Варвара Репина 2,153,581,150,black,0,2
+29,True,buildable,Егор,Егор Родин 3,96,581,260,black,0,3
 30,False,nonbuildable,Угловые,Туда - сюда,0,0,,black,0,0
-31,True,buildable,Даня,Даниил Манцевич,64,552,300,black,90,3
-32,True,buildable,Даня,Даниил Манцевич,64,496,300,black,90,3
+31,True,buildable,Даня,Даниил Манцевич 1,64,552,300,black,90,3
+32,True,buildable,Даня,Даниил Манцевич 2,64,496,300,black,90,3
 33,False,nonbuildable,Яйца,Груда вопросительных яиц,0,0,,black,0,0
-34,True,buildable,Даня,Даниил Манцевич,64,381,300,black,90,3
-35,True,train,Легенда,Фото из канала "Легенда",64,324,200,black,90,4
+34,True,buildable,Даня,Даниил Манцевич 3,64,381,300,black,90,3
+35,True,train,Легенда,Снеговик,64,324,200,black,90,4
 36,False,nonbuildable,Яйцо,Вопросительное яйцо,0,0,,black,0,0
-37,True,buildable,Дима,Дмитрий Садеков,64,210,350,black,90,2
+37,True,buildable,Дима,Дмитрий Садеков 1,64,210,350,black,90,2
 38,False,minus,Глеб,Глеб Кобаль,65,153,-100,white,90,0
-39,True,buildable,Дима,Дмитрий Садеков,64,96,350,black,90,2
+39,True,buildable,Дима,Дмитрий Садеков 2,64,96,350,black,90,2

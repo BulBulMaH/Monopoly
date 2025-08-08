@@ -284,6 +284,9 @@ def receive_data():
                             if all_tiles[i].family == data[1]:
                                 all_tiles[i].full_family = True
 
+                    else:
+                        player.conn.send(f'error|Незарегистрированная команда: {data[0]}'.encode())
+
             except BlockingIOError:
                 pass
             except ConnectionAbortedError:
