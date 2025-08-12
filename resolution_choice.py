@@ -1,9 +1,12 @@
 import pygame as pg
 
-def resolution_definition():
+def resolution_definition(do_choose):
     is_resolution_selected = False
     while not is_resolution_selected:
-        resolution_index = input('Введите разрешение экрана:\n1 - 1280x720\n2 - 1920x1080\n')
+        if do_choose:
+            resolution_index = input('Введите разрешение экрана:\n1 - 1280x720\n2 - 1920x1080\n')
+        else:
+            resolution_index = '1'
         if resolution_index == '1':
             resolution = (1280, 650)
             resolution_folder = '720p'
@@ -26,8 +29,11 @@ def resolution_definition():
                                     {'profile': [669, 467], 'avatar':[830, 493] , 'money': [674, 485], 'name': [674, 465]}]
 
             exchange_coordinates = {'exchange_screen': (75, 75),
-                                    'text_give': (120, 160),
-                                    'text_get': (345, 160)}
+                                    'textbox_give': (120, 160, 183, 30),
+                                    'textbox_get': (345, 160, 183, 30),
+                                    'text_give': (120, 196),
+                                    'text_get': (345, 196),
+                                    'button': (256, 492, 136, 38)}
 
             start_btn_textboxes_coordinates = {'name':          (1065, 384, 196, 30),
                                                 'IP':            (1065, 430, 134, 30),
@@ -62,8 +68,11 @@ def resolution_definition():
                                     {'profile': [1028, 687], 'avatar': [1262, 723], 'money': [1034, 719], 'name': [1034, 691]}]
 
             exchange_coordinates = {'exchange_screen': (108, 108),
-                                    'text_give': (177, 240),
-                                    'text_get': (530, 240)}
+                                    'textbox_give': (177, 240, 290, 30),
+                                    'textbox_get': (530, 240, 290, 30),
+                                    'text_give': (177, 290),
+                                    'text_get': (530, 290),
+                                    'button': (398, 765, 201, 57)}
 
             start_btn_textboxes_coordinates = {'name':          (1689, 660, 134, 30),
                                                 'IP':            (1689, 710, 134, 30),

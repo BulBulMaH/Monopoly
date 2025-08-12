@@ -29,12 +29,14 @@ from resolution_choice import resolution_definition
 pg.init()
 pg.mixer.init()  # для звука
 
-resolution, resolution_folder, piece_color_coefficient, bars_coordinates, btn_coordinates, btn_font, profile_coordinates, start_btn_textboxes_coordinates, btn_radius, cubes_coordinates, speed, avatar_side_size, exchange_coordinates = resolution_definition()
+resolution, resolution_folder, piece_color_coefficient, bars_coordinates, btn_coordinates, btn_font, profile_coordinates, start_btn_textboxes_coordinates, btn_radius, cubes_coordinates, speed, avatar_side_size, exchange_coordinates = resolution_definition(True)
 
 FPS = 60
 TITLE = 'Monopoly v0.9'
 screen = pg.display.set_mode(resolution)
 pg.display.set_caption(TITLE)
+icon = pg.image.load(f'resources/icon.png')
+pg.display.set_icon(icon)
 clock = pg.time.Clock()
 prev_time = time.time()
 
@@ -52,7 +54,6 @@ bars = pg.image.load(f'resources/{resolution_folder}/bars.png')
 player_bars = pg.image.load(f'resources/{resolution_folder}/profile/profile_bars.png')
 avatar_file = pg.image.load(f'resources/{resolution_folder}/profile/avatar_placeholder.png')
 font = pg.font.Font('resources/fonts/bulbulpoly-3.ttf',25)
-
 
 throw_cubes_disabled_btn = pg.image.load(f'resources/{resolution_folder}/buttons/throw_cubes_disabled.png')
 buy_disabled_btn = pg.image.load(f'resources/{resolution_folder}/buttons/buy_disabled.png')
@@ -281,15 +282,22 @@ def tile_button(tile_position):
         global exchange_give, exchange_get
         exchange_give = []
         exchange_get = []
-        if (all_tiles[tile_position] in available_tiles_for_exchange and
-                all_tiles[tile_position] not in exchange_give and
+        if all_tiles[tile_position] in available_tiles_for_exchange:
+            if (all_tiles[tile_position] not in exchange_give and
                 all_tiles[tile_position] not in exchange_get):
-            for player in players:
-                if player.main:
-                    if player.color == all_tiles[tile_position].owner:
-                        exchange_give.append(all_tiles[tile_position])
-                    else:
-                        exchange_get.append(all_tiles[tile_position])
+                for player in players:
+                    if player.main:
+                        if player.color == all_tiles[tile_position].owner:
+                            exchange_give.append(all_tiles[tile_position])
+                        else:
+                            exchange_get.append(all_tiles[tile_position])
+            else:
+                for player in players:
+                    if player.main:
+                        if player.color == all_tiles[tile_position].owner:
+                            exchange_give.remove(all_tiles[tile_position])
+                        else:
+                            exchange_get.remove(all_tiles[tile_position])
 
 
 def penis_build_activation():
@@ -321,11 +329,40 @@ def exchange():
     global state
     if state['is_game_started'] and state['exchange_btn_active']:
         state['exchange_player_btn_active'] = True
+        print('Нажата кнопка обмена')
+
+
+def exchange_commit(color):
+    value_give = 0
+    value_get = 0
+    exchange_money_give_sum = exchange_give_textbox.getText()
+    exchange_money_get_sum = exchange_get_textbox.getText()
+
+    for give_tile in exchange_give:
+        value_give += give_tile.price / 2
+    value_give += exchange_money_give_sum
+
+    for get_tile in exchange_get:
+        value_get += get_tile.price / 2
+    value_get += exchange_money_get_sum
+
+    if max(value_give, value_get) / min(value_give, value_get) <= 2:
+        exchange_command = f'exchange|{exchange_money_give_sum}_'
+        for give_tile in exchange_give:
+            exchange_command += f'{give_tile.position}-'
+        exchange_command = exchange_command[:-1] + '|'
+        for get_tile in exchange_get:
+            exchange_command += f'{get_tile.position}-'
+        exchange_command = exchange_command[:-1] + f'|{color}%'
+
+        sock.send(exchange_command.encode())
+        information_sent('Команда отправлена', exchange_command)
 
 
 def player_button(color):
-    global state, available_tiles_for_exchange
+    global state, available_tiles_for_exchange, exchange_color
     if state['is_game_started'] and state['exchange_player_btn_active']:
+        print(f'Нажат игрок: {color}')
         available_tiles_for_exchange = []
         for player in players:
             if player.main:
@@ -333,6 +370,54 @@ def player_button(color):
             elif player.color == color:
                 available_tiles_for_exchange += player.property
         state['exchange_tile_btn_active'] = True
+        state['show_exchange_screen'] = True
+        exchange_color = color
+
+
+def choose_avatar():
+    global state, sendable_data
+    if not state['avatar_chosen']:
+        top = tkinter.Tk()
+        top.withdraw()
+        file_name = tkinter.filedialog.askopenfilename(parent=top, filetypes=[('Изображения', ('*.png', '*.jpg'))])
+        top.destroy()
+        if file_name != '' and not state['avatar_chosen']:
+            state['avatar_chosen'] = True
+            image = Image.open(file_name)
+            width, height = image.size
+            if width > 150:
+                image = image.resize([150, height])
+                width, height = image.size
+            if height > 150:
+                image = image.resize([width, 150])
+
+            image_bytes = io.BytesIO()
+            image.save(image_bytes, format='PNG')
+            image_bytes = image_bytes.getvalue()
+
+            for player in players:
+                if player.main:
+                    color = player.color
+
+
+
+            image_bytes_encoded_bytes_base64 = base64.b64encode(image_bytes)
+            all_sendable_data = []
+            sendable_data = f'avatar|{color}|{len(all_sendable_data) + 1}|'.encode()
+            for i in image_bytes_encoded_bytes_base64:
+                if len(b''.join([sendable_data, int.to_bytes(i), '|1000'.encode()])) < 1024:
+                    sendable_data = b''.join([sendable_data, int.to_bytes(i)])
+                else:
+                    all_sendable_data.append(sendable_data)
+                    sendable_data = b''.join([f'avatar|{color}|{len(all_sendable_data) + 1}|'.encode(), int.to_bytes(i)])
+            all_sendable_data.append(sendable_data)
+
+            for i in range(len(all_sendable_data)):
+                all_sendable_data[i] = b''.join([all_sendable_data[i], f'|{len(all_sendable_data)}%'.encode()])
+
+            for i in all_sendable_data:
+                sock.send(i)
+                time.sleep(0.1)
 
 
 # ^
@@ -521,7 +606,6 @@ def handle_connection():
                             player.baseY = positions[player.piece_position][1]
                             player.name = data[4]
                             position_update(player.color)
-                    buttons()
 
                 elif data[0] == 'property':
                     for player in players:
@@ -556,27 +640,37 @@ def handle_connection():
 
                 elif data[0] == 'gameStarted':
                     state['is_game_started'] = True
+                    for player in players:
+                        globals()[f'{player.color}_player_button'] = Button(screen,
+                                                                            profile_coordinates[players.index(player)][
+                                                                                'avatar'][0],
+                                                                            profile_coordinates[players.index(player)][
+                                                                                'avatar'][1],
+                                                                            avatar_side_size,
+                                                                            avatar_side_size,
+                                                                            onClick=player_button,
+                                                                            onClickParams=(player.color,))
 
                 elif data[0] == 'onMove':
                     for player in players:
                         if player.color == data[1]:
                             player.on_move = True
-                            state['throw_cubes_btn_active'] = True
-                            state['exchange_btn_active'] = True
-                        else:
-                            player.on_move = False
-                            state['throw_cubes_btn_active'] = False
 
-                        if player.main:
-                            state['throw_cubes_btn_active'] = True
-                            state['paid'] = False
-                            state['penis_remove_btn_used'] = False
-                            for tile in all_tiles:
-                                if tile.full_family and tile.owner == player.color and tile.type == 'buildable':
-                                    if not player.imprisoned:
-                                        state['penis_build_btn_active'] = True
-                                    if 1 <= tile.penises <= 5:
-                                        state['penis_remove_btn_active'] = True
+                            if player.main:
+                                state['exchange_btn_active'] = True
+                                state['throw_cubes_btn_active'] = True
+                                state['paid'] = False
+                                state['penis_remove_btn_used'] = False
+                                for tile in all_tiles:
+                                    if tile.full_family and tile.owner == player.color and tile.type == 'buildable':
+                                        if not player.imprisoned:
+                                            state['penis_build_btn_active'] = True
+                                        if 1 <= tile.penises <= 5:
+                                            state['penis_remove_btn_active'] = True
+                            else:
+                                player.on_move = False
+                                state['throw_cubes_btn_active'] = False
+                                state['exchange_btn_active'] = False
 
                 elif data[0] == 'error':
                     print(f'Ошибка: {"\033[31m{}".format(data[1])}{'\033[0m'}')
@@ -613,6 +707,15 @@ def handle_connection():
                     state['cube_animation_playing'] = False
 
                     print(f'У игрока {data[1]} осталось {3 - int(data[4])} попытки чтобы выйти из тюрьмы')
+
+                elif data[0] == 'all property':
+                    for player in players:
+                        if player.color == data[1]:
+                            new_property = data[2].split('_')
+                            new_int_property = []
+                            for i in new_property:
+                                new_int_property.append(int(i))
+                                player.property = new_int_property
 
                 if not running:
                     break
@@ -676,19 +779,20 @@ def move(color, cube1, cube2, diagonal, start_position, end_position):
                 buy_btn_check(player.color)
                 pay_btn_check()
 
-            if player.main:
-                if all_tiles[player.piece_position].family in ['Угловые', 'Яйца', 'Яйцо']:
-                    if not state['double']:
-                        player_move_change(True)  # TODO: поменять, когда будет функционал
-                    else:
-                        player_move_change(False)
+                if player.main:
+                    print(player.color, player.main)
+                    if all_tiles[player.piece_position].family in ['Угловые', 'Яйца', 'Яйцо']:
+                        if not state['double']:
+                            player_move_change(True)  # TODO: поменять, когда будет функционал
+                        else:
+                            player_move_change(False)
 
-                if player.piece_position in player.property:
-                    if not state['double']:
-                        player_move_change(True)
-                    else:
-                        player_move_change(False)
-                sock.send('moved%'.encode())
+                    if player.piece_position in player.property:
+                        if not state['double']:
+                            player_move_change(True)
+                        else:
+                            player_move_change(False)
+                    sock.send('moved%'.encode())
 
     else:
         start = [positions[start_position][0], positions[start_position][1]]
@@ -714,52 +818,6 @@ def delta_time(old_time):
     return dt, old_time
 
 
-def choose_avatar():
-    global state, sendable_data
-    if not state['avatar_chosen']:
-        top = tkinter.Tk()
-        top.withdraw()
-        file_name = tkinter.filedialog.askopenfilename(parent=top, filetypes=[('Изображения', ('*.png', '*.jpg'))])
-        top.destroy()
-        if file_name != '' and not state['avatar_chosen']:
-            state['avatar_chosen'] = True
-            image = Image.open(file_name)
-            width, height = image.size
-            if width > 150:
-                image = image.resize([150, height])
-                width, height = image.size
-            if height > 150:
-                image = image.resize([width, 150])
-
-            image_bytes = io.BytesIO()
-            image.save(image_bytes, format='PNG')
-            image_bytes = image_bytes.getvalue()
-
-            for player in players:
-                if player.main:
-                    color = player.color
-
-
-
-            image_bytes_encoded_bytes_base64 = base64.b64encode(image_bytes)
-            all_sendable_data = []
-            sendable_data = f'avatar|{color}|{len(all_sendable_data) + 1}|'.encode()
-            for i in image_bytes_encoded_bytes_base64:
-                if len(b''.join([sendable_data, int.to_bytes(i), '|1000'.encode()])) < 1024:
-                    sendable_data = b''.join([sendable_data, int.to_bytes(i)])
-                else:
-                    all_sendable_data.append(sendable_data)
-                    sendable_data = b''.join([f'avatar|{color}|{len(all_sendable_data) + 1}|'.encode(), int.to_bytes(i)])
-            all_sendable_data.append(sendable_data)
-
-            for i in range(len(all_sendable_data)):
-                all_sendable_data[i] = b''.join([all_sendable_data[i], f'|{len(all_sendable_data)}%'.encode()])
-
-            for i in all_sendable_data:
-                sock.send(i)
-                time.sleep(0.1)
-
-
 def event_handler():
     events = pg.event.get()
     for event in events:
@@ -778,7 +836,7 @@ def player_move_change(do_change):
 
 
 def buttons():
-    global cube_button, buy_button, pay_button, name_textbox, ip_textbox, port_textbox, connect_button, start_button, debug_button, avatar_choose_button, shove_penis_button, remove_penis_button, exchange_button
+    global cube_button, buy_button, pay_button, name_textbox, ip_textbox, port_textbox, connect_button, start_button, debug_button, avatar_choose_button, shove_penis_button, remove_penis_button, exchange_button, exchange_give_textbox, exchange_get_textbox, exchange_commit_button
     cube_button = Button(screen,
                          btn_coordinates['throw_cubes'][0],
                          btn_coordinates['throw_cubes'][1],
@@ -976,7 +1034,7 @@ def buttons():
 
     debug_button = Button(screen,
                           954,
-                          592,
+                          550,
                           136,
                           38,
                           inactiveColour=(255, 255, 255),
@@ -999,14 +1057,52 @@ def buttons():
                                                 onClick=tile_button,
                                                 onClickParams=(i,))
 
-    for player in players:
-        globals()[f'{player.color}_player_button'] = Button(screen,
-                                                            profile_coordinates[players.index(player)]['avatar'][0],
-                                                            profile_coordinates[players.index(player)]['avatar'][1],
-                                                            avatar_side_size,
-                                                            avatar_side_size,
-                                                            onClick=tile_button,
-                                                            onClickParams=(player.color,))
+    exchange_commit_button = Button(screen,
+                                    exchange_coordinates['button'][0],
+                                    exchange_coordinates['button'][1],
+                                    exchange_coordinates['button'][2],
+                                    exchange_coordinates['button'][3],
+                                    inactiveColour=(255, 255, 255),
+                                    inactiveBorderColour=(0, 0, 0),
+                                    hoverColour=(255, 255, 255),
+                                    hoverBorderColour=(105, 105, 105),
+                                    pressedColour=(191, 191, 191),
+                                    pressedBorderColour=(0, 0, 0),
+                                    borderThickness=3,
+                                    radius=btn_radius,
+                                    font=btn_font,
+                                    text='Обмен',
+                                    onClick=exchange_commit,
+                                    onClickParams=(exchange_color,))
+
+    exchange_give_textbox = TextBox(screen,
+                                    exchange_coordinates['textbox_give'][0],
+                                    exchange_coordinates['textbox_give'][1],
+                                    exchange_coordinates['textbox_give'][2],
+                                    exchange_coordinates['textbox_give'][3],
+                                    colour=(200, 200, 200),
+                                    textColour=(0, 0, 0),
+                                    borderThickness=2,
+                                    borderColour=(0, 0, 0),
+                                    font=btn_font,
+                                    radius=btn_radius,
+                                    placeholderText='Сумма пЭнисов',
+                                    placeholderTextColour=(128, 128, 128))
+
+    exchange_get_textbox = TextBox(screen,
+                                   exchange_coordinates['textbox_get'][0],
+                                   exchange_coordinates['textbox_get'][1],
+                                   exchange_coordinates['textbox_get'][2],
+                                   exchange_coordinates['textbox_get'][3],
+                                   colour=(200, 200, 200),
+                                   textColour=(0, 0, 0),
+                                   borderThickness=2,
+                                   borderColour=(0, 0, 0),
+                                   font=btn_font,
+                                   radius=btn_radius,
+                                   placeholderText='Сумма пЭнисов',
+                                   placeholderTextColour=(128, 128, 128))
+
 
 # Проверки
 # |
@@ -1132,4 +1228,3 @@ while running:
     active_buttons_check()
     pg.display.flip()
 print('Программа завершена')
-
