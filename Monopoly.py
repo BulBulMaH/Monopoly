@@ -89,6 +89,8 @@ all_players = [Player('red', positions, resolution_folder, property_family_count
                Player('yellow', positions, resolution_folder, property_family_count),
                Player('green', positions, resolution_folder, property_family_count)]
 players = []
+exchange_value = -100
+exchange_color = ''
 state = {'throw_cubes_btn_active': False,
          'buy_btn_active': False,
          'pay_btn_active': ['False'],
@@ -101,6 +103,7 @@ state = {'throw_cubes_btn_active': False,
          'exchange_player_btn_active': False,
          'exchange_tile_btn_active': False,
          'show_exchange_screen': False,
+         'show_exchange_request_screen': [False],
          'is_game_started': False,
          'ready': False,
          'connected': False,
@@ -124,6 +127,7 @@ def throw_cubes():
                     state['penis_build_btn_active'] = False
                     state['penis_remove_btn_active'] = False
                     state['exchange_btn_active'] = False
+                    state['pay_btn_active'] = ['False']
 
 
 def buy():
@@ -280,24 +284,23 @@ def tile_button(tile_position):
 
     if state['is_game_started'] and state['exchange_tile_btn_active']:
         global exchange_give, exchange_get
-        exchange_give = []
-        exchange_get = []
-        if all_tiles[tile_position] in available_tiles_for_exchange:
-            if (all_tiles[tile_position] not in exchange_give and
-                all_tiles[tile_position] not in exchange_get):
+        if tile_position in available_tiles_for_exchange:
+            if (tile_position not in exchange_give and
+                tile_position not in exchange_get):
                 for player in players:
                     if player.main:
                         if player.color == all_tiles[tile_position].owner:
-                            exchange_give.append(all_tiles[tile_position])
+                            exchange_give.append(tile_position)
                         else:
-                            exchange_get.append(all_tiles[tile_position])
+                            exchange_get.append(tile_position)
             else:
                 for player in players:
                     if player.main:
                         if player.color == all_tiles[tile_position].owner:
-                            exchange_give.remove(all_tiles[tile_position])
+                            exchange_give.remove(tile_position)
                         else:
-                            exchange_get.remove(all_tiles[tile_position])
+                            exchange_get.remove(tile_position)
+            exchange_value_calculation()
 
 
 def penis_build_activation():
@@ -332,46 +335,169 @@ def exchange():
         print('Нажата кнопка обмена')
 
 
-def exchange_commit(color):
+def exchange_commit():
+    if state['is_game_started'] and state['exchange_tile_btn_active']:
+        exchange_money_give_sum = exchange_give_textbox.getText()
+        exchange_money_get_sum = exchange_get_textbox.getText()
+        incorrect_values = False
+        if exchange_money_get_sum == '' and not incorrect_values:
+            exchange_money_get_sum = 0
+        else:
+            try:
+                exchange_money_get_sum = int(exchange_money_get_sum)
+            except:
+                exchange_get_textbox.setText(exchange_money_get_sum[:-1])
+                incorrect_values = True
+
+        if exchange_money_give_sum == '' and not incorrect_values:
+            exchange_money_give_sum = 0
+        else:
+            try:
+                exchange_money_give_sum = int(exchange_money_give_sum)
+            except:
+                exchange_give_textbox.setText(exchange_money_give_sum[:-1])
+                incorrect_values = True
+
+        if -50 <= exchange_value <= 50 and not incorrect_values:
+            exchange_command = f'exchange request|{exchange_money_give_sum}_'
+            # exchange_command = f'exchange|{exchange_money_give_sum}_'
+            for give_tile in exchange_give:
+                exchange_command += f'{all_tiles[give_tile].position}-'
+            exchange_command = exchange_command[:-1] + f'|{exchange_money_get_sum}_'
+            for get_tile in exchange_get:
+                exchange_command += f'{all_tiles[get_tile].position}-'
+            exchange_command = exchange_command[:-1] + f'|{exchange_color}%'
+
+            sock.send(exchange_command.encode())
+            information_sent('Команда отправлена', exchange_command)
+            state['exchange_tile_btn_active'] = False
+            state['exchange_player_btn_active'] = False
+            state['show_exchange_screen'] = False
+            exchange_commit_button.disable()
+            exchange_commit_button.hide()
+            exchange_give_textbox.setText('')
+            exchange_give_textbox.disable()
+            exchange_give_textbox.hide()
+            exchange_get_textbox.setText('')
+            exchange_get_textbox.disable()
+            exchange_get_textbox.hide()
+
+
+def exchange_value_calculation():
+    global exchange_value
+    incorrect_values = False
     value_give = 0
     value_get = 0
-    exchange_money_give_sum = exchange_give_textbox.getText()
-    exchange_money_get_sum = exchange_get_textbox.getText()
 
-    for give_tile in exchange_give:
-        value_give += give_tile.price / 2
-    value_give += exchange_money_give_sum
+    exchange_money_give_sum_old = exchange_give_textbox.getText()
+    exchange_money_get_sum_old = exchange_get_textbox.getText()
+    exchange_money_give_sum = allowed_characters_check(exchange_money_give_sum_old, '0123456789')
+    exchange_money_get_sum = allowed_characters_check(exchange_money_get_sum_old, '0123456789')
+    if exchange_money_get_sum_old != exchange_money_get_sum:
+        exchange_get_textbox.setText(exchange_money_get_sum)
+    if exchange_money_give_sum_old != exchange_money_give_sum:
+        exchange_give_textbox.setText(exchange_money_give_sum)
 
-    for get_tile in exchange_get:
-        value_get += get_tile.price / 2
-    value_get += exchange_money_get_sum
+    if exchange_money_get_sum == '' and not incorrect_values:
+        exchange_money_get_sum = 0
+    else:
+        try:
+            exchange_money_get_sum = int(exchange_money_get_sum)
+        except:
+            incorrect_values = True
 
-    if max(value_give, value_get) / min(value_give, value_get) <= 2:
-        exchange_command = f'exchange|{exchange_money_give_sum}_'
+    if exchange_money_give_sum == '' and not incorrect_values:
+        exchange_money_give_sum = 0
+    else:
+        try:
+            exchange_money_give_sum = int(exchange_money_give_sum)
+        except:
+            incorrect_values = True
+
+    if not incorrect_values:
         for give_tile in exchange_give:
-            exchange_command += f'{give_tile.position}-'
-        exchange_command = exchange_command[:-1] + '|'
-        for get_tile in exchange_get:
-            exchange_command += f'{get_tile.position}-'
-        exchange_command = exchange_command[:-1] + f'|{color}%'
+            value_give += int(all_tiles[give_tile].price) / 2
+        value_give += exchange_money_give_sum
 
-        sock.send(exchange_command.encode())
-        information_sent('Команда отправлена', exchange_command)
+        for get_tile in exchange_get:
+            value_get += int(all_tiles[get_tile].price) / 2
+        value_get += exchange_money_get_sum
+
+        if value_give or value_get:
+            print(value_give, value_get)
+            exchange_value = round((value_get - value_give) * 100 / max(value_give, value_get))
+        else:
+            exchange_value = -100
+    else:
+        exchange_value = -100
+
+
+def exchange_request_confirm():
+    if state['is_game_started'] and state['show_exchange_request_screen'][0]:
+        if -50 <= exchange_value <= 50:
+            give_money = state['show_exchange_request_screen'][1]
+            give_property = state['show_exchange_request_screen'][2]
+            get_money = state['show_exchange_request_screen'][3]
+            get_property = state['show_exchange_request_screen'][4]
+            color = state['show_exchange_request_screen'][5]
+
+            exchange_command = f'exchange|{give_money}_'
+            for give_tile in give_property:
+                exchange_command += f'{all_tiles[int(give_tile)].position}-'
+            exchange_command = exchange_command[:-1] + f'|{get_money}_'
+            for get_tile in get_property:
+                exchange_command += f'{all_tiles[int(get_tile)].position}-'
+            exchange_command = exchange_command[:-1] + f'|{color}%'
+
+            sock.send(exchange_command.encode())
+            information_sent('Команда отправлена', exchange_command)
+            state['show_exchange_request_screen'] = [False]
+            exchange_request_confirm_button.disable()
+            exchange_request_confirm_button.hide()
+            exchange_request_reject_button.disable()
+            exchange_request_reject_button.hide()
+
+
+def exchange_request_reject():
+    if state['is_game_started'] and state['show_exchange_request_screen'][0]:
+        reject_command = 'exchange request rejected%'
+        sock.send(reject_command.encode())
+        information_sent('Информация отправлена', reject_command)
+        state['show_exchange_request_screen'] = [False]
+        exchange_request_confirm_button.disable()
+        exchange_request_confirm_button.hide()
+        exchange_request_reject_button.disable()
+        exchange_request_reject_button.hide()
 
 
 def player_button(color):
-    global state, available_tiles_for_exchange, exchange_color
-    if state['is_game_started'] and state['exchange_player_btn_active']:
-        print(f'Нажат игрок: {color}')
-        available_tiles_for_exchange = []
-        for player in players:
-            if player.main:
-                available_tiles_for_exchange += player.property
-            elif player.color == color:
-                available_tiles_for_exchange += player.property
-        state['exchange_tile_btn_active'] = True
-        state['show_exchange_screen'] = True
-        exchange_color = color
+    global state, available_tiles_for_exchange, exchange_color, exchange_give, exchange_get, exchange_commit_button, exchange_give_textbox, exchange_get_textbox
+    for player2 in players:
+        if player2.color == color:
+            if not player2.main:
+                if state['is_game_started'] and state['exchange_player_btn_active']:
+                    print(f'Нажат игрок: {color}')
+                    available_tiles_for_exchange = []
+                    for player in players:
+                        if player.main:
+                            available_tiles_for_exchange += player.property
+                            print(player.property)
+                        elif player.color == color:
+                            print(player.property)
+                            available_tiles_for_exchange += player.property
+                    print(available_tiles_for_exchange)
+                    exchange_give = []
+                    exchange_get = []
+                    state['exchange_tile_btn_active'] = True
+                    state['exchange_player_btn_active'] = False
+                    state['show_exchange_screen'] = True
+                    exchange_color = str(color)
+                    exchange_commit_button.enable()
+                    exchange_commit_button.show()
+                    exchange_give_textbox.enable()
+                    exchange_give_textbox.show()
+                    exchange_get_textbox.enable()
+                    exchange_get_textbox.show()
 
 
 def choose_avatar():
@@ -379,7 +505,7 @@ def choose_avatar():
     if not state['avatar_chosen']:
         top = tkinter.Tk()
         top.withdraw()
-        file_name = tkinter.filedialog.askopenfilename(parent=top, filetypes=[('Изображения', ('*.png', '*.jpg'))])
+        file_name = tkinter.filedialog.askopenfilename(parent=top, filetypes=[('Изображения', ('*.png', '*.jpg', '*.jpeg', '*.bmp', '*.gif', '*.icns', '*.ico', '*.apng', '*.tiff', '*.webp'))])
         top.destroy()
         if file_name != '' and not state['avatar_chosen']:
             state['avatar_chosen'] = True
@@ -422,7 +548,14 @@ def choose_avatar():
 
 # ^
 # |
-# Функционал кнопок
+# Функционал кнопок и текст боксов
+
+
+def render_multiline_text(text, x, y, line_height):
+    lines = text
+    for i, line in enumerate(lines):
+        line_surface = font.render(line, True, 'black')
+        screen.blit(line_surface, (x, y + i * line_height))
 
 
 def blit_items():
@@ -430,28 +563,6 @@ def blit_items():
     if state['cube_animation_playing']:
         screen.blit(cube_1_picture, cubes_coordinates[0])
         screen.blit(cube_2_picture, cubes_coordinates[1])
-
-    if state['show_exchange_screen']:
-        screen.blit(darkening_full, (0, 0))
-        for tile in all_tiles:
-            if tile.position not in available_tiles_for_exchange and tile.buyable:
-                screen.blit(darkening_tile,
-                            (int(positions[tile.position][0]), int(positions[tile.position][1])))
-
-        screen.blit(exchange_screen, exchange_coordinates['exchange_screen'])
-        give_text = ''
-        get_text = ''
-        for i in exchange_give:
-            give_text += f'{all_tiles[i].name}\n'
-
-        for i in exchange_get:
-            get_text += f'{all_tiles[i].name}\n'
-
-        screen.blit(font.render(give_text, False, 'black'),
-                    exchange_coordinates['text_give'])
-
-        screen.blit(font.render(get_text, False, 'black'),
-                    exchange_coordinates['text_get'])
 
 
 def blit_board():
@@ -496,6 +607,99 @@ def blit_board():
     screen.blit(bars, bars_coordinates)
 
 
+    if state['show_exchange_screen']:
+        screen.blit(darkening_full, (0, 0))
+        for tile in all_tiles:
+            if tile.position not in available_tiles_for_exchange and tile.buyable:
+                screen.blit(darkening_tile,
+                            (int(positions[tile.position][0]), int(positions[tile.position][1])))
+
+        screen.blit(exchange_screen, exchange_coordinates['exchange_screen'])
+
+        give_text = []
+        get_text = []
+        for i in exchange_give:
+            give_text.append(str(all_tiles[i].name))
+        for i in exchange_get:
+            get_text.append(str(all_tiles[i].name))
+
+        render_multiline_text(give_text,
+                              exchange_coordinates['text_give'][0],
+                              exchange_coordinates['text_give'][1],
+                              font.get_linesize())
+
+        render_multiline_text(get_text,
+                              exchange_coordinates['text_get'][0],
+                              exchange_coordinates['text_get'][1],
+                              font.get_linesize())
+
+        value_text = font.render(str(exchange_value), False, 'black')
+        value_text_rect = value_text.get_rect(center=exchange_coordinates['value'])
+        screen.blit(value_text, value_text_rect)
+        events = pg.event.get()
+        exchange_commit_button.listen(events)
+        exchange_commit_button.draw()
+        exchange_give_textbox.listen(events)
+        exchange_give_textbox.draw()
+        exchange_get_textbox.listen(events)
+        exchange_get_textbox.draw()
+
+    elif state['show_exchange_request_screen'][0]:
+        give_money = state['show_exchange_request_screen'][1]
+        give_property = state['show_exchange_request_screen'][2]
+        get_money = state['show_exchange_request_screen'][3]
+        get_property = state['show_exchange_request_screen'][4]
+        exchange_property = give_property + get_property
+
+        screen.blit(darkening_full, (0, 0))
+        for tile in all_tiles:
+            if tile.position not in exchange_property and tile.buyable:
+                screen.blit(darkening_tile,
+                            (int(positions[tile.position][0]), int(positions[tile.position][1])))
+
+        screen.blit(exchange_screen, exchange_coordinates['exchange_screen'])
+
+        give_text = []
+        get_text = []
+        for i in give_property:
+            give_text.append(str(all_tiles[int(i)].name))
+        for i in get_property:
+            get_text.append(str(all_tiles[int(i)].name))
+
+        render_multiline_text(give_text,
+                              exchange_coordinates['text_give'][0],
+                              exchange_coordinates['text_give'][1],
+                              font.get_linesize())
+
+        render_multiline_text(get_text,
+                              exchange_coordinates['text_get'][0],
+                              exchange_coordinates['text_get'][1],
+                              font.get_linesize())
+
+        value_text = font.render(str(exchange_value), False, 'black')
+        value_text_rect = value_text.get_rect(center=exchange_coordinates['value'])
+        screen.blit(value_text, value_text_rect)
+
+        give_money_text = font.render(f'{give_money}~', False, 'black')
+        give_money_text_rect = give_money_text.get_rect(center=(exchange_coordinates['textbox_give'][0] + round(exchange_coordinates['textbox_give'][2] / 2),
+                                                                exchange_coordinates['textbox_give'][1] + round(exchange_coordinates['textbox_give'][3] / 2)))
+        screen.blit(give_money_text, give_money_text_rect)
+
+        get_money_text = font.render(f'{get_money}~', False, 'black')
+        get_money_text_rect = get_money_text.get_rect(center=(exchange_coordinates['textbox_get'][0] + round(exchange_coordinates['textbox_get'][2] / 2),
+                                                                exchange_coordinates['textbox_get'][1] + round(exchange_coordinates['textbox_get'][3] / 2)))
+        screen.blit(get_money_text, get_money_text_rect)
+
+        events = pg.event.get()
+        exchange_request_confirm_button.listen(events)
+        exchange_request_confirm_button.draw()
+        exchange_request_reject_button.listen(events)
+        exchange_request_reject_button.draw()
+
+    else:
+        pass
+
+
 def price_printing():
     for tile in all_tiles:
         if tile.price != '':
@@ -506,15 +710,14 @@ def price_printing():
                 text = font.render(tile.text, False, tile.color)
             price_text = pg.transform.rotate(text, tile.angle)
 
-            offset = 0
             if tile.angle == -90:
                 offset = round((font.size(tile.text)[0] - 31) / 2)
             elif tile.angle == 90:
                 offset = round((font.size(tile.text)[0] - 29) / 2)
+            else:
+                offset = 0
 
             text_rect = text.get_rect(center=(tile.xText + offset, tile.yText - offset))
-
-
             screen.blit(price_text, text_rect)
 
 
@@ -582,12 +785,13 @@ def handle_connection():
                             print('image saved')
 
                 elif data[0] == 'move':
-                    move(data[1], int(data[2]), int(data[3]), False, 0, 0)
                     for player in players:
                         if player.main and player.color == data[1]:
                             state['double'] = int(data[2]) == int(data[3])
-                            if state['double']:
-                                player.on_move = True
+                            print(f'Состояние double установлено на {state['double']}')
+                    move(data[1], int(data[2]), int(data[3]), False, 0, 0)
+                            # if state['double']:
+                            #     player.on_move = True
 
                 elif data[0] == 'move diagonally':
                     move(data[1], 0, 0, True, int(data[2]), int(data[3]))
@@ -612,9 +816,11 @@ def handle_connection():
                         if data[1] == player.color:
                             player.property.append(int(data[2]))
                             player.property_family_count[all_tiles[int(data[2])].family] += 1
+                            all_tiles[int(data[2])].owner = data[1]
+                            all_tiles[int(data[2])].owned = True
 
                             for i in range(len(all_tiles)):
-                                if all_tiles[i].family == all_tiles[int(data[2])].family:
+                                if all_tiles[i].family == all_tiles[int(data[2])].family and all_tiles[i].owner == all_tiles[int(data[2])].owner:
                                     all_tiles[i].family_members += 1
                                     if all_tiles[i].family_members == all_tiles[i].max_family_members:
                                         all_tiles[i].full_family = True
@@ -624,8 +830,7 @@ def handle_connection():
                                 information_sent('Информация отправлена', f'full family|{all_tiles[int(data[2])].family}')
 
                             print(f'У {player.color} есть {player.property}')
-                            all_tiles[int(data[2])].owner = data[1]
-                            all_tiles[int(data[2])].owned = True
+
                             buy_btn_check(data[1])
 
                 elif data[0] == 'money':
@@ -661,6 +866,11 @@ def handle_connection():
                                 state['throw_cubes_btn_active'] = True
                                 state['paid'] = False
                                 state['penis_remove_btn_used'] = False
+
+                                if player.imprisoned:
+                                    state['pay_btn_active'] = ['prison']
+
+
                                 for tile in all_tiles:
                                     if tile.full_family and tile.owner == player.color and tile.type == 'buildable':
                                         if not player.imprisoned:
@@ -671,6 +881,7 @@ def handle_connection():
                                 player.on_move = False
                                 state['throw_cubes_btn_active'] = False
                                 state['exchange_btn_active'] = False
+                                state['pay_btn_active'] = ['False']
 
                 elif data[0] == 'error':
                     print(f'Ошибка: {"\033[31m{}".format(data[1])}{'\033[0m'}')
@@ -715,7 +926,38 @@ def handle_connection():
                             new_int_property = []
                             for i in new_property:
                                 new_int_property.append(int(i))
-                                player.property = new_int_property
+                            player.property = new_int_property
+                            for tile in new_int_property:
+                                all_tiles[tile].owner = data[1]
+
+                elif data[0] == 'exchange request':
+                    global exchange_value
+                    get_data = data[1].split('_')
+                    give_data = data[2].split('_')
+                    give_money = int(give_data[0])
+                    get_money = int(get_data[0])
+                    give_property = give_data[1].split('-')
+                    get_property = get_data[1].split('-')
+                    color = data[3]
+
+                    value_give = 0
+                    value_get = 0
+                    for give_tile in give_property:
+                        value_give += int(all_tiles[int(give_tile)].price) / 2
+                    value_give += give_money
+
+                    for get_tile in get_property:
+                        value_get += int(all_tiles[int(get_tile)].price) / 2
+                    value_get += get_money
+
+                    print(value_give, value_get)
+                    exchange_value = round((value_get - value_give) * 100 / max(value_give, value_get))
+
+                    state['show_exchange_request_screen'] = [True, give_money, give_property, get_money, get_property, color]
+                    exchange_request_confirm_button.enable()
+                    exchange_request_confirm_button.show()
+                    exchange_request_reject_button.enable()
+                    exchange_request_reject_button.show()
 
                 if not running:
                     break
@@ -747,40 +989,28 @@ def move(color, cube1, cube2, diagonal, start_position, end_position):
                     if player.piece_position > 39:
                         player.piece_position = 0
                     end = [positions[player.piece_position][0], positions[player.piece_position][1]]
-                    tile_width = max(abs(positions[player.piece_position][0] - positions[player.piece_position - 1][0]),
-                                     abs(positions[player.piece_position][1] - positions[player.piece_position - 1][1]))
+                    # tile_width = max(abs(positions[player.piece_position][0] - positions[player.piece_position - 1][0]),
+                    #                  abs(positions[player.piece_position][1] - positions[player.piece_position - 1][1]))
                     diff_x = end[0] - start[0]
                     diff_y = end[1] - start[1]
-                    speed_coef = (((cube1 + cube2 + 3) / 10) ** 2) * speed * dt
-                    if min(diff_x, diff_y) != 0:
-                        x_step = diff_x / (min(diff_x, diff_y) / speed_coef)
-                        y_step = diff_y / (min(diff_x, diff_y) / speed_coef)
-                    else:
-                        x_step = diff_x / (max(diff_x, diff_y) / speed_coef)
-                        y_step = diff_y / (max(diff_x, diff_y) / speed_coef)
-                    for ii in range(round(tile_width / speed_coef)):
-                        x_sign = 1
-                        y_sign = 1
+                    step_amount = round((diff_x ** 2 + diff_y ** 2) ** 0.5 * dt * (7 / (cube1 + cube2)) * speed)
+                    x_step = diff_x / step_amount
+                    y_step = diff_y / step_amount
+                    # start_time = time.time()
+                    for i in range(step_amount):
+                        clock.tick(FPS)
+                        player.baseX += x_step
+                        player.baseY += y_step
+                    # print(f'Время на клетку: {time.time() - start_time}')
 
-                        if 0 < player.piece_position <= 20:
-                            x_sign = 1
-                            y_sign = 1
-                        elif 20 < player.piece_position <= 30:
-                            x_sign = -1
-                            y_sign = 1
-                        elif player.piece_position > 30 or player.piece_position == 0:
-                            x_sign = -1
-                            y_sign = -1
-                        player.baseX += x_step * x_sign
-                        player.baseY += y_step * y_sign
-                        position_update(player.color)
+                    position_update(player.color)
                 player.baseX = positions[player.piece_position][0]
                 player.baseY = positions[player.piece_position][1]
                 buy_btn_check(player.color)
                 pay_btn_check()
 
                 if player.main:
-                    print(player.color, player.main)
+                    print(player.color, player.main, state['double'])
                     if all_tiles[player.piece_position].family in ['Угловые', 'Яйца', 'Яйцо']:
                         if not state['double']:
                             player_move_change(True)  # TODO: поменять, когда будет функционал
@@ -797,9 +1027,13 @@ def move(color, cube1, cube2, diagonal, start_position, end_position):
     else:
         start = [positions[start_position][0], positions[start_position][1]]
         end = [positions[end_position][0], positions[end_position][1]]
+        if end_position > start_position:
+            passed_tiles = end_position - start_position
+        else:
+            passed_tiles = end_position + 40 - start_position
         diff_x = end[0] - start[0]
         diff_y = end[1] - start[1]
-        step_amount = round((diff_x ** 2 + diff_y ** 2) ** 0.5 * dt / speed)
+        step_amount = round((diff_x ** 2 + diff_y ** 2) ** 0.5 * dt * (7 / passed_tiles) * speed)
         x_step = diff_x / step_amount
         y_step = diff_y / step_amount
         for player in players:
@@ -836,7 +1070,7 @@ def player_move_change(do_change):
 
 
 def buttons():
-    global cube_button, buy_button, pay_button, name_textbox, ip_textbox, port_textbox, connect_button, start_button, debug_button, avatar_choose_button, shove_penis_button, remove_penis_button, exchange_button, exchange_give_textbox, exchange_get_textbox, exchange_commit_button
+    global cube_button, buy_button, pay_button, name_textbox, ip_textbox, port_textbox, connect_button, start_button, debug_button, avatar_choose_button, shove_penis_button, remove_penis_button, exchange_button, exchange_commit_button, exchange_give_textbox, exchange_get_textbox, exchange_request_confirm_button, exchange_request_reject_button
     cube_button = Button(screen,
                          btn_coordinates['throw_cubes'][0],
                          btn_coordinates['throw_cubes'][1],
@@ -951,7 +1185,8 @@ def buttons():
                            font=btn_font,
                            radius=btn_radius,
                            placeholderText='Введите имя',
-                           placeholderTextColour=(128, 128, 128))
+                           placeholderTextColour=(128, 128, 128),
+                           onTextChanged=name_check)
 
     ip_textbox = TextBox(screen,
                          start_btn_textboxes_coordinates['IP'][0],
@@ -1015,28 +1250,11 @@ def buttons():
                             text='Подключиться',
                             onClick=connect)
 
-    start_button = Button(screen,
-                          start_btn_textboxes_coordinates['ready'][0],
-                          start_btn_textboxes_coordinates['ready'][1],
-                          start_btn_textboxes_coordinates['ready'][2],
-                          start_btn_textboxes_coordinates['ready'][3],
-                          inactiveColour=(255, 255, 255),
-                          inactiveBorderColour=(0, 0, 0),
-                          hoverColour=(255, 255, 255),
-                          hoverBorderColour=(105, 105, 105),
-                          pressedColour=(191, 191, 191),
-                          pressedBorderColour=(0, 0, 0),
-                          borderThickness=3,
-                          radius=btn_radius,
-                          font=btn_font,
-                          text='Готов',
-                          onClick=start_game)
-
     debug_button = Button(screen,
-                          954,
-                          550,
-                          136,
-                          38,
+                          start_btn_textboxes_coordinates['debug'][0],
+                          start_btn_textboxes_coordinates['debug'][1],
+                          start_btn_textboxes_coordinates['debug'][2],
+                          start_btn_textboxes_coordinates['debug'][3],
                           inactiveColour=(255, 255, 255),
                           inactiveBorderColour=(0, 0, 0),
                           hoverColour=(255, 255, 255),
@@ -1048,14 +1266,6 @@ def buttons():
                           font=btn_font,
                           text='debug',
                           onClick=debug_output)
-    for i in range(40):
-        globals()[f'penis_{i}_button'] = Button(screen,
-                                                positions[i][0],
-                                                positions[i][1],
-                                                positions[2][0] - positions[1][0],
-                                                positions[2][0] - positions[1][0],
-                                                onClick=tile_button,
-                                                onClickParams=(i,))
 
     exchange_commit_button = Button(screen,
                                     exchange_coordinates['button'][0],
@@ -1072,8 +1282,7 @@ def buttons():
                                     radius=btn_radius,
                                     font=btn_font,
                                     text='Обмен',
-                                    onClick=exchange_commit,
-                                    onClickParams=(exchange_color,))
+                                    onClick=exchange_commit)
 
     exchange_give_textbox = TextBox(screen,
                                     exchange_coordinates['textbox_give'][0],
@@ -1087,7 +1296,8 @@ def buttons():
                                     font=btn_font,
                                     radius=btn_radius,
                                     placeholderText='Сумма пЭнисов',
-                                    placeholderTextColour=(128, 128, 128))
+                                    placeholderTextColour=(128, 128, 128),
+                                    onTextChanged=exchange_value_calculation)
 
     exchange_get_textbox = TextBox(screen,
                                    exchange_coordinates['textbox_get'][0],
@@ -1101,12 +1311,91 @@ def buttons():
                                    font=btn_font,
                                    radius=btn_radius,
                                    placeholderText='Сумма пЭнисов',
-                                   placeholderTextColour=(128, 128, 128))
+                                   placeholderTextColour=(128, 128, 128),
+                                   onTextChanged=exchange_value_calculation)
+
+    exchange_request_confirm_button = Button(screen,
+                                    exchange_coordinates['confirm'][0],
+                                    exchange_coordinates['confirm'][1],
+                                    exchange_coordinates['confirm'][2],
+                                    exchange_coordinates['confirm'][3],
+                                    inactiveColour=(255, 255, 255),
+                                    inactiveBorderColour=(0, 0, 0),
+                                    hoverColour=(255, 255, 255),
+                                    hoverBorderColour=(105, 105, 105),
+                                    pressedColour=(191, 191, 191),
+                                    pressedBorderColour=(0, 0, 0),
+                                    borderThickness=3,
+                                    radius=btn_radius,
+                                    font=btn_font,
+                                    text='Обмен',
+                                    onClick=exchange_request_confirm)
+
+    exchange_request_reject_button = Button(screen,
+                                             exchange_coordinates['reject'][0],
+                                             exchange_coordinates['reject'][1],
+                                             exchange_coordinates['reject'][2],
+                                             exchange_coordinates['reject'][3],
+                                             inactiveColour=(255, 255, 255),
+                                             inactiveBorderColour=(0, 0, 0),
+                                             hoverColour=(255, 255, 255),
+                                             hoverBorderColour=(105, 105, 105),
+                                             pressedColour=(191, 191, 191),
+                                             pressedBorderColour=(0, 0, 0),
+                                             borderThickness=3,
+                                             radius=btn_radius,
+                                             font=btn_font,
+                                             text='Отказ',
+                                             onClick=exchange_request_reject,)
+
+    exchange_request_confirm_button.disable()
+    exchange_request_confirm_button.hide()
+    exchange_request_reject_button.disable()
+    exchange_request_reject_button.hide()
+    exchange_commit_button.disable()
+    exchange_commit_button.hide()
+    exchange_give_textbox.disable()
+    exchange_give_textbox.hide()
+    exchange_get_textbox.disable()
+    exchange_get_textbox.hide()
+
+    for i in range(40):
+        globals()[f'penis_{i}_button'] = Button(screen,
+                                                positions[i][0],
+                                                positions[i][1],
+                                                positions[2][0] - positions[1][0],
+                                                positions[2][0] - positions[1][0],
+                                                onClick=tile_button,
+                                                onClickParams=(i,))
 
 
 # Проверки
 # |
 # V
+
+
+def allowed_characters_check(text, allowed_characters):
+    new_text = text
+    for character in text:
+        if character not in allowed_characters:
+            new_text = new_text.replace(character, '')
+    return new_text
+
+
+def forbidden_characters_check(text, forbidden_characters):
+    new_text = text
+    for character in text:
+        if character in forbidden_characters:
+            new_text = new_text.replace(character, '')
+    return new_text
+
+
+def name_check():
+    name = name_textbox.getText()
+    name = forbidden_characters_check(name, '|%')
+    if name_textbox.getText() != name:
+        name_textbox.setText(name)
+
 
 def active_buttons_check():
     # Бросок кубов
@@ -1159,19 +1448,12 @@ def active_buttons_check():
                           start_btn_textboxes_coordinates['connect'][2],
                           start_btn_textboxes_coordinates['connect'][3]))
     # Выбрать аватар
-    if not state['connected'] or state['avatar_chosen']:
+    if not state['is_game_started'] or state['avatar_chosen']:
         screen.blit(avatar_choose_disabled_btn,
                          (start_btn_textboxes_coordinates['choose_avatar'][0],
                           start_btn_textboxes_coordinates['choose_avatar'][1],
                           start_btn_textboxes_coordinates['choose_avatar'][2],
                           start_btn_textboxes_coordinates['choose_avatar'][3]))
-    # Готов
-    if state['is_game_started'] or state['ready']:
-        screen.blit(ready_disabled_btn,
-                         (start_btn_textboxes_coordinates['ready'][0],
-                          start_btn_textboxes_coordinates['ready'][1],
-                          start_btn_textboxes_coordinates['ready'][2],
-                          start_btn_textboxes_coordinates['ready'][3]))
 
 
 def pay_btn_check():
@@ -1217,14 +1499,27 @@ connection_handler = threading.Thread(target = handle_connection, name='connecti
 connection_handler.start()
 thread_open('Поток открыт', connection_handler.name)
 
+past_100_fps = []
 while running:
     clock.tick(FPS)
     dt, prev_time = delta_time(prev_time)
+
     blit_items()
     event_handler()
     blit_board()
 
     price_printing()
     active_buttons_check()
+
+    screen.blit(font.render(str(round(1 / dt)), False, 'black'), (80, 70))
+    screen.blit(font.render(str(dt), False, 'black'), (80, 85))
+    if len(past_100_fps) <= 100:
+        past_100_fps.append(1 / dt)
+    else:
+        past_100_fps.pop(0)
+        past_100_fps.append(1 / dt)
+    average_fps = round(sum(past_100_fps) / len(past_100_fps))
+    screen.blit(font.render(str(average_fps), False, 'black'), (110, 70))
+
     pg.display.flip()
 print('Программа завершена')

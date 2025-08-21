@@ -33,17 +33,20 @@ def resolution_definition(do_choose):
                                     'textbox_get': (345, 160, 183, 30),
                                     'text_give': (120, 196),
                                     'text_get': (345, 196),
-                                    'button': (256, 492, 136, 38)}
+                                    'button': (256, 492, 136, 38),
+                                    'value': (324, 173),
+                                    'confirm': (144, 492, 136, 38),
+                                    'reject': (369, 492, 136, 38)}
 
             start_btn_textboxes_coordinates = {'name':          (1065, 384, 196, 30),
                                                 'IP':            (1065, 430, 134, 30),
                                                 'port':          (1202, 430, 59, 30),
                                                 'connect':       (1121, 476, 140, 38),
                                                 'choose_avatar': (1121, 534, 140, 38),
-                                                'ready':         (1121, 592, 140, 38)}
+                                                'debug':         (1121, 592, 140, 38)}
             cubes_coordinates = [(961, 565), (1037, 565)]
             avatar_side_size = 100
-            speed = 3
+            speed = 10
             is_resolution_selected = True
 
         elif resolution_index == '2':
@@ -72,18 +75,21 @@ def resolution_definition(do_choose):
                                     'textbox_get': (530, 240, 290, 30),
                                     'text_give': (177, 290),
                                     'text_get': (530, 290),
-                                    'button': (398, 765, 201, 57)}
+                                    'button': (398, 765, 201, 57),
+                                    'value': (498, 254),
+                                    'confirm': (221, 765, 201, 57),
+                                    'reject': (576, 765, 201, 57)}
 
             start_btn_textboxes_coordinates = {'name':          (1689, 660, 134, 30),
                                                 'IP':            (1689, 710, 134, 30),
                                                 'port':          (1826, 710, 59, 30),
                                                 'connect':       (1689, 760, 201, 57),
                                                 'choose_avatar': (1689, 837, 201, 57),
-                                                'ready':         (1689, 914, 201, 57)}
-            cubes_coordinates = [(1499, 906), (1694, 906)]
+                                                'debug':         (1689, 914, 201, 57)}
+            cubes_coordinates = [(1499, 906), (1594, 906)]
             avatar_side_size = 150
-            speed = 30
+            speed = 4
             is_resolution_selected = True
         else:
-            print('Введены некорректные данные\n')
+            print(f'{"\033[31m{}".format('Введены некорректные данные.')}{'\033[0m'}\n')
     return resolution, resolution_folder, piece_color_coefficient, bars_coordinates, btn_coordinates, btn_font, profile_coordinates, start_btn_textboxes_coordinates, btn_radius, cubes_coordinates, speed, avatar_side_size, exchange_coordinates
