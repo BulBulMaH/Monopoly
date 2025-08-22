@@ -111,7 +111,11 @@ def receive_data():
                         player.avatar.append(data_unsplit_by_content + '%')
                         # print(1, data_unsplit_by_content + '%')
                         if data[2] == data[4]:
-                            players_send()
+                            for player2 in players:
+                                for avatar in player.avatar:
+                                    time.sleep(0.07)
+                                    player2.conn.send(avatar.encode())
+                            player.avatar = []
 
                     elif data[0] == 'move':
                         cube1 = random.randint(1,6)
@@ -150,7 +154,7 @@ def receive_data():
 
                             if player.piece_position > 39:
                                 player.piece_position -= 40
-                                player.money += 200 # todo убрать 2000
+                                player.money += 500 # todo убрать 2000
 
                             move_data = f'move|{player.color}|{cube1}|{cube2}%'
                             for player2 in players:
@@ -260,7 +264,7 @@ def receive_data():
 
                     elif data[0] == 'penis build':
                         tile_position = int(data[1])
-
+                        print(all_tiles[tile_position].full_family, all_tiles[tile_position].penises < 5, player.money >= all_tiles[tile_position].penis_price, all_tiles[tile_position].type == 'buildable', all_tiles[tile_position].owner == player.color)
                         if (all_tiles[tile_position].full_family and
                             all_tiles[tile_position].penises < 5 and
                             player.money >= all_tiles[tile_position].penis_price and
@@ -282,7 +286,6 @@ def receive_data():
 
                         if (all_tiles[tile_position].full_family and
                                 all_tiles[tile_position].penises < 5 and
-                                player.money >= all_tiles[tile_position].penis_price and
                                 all_tiles[tile_position].type == 'buildable' and
                                 all_tiles[tile_position].owner == player.color):
 
@@ -368,9 +371,6 @@ def players_send():
     for player in players:
         player_data = f'playersData|{player.color}|{player.money}|{player.piece_position}|{player.name}%'
         for player2 in players:
-            for avatar in player.avatar:
-                time.sleep(0.07)
-                player2.conn.send(avatar.encode())
             player2.conn.send(player_data.encode())
             information_sent_to('Информация отправлена к', player2.color, player_data)
 

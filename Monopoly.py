@@ -110,7 +110,8 @@ state = {'throw_cubes_btn_active': False,
          'double': False,
          'paid': False,
          'avatar_chosen': False,
-         'cube_animation_playing': False}
+         'cube_animation_playing': False,
+         'tile_debug': False}
 
 
 def throw_cubes():
@@ -182,6 +183,8 @@ def pay():
 
 
 def debug_output():
+    global state
+    state['tile_debug'] = not state['tile_debug']
     print( f'\nPlayers: {players}')
     for player in players:
         print(f'       piece_position: {player.piece_position}\n'
@@ -251,6 +254,28 @@ def start_game():
 
 def tile_button(tile_position):
     global state
+    if state['tile_debug']:
+        tile = all_tiles[tile_position]
+        print(f'{tile.position = }\n'
+              f'{tile.buyable = }\n'
+              f'{tile.type = }\n'
+              f'{tile.family = }\n'
+              f'{tile.name = }\n'
+              f'{tile.xText = }\n'
+              f'{tile.yText = }\n'
+              f'{tile.price = }\n'
+              f'{tile.color = }\n'
+              f'{tile.angle = }\n'
+              f'{tile.max_family_members = }\n'
+              f'{tile.family_members = }\n'
+              f'{tile.penis_price = }\n'
+              f'{tile.penises = }\n'
+              f'{tile.income = }\n'
+              f'{tile.owned = }\n'
+              f'{tile.owner = }\n'
+              f'{tile.full_family = }\n'
+              f'{tile.text = }\n')
+
     if state['is_game_started'] and state['all_penises_build_btns_active']:
         for player in players:
             if player.main:
@@ -814,20 +839,23 @@ def handle_connection():
                 elif data[0] == 'property':
                     for player in players:
                         if data[1] == player.color:
-                            player.property.append(int(data[2]))
-                            player.property_family_count[all_tiles[int(data[2])].family] += 1
-                            all_tiles[int(data[2])].owner = data[1]
-                            all_tiles[int(data[2])].owned = True
+                            tile_position = int(data[2])
+                            player.property.append(tile_position)
+                            player.property_family_count[all_tiles[tile_position].family] += 1
+                            print(player.property_family_count)
+                            all_tiles[tile_position].owner = data[1]
+                            all_tiles[tile_position].owned = True
+                            all_tiles[tile_position].family_members += 1
 
                             for i in range(len(all_tiles)):
-                                if all_tiles[i].family == all_tiles[int(data[2])].family and all_tiles[i].owner == all_tiles[int(data[2])].owner:
-                                    all_tiles[i].family_members += 1
+                                if all_tiles[i].family == all_tiles[tile_position].family and all_tiles[i].owner == all_tiles[tile_position].owner:
+                                    all_tiles[i].family_members = player.property_family_count[all_tiles[tile_position].family]
                                     if all_tiles[i].family_members == all_tiles[i].max_family_members:
                                         all_tiles[i].full_family = True
 
-                            if all_tiles[int(data[2])].full_family:
-                                sock.send(f'full family|{all_tiles[int(data[2])].family}%'.encode())
-                                information_sent('Информация отправлена', f'full family|{all_tiles[int(data[2])].family}')
+                            if all_tiles[tile_position].full_family:
+                                sock.send(f'full family|{all_tiles[tile_position].family}%'.encode())
+                                information_sent('Информация отправлена', f'full family|{all_tiles[tile_position].family}')
 
                             print(f'У {player.color} есть {player.property}')
 
@@ -837,6 +865,8 @@ def handle_connection():
                     for player in players:
                         if data[1] == player.color:
                             player.money = int(data[2])
+                            pay_btn_check()
+                            buy_btn_check(player.color)
 
                 elif data[0] == 'playerDeleted':
                     for player in players:
@@ -923,12 +953,20 @@ def handle_connection():
                     for player in players:
                         if player.color == data[1]:
                             new_property = data[2].split('_')
+                            for i in player.property:
+                                player.property_family_count[all_tiles[i].family] = 0
                             new_int_property = []
                             for i in new_property:
                                 new_int_property.append(int(i))
+                                player.property_family_count[all_tiles[int(i)].family] += 1
                             player.property = new_int_property
                             for tile in new_int_property:
                                 all_tiles[tile].owner = data[1]
+                                all_tiles[tile].family_members = player.property_family_count[all_tiles[tile].family]
+                                if all_tiles[tile].family_members == all_tiles[tile].max_family_members:
+                                    all_tiles[tile].full_family = True
+                                    sock.send(f'full family|{all_tiles[tile].family}%'.encode())
+                                    information_sent('Информация отправлена', f'full family|{all_tiles[tile_position].family}')
 
                 elif data[0] == 'exchange request':
                     global exchange_value
@@ -1464,7 +1502,7 @@ def pay_btn_check():
                 if player.imprisoned:
                     state['pay_btn_active'] = ['prison']
                 elif not state['paid']:
-                    if player.piece_position == 4 or player.piece_position == 38:
+                    if (player.piece_position == 4 or player.piece_position == 38) and player.money >= all_tiles[player.piece_position].income * -1:
                         state['pay_btn_active'] = ['minus']
                         state['paid'] = True
                     else:

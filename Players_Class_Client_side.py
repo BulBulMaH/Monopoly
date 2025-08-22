@@ -5,7 +5,7 @@ class Player:
         self.piece_position = 0
         self.name = ''
         self.property = []
-        self.property_family_count = property_family_count
+        self.property_family_count = property_family_count.copy()
         self.color = color
         self.money = 1500
         self.main = False
