@@ -57,8 +57,7 @@ class Player:
         self.on_move = False
 
 pg.init()
-resolution, resolution_folder, piece_color_coefficient, bars_coordinates, btn_coordinates, btn_font, profile_coordinates, start_btn_textboxes_coordinates, btn_radius, cubes_coordinates, speed, avatar_side_size, exchange_coordinates = resolution_definition(False)
-FPS = 60
+resolution, resolution_folder, piece_color_coefficient, bars_coordinates, btn_coordinates, btn_font, profile_coordinates, start_btn_textboxes_coordinates, btn_radius, cubes_coordinates, speed, avatar_side_size, exchange_coordinates, FPS = resolution_definition(False)
 TITLE = 'Monopoly Server'
 screen = pg.display.set_mode((1280, 650))
 pg.display.set_caption(TITLE)
@@ -82,6 +81,8 @@ for i in range(40):
 information.clear()
 
 
+auction_players = []
+auction_players_who_are_wanting_to_buy = []
 
 players = []
 is_server_started = False
@@ -216,6 +217,61 @@ def receive_data():
                         for player2 in players:
                             player2.conn.send(money_data.encode())
                             information_sent_to('Информация отправлена к', player2.color, money_data)
+
+                    elif data[0] == 'auction initiate':
+                        global auction_players, auction_players_who_are_wanting_to_buy
+                        tile_position = int(data[1])
+                        if tile_position == player.piece_position:
+                            auction_players = players.copy()
+                            auction_players.pop(0) # удаляем того, кто инициировал аукцион
+                            auction_players_who_are_wanting_to_buy = []
+                            auction_information = f'auction bid|{tile_position}|{all_tiles[tile_position].price}%'
+                            auction_players[0].conn.send(auction_information.encode())
+                            information_sent_to('Информация отправлена к', auction_players[0].color, auction_information)
+
+                    elif data[0] == 'auction accept':
+                        global auction_players, auction_players_who_are_wanting_to_buy
+                        tile_position = int(data[1])
+                        price = int(data[2])
+                        auction_information = f'auction bid|{tile_position}|{price}%'
+                        if len(auction_players) != 0:
+                            if auction_players[0].money >= price:
+                                auction_players_who_are_wanting_to_buy.append(auction_players[0])
+                            auction_players.pop(0)
+                            auction_players[0].conn.send(auction_information.encode())
+                            information_sent_to('Информация отправлена к', auction_players[0].color, auction_information)
+                        else:
+                            auction_players_who_are_wanting_to_buy.append(auction_players_who_are_wanting_to_buy[0])
+                            auction_players_who_are_wanting_to_buy.pop(0)
+                            auction_players_who_are_wanting_to_buy[0].conn.send(auction_information.encode())
+                            information_sent_to('Информация отправлена к', auction_players[0].color, auction_information)
+
+                    elif data[0] == 'auction reject':
+                        global auction_players, auction_players_who_are_wanting_to_buy
+                        tile_position = int(data[1])
+                        price = int(data[2])
+                        auction_information = f'auction bid|{tile_position}|{price}%'
+                        if len(auction_players) != 0:
+                            auction_players.pop(0)
+                            auction_players[0].conn.send(auction_information.encode())
+                            information_sent_to('Информация отправлена к', auction_players[0].color, auction_information)
+                        else:
+                            auction_players_who_are_wanting_to_buy.pop(0)
+                            if len(auction_players_who_are_wanting_to_buy) > 1:
+                                auction_players_who_are_wanting_to_buy[0].conn.send(auction_information.encode())
+                                information_sent_to('Информация отправлена к', auction_players_who_are_wanting_to_buy[0].color, auction_information)
+                            else:
+                                for player2 in players:
+                                    if player2 == auction_players_who_are_wanting_to_buy[0]:
+                                        player2.property.append(tile_position)
+                                        player2.money -= price
+                                property_data = f'property|{player2[0].color}|{tile_position}%'
+                                money_data = f'money|{player2[0].color}|{player2[0].money}%'
+                                for player3 in players:
+                                    player3.conn.send(property_data.encode())
+                                    player3.conn.send(money_data.encode())
+                                    information_sent_to('Информация отправлена к', player3.color, property_data)
+                                    information_sent_to('Информация отправлена к', player3.color, money_data)
 
                     elif data[0] == 'ready':
                         player.ready = True

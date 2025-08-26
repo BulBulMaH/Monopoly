@@ -29,10 +29,9 @@ from resolution_choice import resolution_definition
 pg.init()
 pg.mixer.init()  # для звука
 
-resolution, resolution_folder, piece_color_coefficient, bars_coordinates, btn_coordinates, btn_font, profile_coordinates, start_btn_textboxes_coordinates, btn_radius, cubes_coordinates, speed, avatar_side_size, exchange_coordinates = resolution_definition(True)
+resolution, resolution_folder, piece_color_coefficient, bars_coordinates, btn_coordinates, btn_font, profile_coordinates, start_btn_textboxes_coordinates, btn_radius, cubes_coordinates, speed, avatar_side_size, exchange_coordinates, FPS, auction_coordinates = resolution_definition(True)
 
-FPS = 60
-TITLE = 'Monopoly v0.9'
+TITLE = 'Monopoly v0.10'
 screen = pg.display.set_mode(resolution)
 pg.display.set_caption(TITLE)
 icon = pg.image.load(f'resources/icon.png')
@@ -47,6 +46,7 @@ positions = positions_extraction(resolution_folder)
 background = pg.image.load(f'resources/{resolution_folder}/background.png')
 board = pg.image.load(f'resources/{resolution_folder}/board.png')
 exchange_screen = pg.image.load(f'resources/{resolution_folder}/exchange.png')
+auction_screen = pg.image.load(f'resources/{resolution_folder}/auction.png')
 darkening_full = pg.image.load(f'resources/{resolution_folder}/darkening all.png')
 darkening_tile = pg.image.load(f'resources/{resolution_folder}/darkening tile.png')
 profile_picture = pg.image.load(f'resources/{resolution_folder}/profile/profile.png')
@@ -61,6 +61,10 @@ pay_disabled_btn = pg.image.load(f'resources/{resolution_folder}/buttons/pay_dis
 shove_penis_disabled_btn = pg.image.load(f'resources/{resolution_folder}/buttons/shove_penis_disabled.png')
 remove_penis_disabled_btn = pg.image.load(f'resources/{resolution_folder}/buttons/remove_penis_disabled.png')
 exchange_disabled_btn = pg.image.load(f'resources/{resolution_folder}/buttons/exchange_disabled.png')
+auction_disabled_btn = pg.image.load(f'resources/{resolution_folder}/buttons/auction_disabled.png')
+mortgage_disabled_btn = pg.image.load(f'resources/{resolution_folder}/buttons/mortgage_disabled.png')
+redeem_disabled_btn = pg.image.load(f'resources/{resolution_folder}/buttons/redeem_disabled.png')
+
 connect_disabled_btn = pg.image.load(f'resources/{resolution_folder}/buttons/connect_disabled.png')
 avatar_choose_disabled_btn = pg.image.load(f'resources/{resolution_folder}/buttons/avatar_choose_disabled.png')
 ready_disabled_btn = pg.image.load(f'resources/{resolution_folder}/buttons/ready_disabled.png')
@@ -111,7 +115,8 @@ state = {'throw_cubes_btn_active': False,
          'paid': False,
          'avatar_chosen': False,
          'cube_animation_playing': False,
-         'tile_debug': False}
+         'tile_debug': False,
+         'show_auction_screen': [False]}
 
 
 def throw_cubes():
@@ -328,6 +333,36 @@ def tile_button(tile_position):
             exchange_value_calculation()
 
 
+def player_button(color):
+    global state, available_tiles_for_exchange, exchange_color, exchange_give, exchange_get, exchange_commit_button, exchange_give_textbox, exchange_get_textbox
+    for player2 in players:
+        if player2.color == color:
+            if not player2.main:
+                if state['is_game_started'] and state['exchange_player_btn_active']:
+                    print(f'Нажат игрок: {color}')
+                    available_tiles_for_exchange = []
+                    for player in players:
+                        if player.main:
+                            available_tiles_for_exchange += player.property
+                            print(player.property)
+                        elif player.color == color:
+                            print(player.property)
+                            available_tiles_for_exchange += player.property
+                    print(available_tiles_for_exchange)
+                    exchange_give = []
+                    exchange_get = []
+                    state['exchange_tile_btn_active'] = True
+                    state['exchange_player_btn_active'] = False
+                    state['show_exchange_screen'] = True
+                    exchange_color = str(color)
+                    exchange_commit_button.enable()
+                    exchange_commit_button.show()
+                    exchange_give_textbox.enable()
+                    exchange_give_textbox.show()
+                    exchange_get_textbox.enable()
+                    exchange_get_textbox.show()
+
+
 def penis_build_activation():
     global state
     if state['is_game_started'] and state['penis_build_btn_active']:
@@ -495,36 +530,6 @@ def exchange_request_reject():
         exchange_request_reject_button.hide()
 
 
-def player_button(color):
-    global state, available_tiles_for_exchange, exchange_color, exchange_give, exchange_get, exchange_commit_button, exchange_give_textbox, exchange_get_textbox
-    for player2 in players:
-        if player2.color == color:
-            if not player2.main:
-                if state['is_game_started'] and state['exchange_player_btn_active']:
-                    print(f'Нажат игрок: {color}')
-                    available_tiles_for_exchange = []
-                    for player in players:
-                        if player.main:
-                            available_tiles_for_exchange += player.property
-                            print(player.property)
-                        elif player.color == color:
-                            print(player.property)
-                            available_tiles_for_exchange += player.property
-                    print(available_tiles_for_exchange)
-                    exchange_give = []
-                    exchange_get = []
-                    state['exchange_tile_btn_active'] = True
-                    state['exchange_player_btn_active'] = False
-                    state['show_exchange_screen'] = True
-                    exchange_color = str(color)
-                    exchange_commit_button.enable()
-                    exchange_commit_button.show()
-                    exchange_give_textbox.enable()
-                    exchange_give_textbox.show()
-                    exchange_get_textbox.enable()
-                    exchange_get_textbox.show()
-
-
 def choose_avatar():
     global state, sendable_data
     if not state['avatar_chosen']:
@@ -571,6 +576,34 @@ def choose_avatar():
                 time.sleep(0.1)
 
 
+def auction():
+    if state['is_game_started'] and state['buy_btn_active']:
+        for player in players:
+            if player.main:
+                if all_tiles[player.piece_position].buyable:
+                    auction_command = f'auction initiate|{player.piece_position}%'
+                    sock.send(auction_command.encode())
+                    information_sent('Команда отправлена', auction_command)
+
+
+def auction_buy():
+    global state
+    if state['show_auction_screen'][0]:
+        auction_command = f'auction accept|{state['show_auction_screen'][1]}|{int(state['show_auction_screen'][2]) + 20}%'
+        sock.send(auction_command.encode())
+        information_sent('Команда отправлена', auction_command)
+        state['show_auction_screen'] = [False]
+
+
+def auction_reject():
+    global state
+    if state['show_auction_screen'][0]:
+        auction_command = f'auction reject|{state['show_auction_screen'][1]}|{state['show_auction_screen'][2]}%'
+        sock.send(auction_command.encode())
+        information_sent('Команда отправлена', auction_command)
+        state['show_auction_screen'] = [False]
+
+
 # ^
 # |
 # Функционал кнопок и текст боксов
@@ -583,14 +616,8 @@ def render_multiline_text(text, x, y, line_height):
         screen.blit(line_surface, (x, y + i * line_height))
 
 
-def blit_items():
-    screen.blit(background, (0, 0))
-    if state['cube_animation_playing']:
-        screen.blit(cube_1_picture, cubes_coordinates[0])
-        screen.blit(cube_2_picture, cubes_coordinates[1])
-
-
 def blit_board():
+    screen.blit(background, (0, 0))
     screen.blit(board, (0, 0))
 
     for tile in all_tiles:
@@ -631,6 +658,9 @@ def blit_board():
 
     screen.blit(bars, bars_coordinates)
 
+    if state['cube_animation_playing']:
+        screen.blit(cube_1_picture, cubes_coordinates[0])
+        screen.blit(cube_2_picture, cubes_coordinates[1])
 
     if state['show_exchange_screen']:
         screen.blit(darkening_full, (0, 0))
@@ -721,6 +751,19 @@ def blit_board():
         exchange_request_reject_button.listen(events)
         exchange_request_reject_button.draw()
 
+    elif state['show_auction_screen'][0]:
+        tile_position = int(state['show_auction_screen'][1])
+        price = int(state['show_auction_screen'][2])
+        tile = all_tiles[tile_position]
+        text = f'{price} + 20~'
+        screen.blit(font.render(tile.name, False, 'black'), auction_coordinates['company_text'])
+        screen.blit(font.render(text, False, 'black'), auction_coordinates['price_text'])
+
+        events = pg.event.get()
+        auction_buy_button.listen(events)
+        auction_buy_button.draw()
+        auction_reject_button.listen(events)
+        auction_reject_button.draw()
     else:
         pass
 
@@ -997,6 +1040,13 @@ def handle_connection():
                     exchange_request_reject_button.enable()
                     exchange_request_reject_button.show()
 
+                elif data[0] == 'auction bid':
+                    state['show_auction_screen'] = [True, int(data[1]), int(data[2])]
+                    auction_buy_button.enable()
+                    auction_buy_button.show()
+                    auction_reject_button.enable()
+                    auction_reject_button.show()
+
                 if not running:
                     break
         except OSError:
@@ -1108,7 +1158,7 @@ def player_move_change(do_change):
 
 
 def buttons():
-    global cube_button, buy_button, pay_button, name_textbox, ip_textbox, port_textbox, connect_button, start_button, debug_button, avatar_choose_button, shove_penis_button, remove_penis_button, exchange_button, exchange_commit_button, exchange_give_textbox, exchange_get_textbox, exchange_request_confirm_button, exchange_request_reject_button
+    global cube_button, buy_button, pay_button, name_textbox, ip_textbox, port_textbox, connect_button, start_button, debug_button, avatar_choose_button, shove_penis_button, remove_penis_button, exchange_button, exchange_commit_button, exchange_give_textbox, exchange_get_textbox, exchange_request_confirm_button, exchange_request_reject_button, auction_button, auction_buy_button, auction_reject_button
     cube_button = Button(screen,
                          btn_coordinates['throw_cubes'][0],
                          btn_coordinates['throw_cubes'][1],
@@ -1210,6 +1260,24 @@ def buttons():
                              font=btn_font,
                              text='Обмен',
                              onClick=exchange)
+
+    auction_button = Button(screen,
+                             btn_coordinates['auction'][0],
+                             btn_coordinates['auction'][1],
+                             btn_coordinates['auction'][2],
+                             btn_coordinates['auction'][3],
+                             inactiveColour=(255, 255, 255),
+                             inactiveBorderColour=(0, 0, 0),
+                             hoverColour=(255, 255, 255),
+                             hoverBorderColour=(105, 105, 105),
+                             pressedColour=(191, 191, 191),
+                             pressedBorderColour=(0, 0, 0),
+                             borderThickness=3,
+                             radius=btn_radius,
+                             font=btn_font,
+                             text='Аукцион',
+                             onClick=auction)
+
 
     name_textbox = TextBox(screen,
                            start_btn_textboxes_coordinates['name'][0],
@@ -1384,7 +1452,41 @@ def buttons():
                                              radius=btn_radius,
                                              font=btn_font,
                                              text='Отказ',
-                                             onClick=exchange_request_reject,)
+                                             onClick=exchange_request_reject)
+
+    auction_buy_button = Button(screen,
+                                    auction_coordinates['confirm'][0],
+                                    auction_coordinates['confirm'][1],
+                                    auction_coordinates['confirm'][2],
+                                    auction_coordinates['confirm'][3],
+                                    inactiveColour=(255, 255, 255),
+                                    inactiveBorderColour=(0, 0, 0),
+                                    hoverColour=(255, 255, 255),
+                                    hoverBorderColour=(105, 105, 105),
+                                    pressedColour=(191, 191, 191),
+                                    pressedBorderColour=(0, 0, 0),
+                                    borderThickness=3,
+                                    radius=btn_radius,
+                                    font=btn_font,
+                                    text='Купить',
+                                    onClick=auction_buy)
+
+    auction_reject_button = Button(screen,
+                                   auction_coordinates['reject'][0],
+                                   auction_coordinates['reject'][1],
+                                   auction_coordinates['reject'][2],
+                                   auction_coordinates['reject'][3],
+                                   inactiveColour=(255, 255, 255),
+                                   inactiveBorderColour=(0, 0, 0),
+                                   hoverColour=(255, 255, 255),
+                                   hoverBorderColour=(105, 105, 105),
+                                   pressedColour=(191, 191, 191),
+                                   pressedBorderColour=(0, 0, 0),
+                                   borderThickness=3,
+                                   radius=btn_radius,
+                                   font=btn_font,
+                                   text='Отказаться',
+                                   onClick=auction_reject)
 
     exchange_request_confirm_button.disable()
     exchange_request_confirm_button.hide()
@@ -1396,6 +1498,11 @@ def buttons():
     exchange_give_textbox.hide()
     exchange_get_textbox.disable()
     exchange_get_textbox.hide()
+
+    auction_buy_button.disable()
+    auction_buy_button.hide()
+    auction_reject_button.disable()
+    auction_reject_button.hide()
 
     for i in range(40):
         globals()[f'penis_{i}_button'] = Button(screen,
@@ -1542,7 +1649,6 @@ while running:
     clock.tick(FPS)
     dt, prev_time = delta_time(prev_time)
 
-    blit_items()
     event_handler()
     blit_board()
 
