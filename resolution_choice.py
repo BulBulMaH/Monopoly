@@ -1,4 +1,7 @@
 import pygame as pg
+import csv
+from Tiles_Class import Tiles
+from PIL import Image
 
 def resolution_definition(do_choose):
     is_resolution_selected = False
@@ -7,23 +10,29 @@ def resolution_definition(do_choose):
             lines = open('settings.txt', 'r').readlines()
             resolution_index = lines[0][:-1]
             fps = int(lines[1])
+            if lines[2] == 'big dumb debug':
+                debug_mode = True
+            else:
+                debug_mode = False
         else:
+            debug_mode = False
             resolution_index = '1'
-            fps = 60
+            fps = 30
         if resolution_index == '1':
             resolution = (1280, 650)
             resolution_folder = '720p'
             piece_color_coefficient = 28
             btn_radius = 2
             bars_coordinates = (582, 2)
+            fps_coordinates = (657, 0)
 
-            btn_coordinates = {'throw_cubes':   (953, 20, 136, 38),
-                                'buy':          (953, 78, 136, 38),
-                                'pay':          (953, 136, 136, 38),
-                                'shove_penis':  (953, 194, 136, 38),
-                                'remove_penis': (953, 252, 136, 38),
-                                'exchange':     (1109, 20, 136, 38),
-                                'auction':      (1109, 78, 136, 38),
+            btn_coordinates = {'throw_cubes':   (953,  20,  136, 38),
+                                'buy':          (953,  78,  136, 38),
+                                'pay':          (953,  136, 136, 38),
+                                'shove_penis':  (953,  194, 136, 38),
+                                'remove_penis': (953,  252, 136, 38),
+                                'exchange':     (1109, 20,  136, 38),
+                                'auction':      (1109, 78,  136, 38),
                                 'mortgage':     (1109, 136, 136, 38),
                                 'redeem':       (1109, 194, 136, 38)}
 
@@ -44,29 +53,39 @@ def resolution_definition(do_choose):
                                     'confirm':         (144, 492, 136, 38),
                                     'reject':          (369, 492, 136, 38)}
 
-            auction_coordinates = {'price_text': (144, 465),
-                                   'confirm': (144, 492, 136, 38),
-                                   'reject': (369, 492, 136, 38)}
+            auction_coordinates = {'auction_screen': (75, 75),
+                                   'price_text':     (144, 465),
+                                   'confirm':        (144, 492, 136, 38),
+                                   'reject':         (369, 492, 136, 38),
+                                   'company_text':   (120, 160)}
 
-            start_btn_textboxes_coordinates = {'name':          (1065, 384, 196, 30),
-                                                'IP':            (1065, 430, 134, 30),
-                                                'port':          (1202, 430, 59, 30),
-                                                'connect':       (1121, 476, 140, 38),
-                                                'choose_avatar': (1121, 534, 140, 38),
-                                                'debug':         (1121, 592, 140, 38)}
+            start_btn_textboxes_coordinates = {'name':           (1065, 442, 196, 30),
+                                                'IP':            (1065, 488, 134, 30),
+                                                'port':          (1202, 488, 59,  30),
+                                                'connect':       (1121, 534, 140, 38),
+                                                'choose_avatar': (1121, 592, 140, 38),
+                                                'debug':         (1121, 384, 140, 38)}
+
+            margin = [[(14, 14)],
+                      [(14, 0),  (14, 28)],
+                      [(28, 14), (0, 28),  (0, 0)],
+                      [(28, 0),  (28, 28), (0, 28), (0, 0)]]
 
             cubes_coordinates = [(961, 565), (1037, 565)]
             avatar_side_size = 100
+            tile_size = (55, 55)
             speed = 10
             is_resolution_selected = True
-            print(f'Выбрано разрешение 1280x720 и FPS равен {fps}. Вы можете поменять настройки, открыв файл settings.py')
+            if do_choose:
+                print(f'Выбрано разрешение 1280x720 и FPS равен {fps}. Вы можете поменять настройки, открыв файл settings.py')
 
         elif resolution_index == '2':
             resolution = (1920, 1001)
             resolution_folder = '1080p'
             piece_color_coefficient = 42
             btn_radius = 10
-            bars_coordinates = (897, 3)
+            bars_coordinates = (896, 3)
+            fps_coordinates = (1006, 0)
 
             btn_coordinates = {'throw_cubes':   (1455, 30,  204, 57),
                                 'buy':          (1455, 117, 204, 57),
@@ -95,23 +114,31 @@ def resolution_definition(do_choose):
                                     'confirm':         (221, 765, 201, 57),
                                     'reject':          (576, 765, 201, 57)}
 
-            auction_coordinates = {'price_text': (221, 738),
-                                   'confirm': (221, 765, 201, 57),
-                                   'reject': (576, 765, 201, 57),
-                                   'company_text':    (177, 240)}
+            auction_coordinates = {'auction_screen': (108, 108),
+                                   'price_text':     (221, 738),
+                                   'confirm':        (221, 765, 201, 57),
+                                   'reject':         (576, 765, 201, 57),
+                                   'company_text':   (177, 240)}
 
-            start_btn_textboxes_coordinates = {'name':           (1689, 660, 134, 30),
-                                                'IP':            (1689, 710, 134, 30),
-                                                'port':          (1826, 710, 59,  30),
-                                                'connect':       (1689, 760, 201, 57),
-                                                'choose_avatar': (1689, 837, 201, 57),
-                                                'debug':         (1689, 914, 201, 57)}
+            start_btn_textboxes_coordinates = {'name':           (1689, 737, 134, 30),
+                                                'IP':            (1689, 787, 134, 30),
+                                                'port':          (1826, 787, 59,  30),
+                                                'connect':       (1689, 837, 201, 57),
+                                                'choose_avatar': (1689, 914, 201, 57),
+                                                'debug':         (1689, 660, 201, 57)}
+
+            margin = [[(21, 21)],
+                      [(21, 0),  (21, 42)],
+                      [(42, 21), (0, 42),  (0, 0)],
+                      [(42, 0),  (42, 42), (0, 42), (0, 0)]]
 
             cubes_coordinates = [(1499, 906), (1594, 906)]
             avatar_side_size = 150
+            tile_size = (85, 85)
             speed = 4
             is_resolution_selected = True
             print(f'Выбрано разрешение 1920x1080 и FPS равен {fps}. Вы можете поменять настройки, открыв файл settings.py')
         else:
             print(f'{"\033[31m{}".format('Введены некорректные данные.')}{'\033[0m'}\n')
-    return resolution, resolution_folder, piece_color_coefficient, bars_coordinates, btn_coordinates, btn_font, profile_coordinates, start_btn_textboxes_coordinates, btn_radius, cubes_coordinates, speed, avatar_side_size, exchange_coordinates, fps, auction_coordinates
+
+    return resolution, resolution_folder, piece_color_coefficient, bars_coordinates, btn_coordinates, btn_font, profile_coordinates, start_btn_textboxes_coordinates, btn_radius, cubes_coordinates, speed, avatar_side_size, exchange_coordinates, fps, auction_coordinates, tile_size, margin, debug_mode, fps_coordinates

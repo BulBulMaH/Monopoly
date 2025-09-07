@@ -1,0 +1,16 @@
+get money,50
+get money,150
+go to start,200
+pay,15
+pay to players,50
+pay for white penises,25
+go back,3,Впереди страшные вещи. Вернитесь на три клетки назад
+go to,5
+go to,11
+go to,24
+go to,39
+go to next,train
+go to next,train
+go to next,infrastructure
+go to prison,0
+exit prison,0

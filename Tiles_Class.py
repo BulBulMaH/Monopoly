@@ -1,22 +1,23 @@
 import math
 
 class Tiles:
-    def __init__(self, inf):
-        information_list = inf.split(',')
-        self.position = int(information_list[0])
-        if information_list[1] == 'True':
+    def __init__(self, information_list, positions):
+        self.position = int(information_list['position'])
+        if information_list['buyable'] == 'True':
             self.buyable = True
         else:
             self.buyable = False
-        self.type = information_list[2]
-        self.family = information_list[3]
-        self.name = information_list[4]
-        self.xText = int(information_list[5])
-        self.yText = int(information_list[6])
-        self.price = information_list[7]
-        self.color = information_list[8]
-        self.angle = int(information_list[9])
-        self.max_family_members = int(information_list[10])
+        self.type = information_list['type']
+        self.family = information_list['family']
+        self.name = information_list['name']
+        self.price = int(information_list['price'])
+        self.color = information_list['color']
+        self.angle = int(information_list['angle'])
+        self.max_family_members = int(information_list['max_family_members'])
+        self.x_position = int(positions['tile position x'])
+        self.y_position = int(positions['tile position y'])
+        self.xText = int(positions['price text center x'])
+        self.yText = int(positions['price text center y'])
         self.family_members = 0
         if self.type == 'buildable':
             self.penis_price = round(int(self.price) * 0.63 / 50) * 50
@@ -28,6 +29,7 @@ class Tiles:
         self.owner = ''
         self.full_family = False
         self.text = ''
+        self.mortgaged = False
 
     def penis_income_calculation(self):
         if self.family_members == self.max_family_members:

@@ -3,11 +3,14 @@ import time
 import random
 import threading
 import traceback
+import csv
+from PIL import Image
 
 import pygame as pg
 import pygame_widgets
 from pygame_widgets.button import Button
 from pygame_widgets.textbox import TextBox
+
 from positions_extraction import positions_extraction
 from resolution_choice import resolution_definition
 
@@ -57,7 +60,7 @@ class Player:
         self.on_move = False
 
 pg.init()
-resolution, resolution_folder, piece_color_coefficient, bars_coordinates, btn_coordinates, btn_font, profile_coordinates, start_btn_textboxes_coordinates, btn_radius, cubes_coordinates, speed, avatar_side_size, exchange_coordinates, FPS = resolution_definition(False)
+resolution, resolution_folder, piece_color_coefficient, bars_coordinates, btn_coordinates, btn_font, profile_coordinates, start_btn_textboxes_coordinates, btn_radius, cubes_coordinates, speed, avatar_side_size, exchange_coordinates, FPS, auction_coordinates, tile_size, margin, debug_mode, fps_coordinates = resolution_definition(False)
 TITLE = 'Monopoly Server'
 screen = pg.display.set_mode((1280, 650))
 pg.display.set_caption(TITLE)
@@ -65,21 +68,37 @@ clock = pg.time.Clock()
 
 positions = positions_extraction(resolution_folder)
 background = pg.image.load(f'resources/{resolution_folder}/background.png')
-board = pg.image.load(f'resources/{resolution_folder}/board.png')
+board = pg.image.load(f'resources/{resolution_folder}/board grid.png')
 profile_picture = pg.image.load(f'resources/{resolution_folder}/profile/profile.png')
 bars = pg.image.load(f'resources/{resolution_folder}/bars.png')
 player_bars = pg.image.load(f'resources/{resolution_folder}/profile/profile_bars.png')
 avatar_file = pg.image.load(f'resources/{resolution_folder}/profile/avatar_placeholder.png')
 font = pg.font.Font('resources/fonts/bulbulpoly-3.ttf',25)
 
-all_tiles = []
-test = open(f'resources/720p/text values/kletki.txt', 'r', encoding='utf-8')
-information = test.readlines()
-test.close()
-for i in range(40):
-    all_tiles.append(Tiles(information[i]))
-information.clear()
+def all_tiles_get():
+    all_tiles = []
+    with open('resources/tiles_data/kletki.csv', 'r', encoding='utf-8') as kletki:
+        kletki_reader = csv.DictReader(kletki)
+        kletki_list = []
+        for i in kletki_reader:
+            kletki_list.append(i)
 
+    with open(f'resources/{resolution_folder}/tiles_positions.csv', 'r', encoding='utf-8') as tile_position:
+        tile_position_reader = csv.DictReader(tile_position)
+        tile_position_list = []
+        for i in tile_position_reader:
+            tile_position_list.append(i)
+        for i in range(40):
+            all_tiles.append(Tiles(kletki_list[i], tile_position_list[i]))
+            if i not in (0, 10, 20, 30):
+                image = Image.open(f'resources/tiles_data/images/{i}.png')
+                image = image.resize(tile_size)
+                image.save(f'resources/temp/server/images/{i}.png')
+                globals()[f'tile_{i}_image'] = pg.image.load(f'resources/temp/server/images/{i}.png').convert()
+    return all_tiles
+
+
+all_tiles = all_tiles_get()
 
 auction_players = []
 auction_players_who_are_wanting_to_buy = []
@@ -89,6 +108,25 @@ is_server_started = False
 is_game_started = False
 
 def receive_data():
+    global auction_players, auction_players_who_are_wanting_to_buy
+
+
+    def auction_win():
+        for player2 in players:
+            if player2 == auction_players_who_are_wanting_to_buy[0]:
+                player2.property.append(tile_position)
+                player2.money -= price
+        property_data = f'property|{player2.color}|{tile_position}%'
+        money_data = f'money|{player2.color}|{player2.money}%'
+        for player3 in players:
+            player3.conn.send(property_data.encode())
+            player3.conn.send(money_data.encode())
+            information_sent_to('Информация отправлена к', player3.color, property_data)
+            information_sent_to('Информация отправлена к', player3.color, money_data)
+        print('Аукцион прошёл успешно!')
+        moving_player_changing(True)
+
+
     while running:
         for player in players:
             try:
@@ -155,7 +193,7 @@ def receive_data():
 
                             if player.piece_position > 39:
                                 player.piece_position -= 40
-                                player.money += 500 # todo убрать 2000
+                                player.money += 200 # todo убрать 2000
 
                             move_data = f'move|{player.color}|{cube1}|{cube2}%'
                             for player2 in players:
@@ -166,7 +204,7 @@ def receive_data():
                                 player.piece_position = 10
                                 player.imprisoned = True
                                 prison_data = f'imprisoned|{player.color}%'
-                                move_data = f'move diagonally|{player.color}|30|10%'
+                                move_data = f'move diagonally|{player.color}|10%'
                                 for player2 in players:
                                     player2.conn.send(prison_data.encode())
                                     player2.conn.send(move_data.encode())
@@ -175,7 +213,7 @@ def receive_data():
 
                             elif player.piece_position == 10:
                                 player.piece_position = 30
-                                move_data = f'move diagonally|{player.color}|10|30%'
+                                move_data = f'move diagonally|{player.color}|30%'
                                 for player2 in players:
                                     player2.conn.send(move_data.encode())
                                     information_sent_to('Информация отправлена к', player2.color, move_data)
@@ -219,7 +257,8 @@ def receive_data():
                             information_sent_to('Информация отправлена к', player2.color, money_data)
 
                     elif data[0] == 'auction initiate':
-                        global auction_players, auction_players_who_are_wanting_to_buy
+                        # global auction_players, auction_players_who_are_wanting_to_buy
+                        print(players)
                         tile_position = int(data[1])
                         if tile_position == player.piece_position:
                             auction_players = players.copy()
@@ -230,16 +269,18 @@ def receive_data():
                             information_sent_to('Информация отправлена к', auction_players[0].color, auction_information)
 
                     elif data[0] == 'auction accept':
-                        global auction_players, auction_players_who_are_wanting_to_buy
                         tile_position = int(data[1])
                         price = int(data[2])
                         auction_information = f'auction bid|{tile_position}|{price}%'
-                        if len(auction_players) != 0:
+                        if len(auction_players) > 0:
                             if auction_players[0].money >= price:
                                 auction_players_who_are_wanting_to_buy.append(auction_players[0])
                             auction_players.pop(0)
-                            auction_players[0].conn.send(auction_information.encode())
-                            information_sent_to('Информация отправлена к', auction_players[0].color, auction_information)
+                            if len(auction_players) > 0:
+                                auction_players[0].conn.send(auction_information.encode())
+                                information_sent_to('Информация отправлена к', auction_players[0].color, auction_information)
+                            else:
+                                auction_win()
                         else:
                             auction_players_who_are_wanting_to_buy.append(auction_players_who_are_wanting_to_buy[0])
                             auction_players_who_are_wanting_to_buy.pop(0)
@@ -247,31 +288,25 @@ def receive_data():
                             information_sent_to('Информация отправлена к', auction_players[0].color, auction_information)
 
                     elif data[0] == 'auction reject':
-                        global auction_players, auction_players_who_are_wanting_to_buy
+                        # global auction_players, auction_players_who_are_wanting_to_buy
                         tile_position = int(data[1])
                         price = int(data[2])
                         auction_information = f'auction bid|{tile_position}|{price}%'
-                        if len(auction_players) != 0:
-                            auction_players.pop(0)
+                        auction_players.pop(0)
+                        if len(auction_players) > 0:
                             auction_players[0].conn.send(auction_information.encode())
                             information_sent_to('Информация отправлена к', auction_players[0].color, auction_information)
                         else:
-                            auction_players_who_are_wanting_to_buy.pop(0)
-                            if len(auction_players_who_are_wanting_to_buy) > 1:
-                                auction_players_who_are_wanting_to_buy[0].conn.send(auction_information.encode())
-                                information_sent_to('Информация отправлена к', auction_players_who_are_wanting_to_buy[0].color, auction_information)
+                            if len(auction_players_who_are_wanting_to_buy) > 0:
+                                auction_players_who_are_wanting_to_buy.pop(0)
+                                if len(auction_players_who_are_wanting_to_buy) > 1:
+                                    auction_players_who_are_wanting_to_buy[0].conn.send(auction_information.encode())
+                                    information_sent_to('Информация отправлена к', auction_players_who_are_wanting_to_buy[0].color, auction_information)
+                                else:
+                                    auction_win()
                             else:
-                                for player2 in players:
-                                    if player2 == auction_players_who_are_wanting_to_buy[0]:
-                                        player2.property.append(tile_position)
-                                        player2.money -= price
-                                property_data = f'property|{player2[0].color}|{tile_position}%'
-                                money_data = f'money|{player2[0].color}|{player2[0].money}%'
-                                for player3 in players:
-                                    player3.conn.send(property_data.encode())
-                                    player3.conn.send(money_data.encode())
-                                    information_sent_to('Информация отправлена к', player3.color, property_data)
-                                    information_sent_to('Информация отправлена к', player3.color, money_data)
+                                moving_player_changing(True)
+                                print('Все игроки отказались от аукциона')
 
                     elif data[0] == 'ready':
                         player.ready = True
@@ -410,15 +445,18 @@ def receive_data():
                     elif data[0] == 'exchange request rejected':
                         print(f'Игрок {player.color} отказался от обмена')
 
+                    elif data[0] == 'mortgage':
+                        pass
+
                     else:
                         player.conn.send(f'error|Незарегистрированная команда: {data[0]}'.encode())
 
-            except BlockingIOError:
+            except (BlockingIOError, ConnectionAbortedError, ConnectionResetError, AttributeError):
                 pass
-            except ConnectionAbortedError:
-                pass
-            except ConnectionResetError:
-                pass
+            # except ConnectionAbortedError:
+            #     pass
+            # except ConnectionResetError:
+            #     pass
             except:
                 print(f'{"\033[31m{}".format(traceback.format_exc())}{'\033[0m'}')
 
@@ -484,6 +522,7 @@ def start_server():
             random.shuffle(colors)
             is_server_started = True
 
+
             connection_handler = threading.Thread(target=connection, name='connection_handler')
             connection_handler.start()
             thread_open('Поток открыт', connection_handler.name)
@@ -504,13 +543,14 @@ def start_server():
 
 def start_game():
     global is_game_started
-    is_game_started = True
-    print('Игра начата')
-    for player in players:
-        player.conn.send('gameStarted%'.encode())
-        player.conn.send(f'onMove|{players[0].color}%'.encode())
-        information_sent_to('Информация отправлена к', player.color, 'gameStarted%')
-        information_sent_to('Информация отправлена к', player.color, f'onMove|{players[0].color}%')
+    if is_server_started and not is_game_started:
+        is_game_started = True
+        print('Игра начата')
+        for player in players:
+            player.conn.send('gameStarted%'.encode())
+            player.conn.send(f'onMove|{players[0].color}%'.encode())
+            information_sent_to('Информация отправлена к', player.color, 'gameStarted%')
+            information_sent_to('Информация отправлена к', player.color, f'onMove|{players[0].color}%')
 
 
 def moving_player_changing(do_change):
@@ -545,13 +585,13 @@ def blit_items():
     screen.blit(board, (0, 0))
 
     for tile in all_tiles:
+        if tile.family != 'Угловые':
+            screen.blit(globals()[f'tile_{tile.position}_image'], (tile.x_position, tile.y_position))
         if tile.owned:
-            screen.blit(pg.image.load(f'resources/{resolution_folder}/{tile.owner}Property.png'),
-                        (int(positions[tile.position][0]), int(positions[tile.position][1])))
+            screen.blit(pg.image.load(f'resources/{resolution_folder}/{tile.owner}Property.png'), (tile.x_position, tile.y_position))
 
         if 1 <= tile.penises <= 5:
-            screen.blit(pg.image.load(f'resources/{resolution_folder}/white penises/{tile.penises}.png'),
-             (int(positions[tile.position][0]), int(positions[tile.position][1])))
+            screen.blit(pg.image.load(f'resources/{resolution_folder}/white penises/{tile.penises}.png'), (tile.x_position, tile.y_position))
 
     for player in players:
         position_update(player.color)
