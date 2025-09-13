@@ -1,7 +1,4 @@
 import pygame as pg
-import csv
-from Tiles_Class import Tiles
-from PIL import Image
 
 def resolution_definition(do_choose):
     is_resolution_selected = False
@@ -10,7 +7,7 @@ def resolution_definition(do_choose):
             lines = open('settings.txt', 'r').readlines()
             resolution_index = lines[0][:-1]
             fps = int(lines[1])
-            if lines[2] == 'big dumb debug':
+            if lines[2][:-1] == 'bdb':
                 debug_mode = True
             else:
                 debug_mode = False

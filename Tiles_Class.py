@@ -32,8 +32,10 @@ class Tiles:
         self.mortgaged = False
 
     def penis_income_calculation(self):
-        if self.family_members == self.max_family_members:
+        if self.family_members == self.max_family_members and not self.mortgaged:
             self.full_family = True
+        else:
+            self.full_family = False
 
         if self.owned:
             if self.type == 'buildable':
@@ -59,7 +61,10 @@ class Tiles:
     def text_defining(self):
         self.penis_income_calculation()
         if self.type == 'buildable' or self.type == 'train' or self.type == 'minus':
-            self.text = f'{self.income}~'
+            if not self.mortgaged:
+                self.text = f'{self.income}~'
+            else:
+                self.text = ''
 
         elif self.type == 'infrastructure':
             if self.owned:

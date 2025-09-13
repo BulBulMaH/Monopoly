@@ -5,6 +5,8 @@ import threading
 import traceback
 import csv
 from PIL import Image
+import os
+os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = '1'
 
 import pygame as pg
 import pygame_widgets
@@ -67,13 +69,17 @@ pg.display.set_caption(TITLE)
 clock = pg.time.Clock()
 
 positions = positions_extraction(resolution_folder)
-background = pg.image.load(f'resources/{resolution_folder}/background.png')
-board = pg.image.load(f'resources/{resolution_folder}/board grid.png')
-profile_picture = pg.image.load(f'resources/{resolution_folder}/profile/profile.png')
-bars = pg.image.load(f'resources/{resolution_folder}/bars.png')
-player_bars = pg.image.load(f'resources/{resolution_folder}/profile/profile_bars.png')
-avatar_file = pg.image.load(f'resources/{resolution_folder}/profile/avatar_placeholder.png')
+background = pg.image.load(f'resources/{resolution_folder}/background.png').convert()
+board = pg.image.load(f'resources/{resolution_folder}/board grid.png').convert_alpha()
+profile_picture = pg.image.load(f'resources/{resolution_folder}/profile/profile.png').convert_alpha()
+bars = pg.image.load(f'resources/{resolution_folder}/bars.png').convert_alpha()
+player_bars = pg.image.load(f'resources/{resolution_folder}/profile/profile_bars.png').convert_alpha()
+avatar_file = pg.image.load(f'resources/{resolution_folder}/profile/avatar_placeholder.png').convert_alpha()
+mortgaged_tile = pg.image.load(f'resources/{resolution_folder}/mortgaged.png').convert_alpha()
 font = pg.font.Font('resources/fonts/bulbulpoly-3.ttf',25)
+
+start_server_disabled_btn = pg.image.load(f'resources/{resolution_folder}/buttons/start_server_disabled.png').convert_alpha()
+start_game_disabled_btn = pg.image.load(f'resources/{resolution_folder}/buttons/start_game_disabled.png').convert_alpha()
 
 def all_tiles_get():
     all_tiles = []
@@ -127,6 +133,21 @@ def receive_data():
         moving_player_changing(True)
 
 
+    def price_update(tile):
+        global all_tiles
+        tile_family_members = 0
+        for tile_ in all_tiles:
+            if tile_.family == tile.family:
+                if tile_.owner == tile.owner and not tile_.mortgaged:
+                    tile_family_members += 1
+
+        for tile_ in all_tiles:
+            if tile_.family == tile.family:
+                if tile_.owner == tile.owner and not tile_.mortgaged:
+                    tile_.family_members = tile_family_members
+                    print(tile_.family_members, tile_.name)
+
+
     while running:
         for player in players:
             try:
@@ -159,6 +180,8 @@ def receive_data():
                     elif data[0] == 'move':
                         cube1 = random.randint(1,6)
                         cube2 = random.randint(1,6)
+                        # cube1 = 3
+                        # cube2 = 4
                         double = cube1 == cube2
 
                         if player.imprisoned:
@@ -232,6 +255,10 @@ def receive_data():
                                 all_tiles[player.piece_position].owned = True
                                 all_tiles[player.piece_position].owner = player.color
                                 player.money -= int(all_tiles[player.piece_position].price)
+                                tile_family_members = 0
+
+                                price_update(all_tiles[player.piece_position])
+
                                 property_data = f'property|{player.color}|{data[1]}%'
                                 money_data = f'money|{player.color}|{player.money}%'
                                 for player2 in players:
@@ -264,9 +291,12 @@ def receive_data():
                             auction_players = players.copy()
                             auction_players.pop(0) # удаляем того, кто инициировал аукцион
                             auction_players_who_are_wanting_to_buy = []
-                            auction_information = f'auction bid|{tile_position}|{all_tiles[tile_position].price}%'
-                            auction_players[0].conn.send(auction_information.encode())
-                            information_sent_to('Информация отправлена к', auction_players[0].color, auction_information)
+                            if len(auction_players) > 0:
+                                auction_information = f'auction bid|{tile_position}|{all_tiles[tile_position].price}%'
+                                auction_players[0].conn.send(auction_information.encode())
+                                information_sent_to('Информация отправлена к', auction_players[0].color, auction_information)
+                            else:
+                                moving_player_changing(True)
 
                     elif data[0] == 'auction accept':
                         tile_position = int(data[1])
@@ -330,7 +360,7 @@ def receive_data():
                             if not all_tiles[player.piece_position].full_family:
                                 pay_sum = (cube1 + cube2) * 4
                             else:
-                                pay_sum = (cube1 + cube2) * 10
+                                pay_sum = (cube1 + cube2) * 10 # todo: отправлять анимацию
                         else:
                             pay_sum = all_tiles[player.piece_position].penis_income_calculation()
                         player.money -= pay_sum
@@ -348,10 +378,13 @@ def receive_data():
                     elif data[0] == 'pay for prison':
                         player.money -= player.prison_break_attempts * 25
                         player.imprisoned = False
+                        money_data = f'money|{player.color}|{player.money}%'
                         prison_data = f'unimprisoned|{player.color}%'
                         for player2 in players:
                             player2.conn.send(prison_data.encode())
+                            player2.conn.send(money_data.encode())
                             information_sent_to('Информация отправлена к', player2.color, prison_data)
+                            information_sent_to('Информация отправлена к', player2.color, money_data)
 
                     elif data[0] == 'penis build':
                         tile_position = int(data[1])
@@ -391,9 +424,10 @@ def receive_data():
                                 information_sent_to('Информация отправлена к', player2.color, penis_data)
 
                     elif data[0] == 'full family':
-                        for i in range(len(all_tiles)):
-                            if all_tiles[i].family == data[1]:
-                                all_tiles[i].full_family = True
+                        # for i in range(len(all_tiles)):
+                        #     if all_tiles[i].family == data[1]:
+                        #         all_tiles[i].full_family = True
+                        pass
 
                     elif data[0] == 'exchange request':
                         for player2 in players:
@@ -446,7 +480,36 @@ def receive_data():
                         print(f'Игрок {player.color} отказался от обмена')
 
                     elif data[0] == 'mortgage':
-                        pass
+                        tile = all_tiles[int(data[1])]
+                        if not tile.mortgaged and tile.owner == player.color:
+                            player.money += int(tile.price / 2)
+                            tile.mortgaged = True
+
+                            price_update(tile)
+
+                            for player2 in players:
+                                mortgage_information = f'mortgaged|{data[1]}%'
+                                money_information = f'money|{player.color}|{player.money}%'
+                                player2.conn.send(mortgage_information.encode())
+                                player2.conn.send(money_information.encode())
+                                information_sent_to('Информация отправлена к', player2.color, mortgage_information)
+                                information_sent_to('Информация отправлена к', player2.color, money_information)
+
+                    elif data[0] == 'redeem':
+                        tile = all_tiles[int(data[1])]
+                        if tile.mortgaged and tile.owner == player.color:
+                            player.money -= int(tile.price * 1.1 / 2)
+                            tile.mortgaged = False
+
+                            price_update(tile)
+
+                            for player2 in players:
+                                redeem_information = f'redeemed|{data[1]}%'
+                                money_information = f'money|{player.color}|{player.money}%'
+                                player2.conn.send(redeem_information.encode())
+                                player2.conn.send(money_information.encode())
+                                information_sent_to('Информация отправлена к', player2.color, redeem_information)
+                                information_sent_to('Информация отправлена к', player2.color, money_information)
 
                     else:
                         player.conn.send(f'error|Незарегистрированная команда: {data[0]}'.encode())
@@ -577,7 +640,7 @@ def position_update(color):
             elif color == 'blue':
                 player.x = positions[player.piece_position][0] + piece_color_coefficient
                 player.y = positions[player.piece_position][1] + piece_color_coefficient
-            screen.blit(pg.image.load(f'resources/{resolution_folder}/{player.color}Piece.png'), (player.x, player.y))
+            screen.blit(pg.image.load(f'resources/{resolution_folder}/pieces/{player.color}_piece.png'), (player.x, player.y))
 
 
 def blit_items():
@@ -588,8 +651,9 @@ def blit_items():
         if tile.family != 'Угловые':
             screen.blit(globals()[f'tile_{tile.position}_image'], (tile.x_position, tile.y_position))
         if tile.owned:
-            screen.blit(pg.image.load(f'resources/{resolution_folder}/{tile.owner}Property.png'), (tile.x_position, tile.y_position))
-
+            screen.blit(pg.image.load(f'resources/{resolution_folder}/property/{tile.owner}_property.png'), (tile.x_position, tile.y_position))
+        if tile.mortgaged:
+            screen.blit(mortgaged_tile, (tile.x_position, tile.y_position))
         if 1 <= tile.penises <= 5:
             screen.blit(pg.image.load(f'resources/{resolution_folder}/white penises/{tile.penises}.png'), (tile.x_position, tile.y_position))
 
@@ -604,7 +668,7 @@ def blit_items():
             screen.blit(player_bars, (profile_coordinates[player_index]['avatar'][0],
                                       profile_coordinates[player_index]['avatar'][1]))
 
-        screen.blit(pg.image.load(f'resources/{resolution_folder}/profile/{player.color}Profile.png'),
+        screen.blit(pg.image.load(f'resources/{resolution_folder}/profile/{player.color}_profile.png'),
                     (profile_coordinates[player_index]['avatar'][0],
                      profile_coordinates[player_index]['avatar'][1]))
 
@@ -621,6 +685,27 @@ def blit_items():
                      profile_coordinates[player_index]['name'][1]))
 
     screen.blit(bars, bars_coordinates)
+
+
+def price_printing():
+    for tile in all_tiles:
+        if tile.price != '':
+            tile.text_defining()
+            if tile.position == 4 or tile.position == 38 or not tile.owned:
+                text = font.render(tile.text, False, tile.color)
+            else:
+                text = font.render(tile.text, False, tile.color)
+            price_text = pg.transform.rotate(text, tile.angle)
+
+            if tile.angle == -90:
+                offset = round((font.size(tile.text)[0] - 31) / 2)
+            elif tile.angle == 90:
+                offset = round((font.size(tile.text)[0] - 29) / 2)
+            else:
+                offset = 0
+
+            text_rect = text.get_rect(center=(tile.xText + offset, tile.yText - offset))
+            screen.blit(price_text, text_rect)
 
 
 def event_handler():
@@ -697,12 +782,28 @@ def buttons():
                           onClick=start_game)
 
 
+def active_buttons_check():
+    # Бросок кубов
+    if is_game_started or not is_server_started:
+        screen.blit(start_game_disabled_btn, (1121, 592, 140, 38))
+
+    if is_server_started:
+        screen.blit(start_server_disabled_btn, (1121, 534, 140, 38))
+
+
 buttons()
 running = True
 
 while running:
     clock.tick(FPS)
     blit_items()
+    price_printing()
     event_handler()
+    active_buttons_check()
     pg.display.flip()
-print('Сервер закрыт')
+
+for i in range(40):
+    print(f'\rУдаление временных файлов: {i + 1} из 40.', end='\r', flush=True)
+    if i not in (0, 10, 20, 30):
+        os.remove(f'resources/temp/server/images/{i}.png')
+print('\nСервер закрыт')
