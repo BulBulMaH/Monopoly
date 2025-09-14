@@ -33,8 +33,6 @@ def resolution_definition(do_choose):
                                 'mortgage':     (1109, 136, 136, 38),
                                 'redeem':       (1109, 194, 136, 38)}
 
-            btn_font = pg.font.Font('resources/fonts/bulbulpoly-3.ttf', 25)
-
             profile_coordinates = [{'profile': [669, 20],  'avatar':[830, 46],  'money': [674, 38],  'name': [674, 18]},
                                    {'profile': [669, 169], 'avatar':[830, 195], 'money': [674, 187], 'name': [674, 167]},
                                    {'profile': [669, 318], 'avatar':[830, 344], 'money': [674, 336], 'name': [674, 316]},
@@ -94,8 +92,6 @@ def resolution_definition(do_choose):
                                 'mortgage':     (1689, 204, 204, 57),
                                 'redeem':       (1689, 291, 204, 57)}
 
-            btn_font = pg.font.Font('resources/fonts/bulbulpoly-3.ttf', 25)
-
             profile_coordinates = [{'profile': [1028, 30],  'avatar': [1262, 66],  'money': [1034, 62],  'name': [1034, 34]},
                                    {'profile': [1028, 249], 'avatar': [1262, 285], 'money': [1034, 281], 'name': [1034, 253]},
                                    {'profile': [1028, 468], 'avatar': [1262, 504], 'money': [1034, 500], 'name': [1034, 472]},
@@ -138,4 +134,4 @@ def resolution_definition(do_choose):
         else:
             print(f'{"\033[31m{}".format('Введены некорректные данные.')}{'\033[0m'}\n')
 
-    return resolution, resolution_folder, piece_color_coefficient, bars_coordinates, btn_coordinates, btn_font, profile_coordinates, start_btn_textboxes_coordinates, btn_radius, cubes_coordinates, speed, avatar_side_size, exchange_coordinates, fps, auction_coordinates, tile_size, margin, debug_mode, fps_coordinates
+    return resolution, resolution_folder, piece_color_coefficient, bars_coordinates, btn_coordinates, profile_coordinates, start_btn_textboxes_coordinates, btn_radius, cubes_coordinates, speed, avatar_side_size, exchange_coordinates, fps, auction_coordinates, tile_size, margin, debug_mode, fps_coordinates

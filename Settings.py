@@ -1,51 +1,82 @@
-from tkinter import *
+import os
+os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = '1'
+import pygame as pg
+import pygame_widgets
+from pygame_widgets.button import Button
+from pygame_widgets.dropdown import Dropdown
+pg.init()
 
-root = Tk()
-root.title('Monopoly Settings')
-root.geometry('750x700+200+10')
-root.configure(background='#808080')
-font = 'bulbulpoly 3'
-lines = open('settings.txt', 'r').readlines()
+TITLE = 'Settings'
+icon = pg.image.load(f'resources/icon.png')
+pg.display.set_icon(icon)
+screen = pg.display.set_mode((500, 650))
+pg.display.set_caption(TITLE)
 
-
-def replace_line(line_num, text, filepath):
-    lines = open(filepath, 'r').readlines()
-    lines[line_num] = str(text) + '\n'
-    out = open(filepath, 'w')
-    out.writelines(lines)
-    out.close()
-
-
-def save_data():
-    global audio_path, fps, src_video_path, output_name, precision
-    resolution = selected_language.get()
-    fps = int(FPSEntry.get())
-
-    replace_line(0, resolution, 'settings.txt')
-    replace_line(1, fps, 'settings.txt')
-    print('Значения строк сохранены')
-    root.destroy()
+font = pg.font.Font('resources/fonts/bulbulpoly-3.ttf',25)
 
 
-selected_language = StringVar()
+def save():
+    print(dropdown.getSelected())
 
-resolutions = [['1280x720', 1], ['1920x1080', 2]]
 
-resolution_text = Label(text='Выберите разрешение экрана', font=(font, 25), background='#808080', foreground='black')
-resolution_text.pack(anchor='nw', padx=10)
+def event_handler():
+    events = pg.event.get()
+    for event in events:
+        if event.type == pg.QUIT:
+            global running
+            running = False
+    try:
+        pygame_widgets.update(events)
+    except AttributeError:
+        print(
+            f'{"\033[31m{}".format('Снова вылезла эта поганая ошибка. Я надеюсь, что игра не зависла на этот раз.')}{'\033[0m'}\n')
 
-for i in resolutions:
-    resolution_choice = Radiobutton(text=i[0], value=i[1], font=(font, 25), background='#808080', foreground='black', variable=selected_language)
-    resolution_choice.pack(anchor='nw', padx=10)
 
-FPSText = Label(text='Введите желаемый FPS', font=(font, 25), background='#808080', foreground='black')
-FPSText.pack(anchor='nw', padx=10)
+def buttons():
+    global save_button, dropdown
+    save_button = Button(screen,
+                         182,
+                         592,
+                         136,
+                         38,
+                         inactiveColour=(255, 255, 255),
+                         inactiveBorderColour=(0, 0, 0),
+                         hoverColour=(255, 255, 255),
+                         hoverBorderColour=(105, 105, 105),
+                         pressedColour=(191, 191, 191),
+                         pressedBorderColour=(0, 0, 0),
+                         borderThickness=3,
+                         radius=2,
+                         font=font,
+                         text='Сохранить',
+                         onClick=save)
 
-FPSEntry = Entry(background='gray', font=(font, 25), foreground='white', width=3)
-FPSEntry.pack(anchor='nw', padx=10)
-FPSEntry.insert(0, lines[1][:-1])
+    dropdown = Dropdown(screen,
+                        120,
+                        10,
+                        230,
+                        50,
+                        name='Выберите разрешение',
+                        choices=['1280x720', '1920x1080'],
+                        # radius=2,
+                        borderRadius=100,
+                        inactiveColour=(255, 255, 255),
+                        inactiveBorderColour=(0, 0, 0),
+                        hoverColour=(255, 255, 255),
+                        hoverBorderColour=(105, 105, 105),
+                        pressedColour=(191, 191, 191),
+                        pressedBorderColour=(0, 0, 0),
+                        borderThickness=300,
+                        font=font,
+                        values=[1, 2],
+                        direction='down')
 
-btn1 = Button(text='Сохранить', command=save_data, font=(font, 20))
-btn1.pack(anchor='nw', padx=10, pady=10)
 
-root.mainloop()
+buttons()
+
+running = True
+while running:
+    screen.fill((128, 128, 128))
+    event_handler()
+    pg.display.flip()
+pg.quit()

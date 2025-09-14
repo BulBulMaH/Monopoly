@@ -1,12 +1,12 @@
 # для функционала игры
+import time
+time_ = time.time()
 import os
 os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = '1'
 import pygame as pg
 import socket as sck
 import threading
-import time
 import traceback
-import csv
 import math
 
 # для аватара
@@ -23,18 +23,15 @@ from pygame_widgets.textbox import TextBox
 
 # классы
 from Players_Class_Client_side import Player
-from Tiles_Class import Tiles
 
 # функции
-from positions_extraction import positions_extraction
+from all_tiles_extraction import all_tiles_get
 from colored_output import thread_open, information_sent, information_received, new_connection
 from resolution_choice import resolution_definition
 pg.init()
 pg.mixer.init()  # для звука
 
-resolution, resolution_folder, piece_color_coefficient, bars_coordinates, btn_coordinates, btn_font, profile_coordinates, start_btn_textboxes_coordinates, btn_radius, cubes_coordinates, speed, avatar_side_size, exchange_coordinates, FPS, auction_coordinates, tile_size, margin, debug_mode, fps_coordinates = resolution_definition(True)
-
-positions = positions_extraction(resolution_folder)
+resolution, resolution_folder, piece_color_coefficient, bars_coordinates, btn_coordinates, profile_coordinates, start_btn_textboxes_coordinates, btn_radius, cubes_coordinates, speed, avatar_side_size, exchange_coordinates, FPS, auction_coordinates, tile_size, margin, debug_mode, fps_coordinates = resolution_definition(True)
 
 TITLE = 'Monopoly v0.11'
 icon = pg.image.load(f'resources/icon.png')
@@ -65,6 +62,10 @@ def load_assets():
 
     for penis in range(5):
         globals()[f'{penis + 1}_penises_image'] = pg.image.load(f'resources/{resolution_folder}/white penises/{penis + 1}.png').convert_alpha()
+
+    for tile_image in range(40):
+        if tile_image not in (0, 10, 20, 30):
+            globals()[f'tile_{tile_image}_image'] = pg.image.load(f'resources/temp/client/images/{tile_image}.png').convert()
 
     global throw_cubes_disabled_btn, buy_disabled_btn, pay_disabled_btn, shove_penis_disabled_btn, remove_penis_disabled_btn, exchange_disabled_btn, auction_disabled_btn, mortgage_disabled_btn, redeem_disabled_btn, connect_disabled_btn, avatar_choose_disabled_btn, ready_disabled_btn
     throw_cubes_disabled_btn = pg.image.load(f'resources/{resolution_folder}/buttons/throw_cubes_disabled.png').convert_alpha()
@@ -126,30 +127,7 @@ def load_assets():
     sock.setsockopt(sck.IPPROTO_TCP, sck.TCP_NODELAY, 1)
 
 
-def all_tiles_get():
-    all_tiles = []
-    with open('resources/tiles_data/kletki.csv', 'r', encoding='utf-8') as kletki:
-        kletki_reader = csv.DictReader(kletki)
-        kletki_list = []
-        for i in kletki_reader:
-            kletki_list.append(i)
-
-    with open(f'resources/{resolution_folder}/tiles_positions.csv', 'r', encoding='utf-8') as tile_position:
-        tile_position_reader = csv.DictReader(tile_position)
-        tile_position_list = []
-        for i in tile_position_reader:
-            tile_position_list.append(i)
-        for i in range(40):
-            all_tiles.append(Tiles(kletki_list[i], tile_position_list[i]))
-            if i not in (0, 10, 20, 30):
-                image = Image.open(f'resources/tiles_data/images/{i}.png')
-                image = image.resize(tile_size)
-                image.save(f'resources/temp/client/images/{i}.png')
-                globals()[f'tile_{i}_image'] = pg.image.load(f'resources/temp/client/images/{i}.png').convert()
-    return all_tiles
-
-
-all_tiles = all_tiles_get()
+all_tiles, positions = all_tiles_get(resolution_folder, tile_size, 'client')
 
 load_assets()
 
@@ -593,7 +571,7 @@ def exchange_request_reject():
 
 def choose_avatar():
     global state, sendable_data
-    if not state['avatar_chosen']:
+    if not state['avatar_chosen'] and state['is_game_started']:
         top = tkinter.Tk()
         top.withdraw()
         file_name = tkinter.filedialog.askopenfilename(parent=top, filetypes=[('Изображения', ('*.png', '*.jpg', '*.jpeg', '*.bmp', '*.gif', '*.icns', '*.ico', '*.apng', '*.tiff', '*.webp'))])
@@ -967,13 +945,13 @@ def move(players_on_tile, end_positions, cube1, cube2):
         diff_y = end_positions[i][1] - start_position[1]
         if i == 0:
 
-            step_amount = round(math.sqrt(diff_x ** 2 + diff_y ** 2) * (7 / (cube1 + cube2)) * 0.001 * average_fps)
+            step_amount = round(math.sqrt(diff_x ** 2 + diff_y ** 2) * (7 / (cube1 + cube2)) * FPS * dt)
             # print((diff_x ** 2 + diff_y ** 2) ** 0.5 * (7 / (cube1 + cube2)) * 1 / dt)
             if step_amount != 0:
                 steps.append((diff_x / step_amount, diff_y / step_amount))
             else:
                 steps.append((0, 0))
-    # print(f'{diff_x = :.2f}, {diff_y = :.2f}, {step_amount = }, {steps = }, {start_position = }, {end_positions = }')
+    print(f'{diff_x = :.2f}, {diff_y = :.2f}, {step_amount = }, {steps = }, {start_position = }, {end_positions = }')
     for i in range(step_amount):
         for player in players_on_tile:
             for player2 in players:
@@ -1325,7 +1303,7 @@ def buttons():
                          pressedBorderColour=(0, 0, 0),
                          borderThickness=3,
                          radius=btn_radius,
-                         font=btn_font,
+                         font=font,
                          text='Бросить кубы',
                          onClick=throw_cubes)
 
@@ -1342,7 +1320,7 @@ def buttons():
                         pressedBorderColour=(0, 0, 0),
                         borderThickness=3,
                         radius=btn_radius,
-                        font=btn_font,
+                        font=font,
                         text='Купить',
                         onClick=buy)
 
@@ -1359,7 +1337,7 @@ def buttons():
                         pressedBorderColour=(0, 0, 0),
                         borderThickness=3,
                         radius=btn_radius,
-                        font=btn_font,
+                        font=font,
                         text='Оплатить',
                         onClick=pay)
 
@@ -1376,7 +1354,7 @@ def buttons():
                         pressedBorderColour=(0, 0, 0),
                         borderThickness=3,
                         radius=btn_radius,
-                        font=btn_font,
+                        font=font,
                         text='Сунуть пЭнис',
                         onClick=penis_build_activation)
 
@@ -1393,7 +1371,7 @@ def buttons():
                         pressedBorderColour=(0, 0, 0),
                         borderThickness=3,
                         radius=btn_radius,
-                        font=btn_font,
+                        font=font,
                         text='Убрать пЭнис',
                         onClick=penis_remove_activation)
 
@@ -1410,7 +1388,7 @@ def buttons():
                              pressedBorderColour=(0, 0, 0),
                              borderThickness=3,
                              radius=btn_radius,
-                             font=btn_font,
+                             font=font,
                              text='Обмен',
                              onClick=exchange)
 
@@ -1427,7 +1405,7 @@ def buttons():
                              pressedBorderColour=(0, 0, 0),
                              borderThickness=3,
                              radius=btn_radius,
-                             font=btn_font,
+                             font=font,
                              text='Аукцион',
                              onClick=auction)
 
@@ -1444,7 +1422,7 @@ def buttons():
                             pressedBorderColour=(0, 0, 0),
                             borderThickness=3,
                             radius=btn_radius,
-                            font=btn_font,
+                            font=font,
                             text='Аукцион',
                             onClick=auction)
 
@@ -1461,7 +1439,7 @@ def buttons():
                             pressedBorderColour=(0, 0, 0),
                             borderThickness=3,
                             radius=btn_radius,
-                            font=btn_font,
+                            font=font,
                             text='Заложить',
                             onClick=mortgage)
 
@@ -1478,7 +1456,7 @@ def buttons():
                              pressedBorderColour=(0, 0, 0),
                              borderThickness=3,
                              radius=btn_radius,
-                             font=btn_font,
+                             font=font,
                              text='Выкупить',
                              onClick=redeem)
 
@@ -1492,7 +1470,7 @@ def buttons():
                            textColour=(0, 0, 0),
                            borderThickness=2,
                            borderColour=(0, 0, 0),
-                           font=btn_font,
+                           font=font,
                            radius=btn_radius,
                            placeholderText='Введите имя',
                            placeholderTextColour=(128, 128, 128),
@@ -1507,7 +1485,7 @@ def buttons():
                          textColour=(0, 0, 0),
                          borderThickness=2,
                          borderColour=(0, 0, 0),
-                         font=btn_font,
+                         font=font,
                          radius=btn_radius,
                          placeholderText='IP адрес',
                          placeholderTextColour=(128, 128, 128))
@@ -1521,7 +1499,7 @@ def buttons():
                            textColour=(0, 0, 0),
                            borderThickness=2,
                            borderColour=(0, 0, 0),
-                           font=btn_font,
+                           font=font,
                            radius=btn_radius,
                            placeholderText='Порт',
                            placeholderTextColour=(128, 128, 128))
@@ -1539,7 +1517,7 @@ def buttons():
                             pressedBorderColour=(0, 0, 0),
                             borderThickness=3,
                             radius=btn_radius,
-                            font=btn_font,
+                            font=font,
                             text='Выбрать аватар',
                             onClick=choose_avatar)
 
@@ -1556,7 +1534,7 @@ def buttons():
                             pressedBorderColour=(0, 0, 0),
                             borderThickness=3,
                             radius=btn_radius,
-                            font=btn_font,
+                            font=font,
                             text='Подключиться',
                             onClick=connect)
 
@@ -1574,7 +1552,7 @@ def buttons():
                               pressedBorderColour=(0, 0, 0),
                               borderThickness=3,
                               radius=btn_radius,
-                              font=btn_font,
+                              font=font,
                               text='debug',
                               onClick=debug_output)
 
@@ -1591,7 +1569,7 @@ def buttons():
                                     pressedBorderColour=(0, 0, 0),
                                     borderThickness=3,
                                     radius=btn_radius,
-                                    font=btn_font,
+                                    font=font,
                                     text='Обмен',
                                     onClick=exchange_commit)
 
@@ -1604,7 +1582,7 @@ def buttons():
                                     textColour=(0, 0, 0),
                                     borderThickness=2,
                                     borderColour=(0, 0, 0),
-                                    font=btn_font,
+                                    font=font,
                                     radius=btn_radius,
                                     placeholderText='Сумма пЭнисов',
                                     placeholderTextColour=(128, 128, 128),
@@ -1619,7 +1597,7 @@ def buttons():
                                    textColour=(0, 0, 0),
                                    borderThickness=2,
                                    borderColour=(0, 0, 0),
-                                   font=btn_font,
+                                   font=font,
                                    radius=btn_radius,
                                    placeholderText='Сумма пЭнисов',
                                    placeholderTextColour=(128, 128, 128),
@@ -1638,7 +1616,7 @@ def buttons():
                                     pressedBorderColour=(0, 0, 0),
                                     borderThickness=3,
                                     radius=btn_radius,
-                                    font=btn_font,
+                                    font=font,
                                     text='Обмен',
                                     onClick=exchange_request_confirm)
 
@@ -1655,7 +1633,7 @@ def buttons():
                                              pressedBorderColour=(0, 0, 0),
                                              borderThickness=3,
                                              radius=btn_radius,
-                                             font=btn_font,
+                                             font=font,
                                              text='Отказ',
                                              onClick=exchange_request_reject)
 
@@ -1672,7 +1650,7 @@ def buttons():
                                     pressedBorderColour=(0, 0, 0),
                                     borderThickness=3,
                                     radius=btn_radius,
-                                    font=btn_font,
+                                    font=font,
                                     text='Купить',
                                     onClick=auction_buy)
 
@@ -1689,7 +1667,7 @@ def buttons():
                                    pressedBorderColour=(0, 0, 0),
                                    borderThickness=3,
                                    radius=btn_radius,
-                                   font=btn_font,
+                                   font=font,
                                    text='Отказаться',
                                    onClick=auction_reject)
 
@@ -1907,6 +1885,7 @@ past_second_fps = []
 prev_fps_time = time.time()
 average_fps = 0
 average_fps_text = font.render(str(average_fps), False, 'black')
+print(time.time() - time_)
 while running:
     clock.tick(FPS)
     dt, prev_time = delta_time(prev_time)

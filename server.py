@@ -13,7 +13,7 @@ import pygame_widgets
 from pygame_widgets.button import Button
 from pygame_widgets.textbox import TextBox
 
-from positions_extraction import positions_extraction
+from all_tiles_extraction import all_tiles_get
 from resolution_choice import resolution_definition
 
 from colored_output import thread_open, new_connection, information_received, information_sent, information_sent_to
@@ -62,13 +62,13 @@ class Player:
         self.on_move = False
 
 pg.init()
-resolution, resolution_folder, piece_color_coefficient, bars_coordinates, btn_coordinates, btn_font, profile_coordinates, start_btn_textboxes_coordinates, btn_radius, cubes_coordinates, speed, avatar_side_size, exchange_coordinates, FPS, auction_coordinates, tile_size, margin, debug_mode, fps_coordinates = resolution_definition(False)
+resolution, resolution_folder, piece_color_coefficient, bars_coordinates, btn_coordinates, profile_coordinates, start_btn_textboxes_coordinates, btn_radius, cubes_coordinates, speed, avatar_side_size, exchange_coordinates, FPS, auction_coordinates, tile_size, margin, debug_mode, fps_coordinates = resolution_definition(False)
 TITLE = 'Monopoly Server'
 screen = pg.display.set_mode((1280, 650))
 pg.display.set_caption(TITLE)
 clock = pg.time.Clock()
 
-positions = positions_extraction(resolution_folder)
+all_tiles, positions = all_tiles_get(resolution_folder, tile_size, 'server')
 background = pg.image.load(f'resources/{resolution_folder}/background.png').convert()
 board = pg.image.load(f'resources/{resolution_folder}/board grid.png').convert_alpha()
 profile_picture = pg.image.load(f'resources/{resolution_folder}/profile/profile.png').convert_alpha()
@@ -728,7 +728,7 @@ def buttons():
                          textColour=(0, 0, 0),
                          borderThickness=2,
                          borderColour=(0, 0, 0),
-                         font=btn_font,
+                         font=font,
                          radius=btn_radius,
                          placeholderText='IP адрес',
                          placeholderTextColour=(128, 128, 128))
@@ -742,7 +742,7 @@ def buttons():
                            textColour=(0, 0, 0),
                            borderThickness=2,
                            borderColour=(0, 0, 0),
-                           font=btn_font,
+                           font=font,
                            radius=btn_radius,
                            placeholderText='Порт',
                            placeholderTextColour=(128, 128, 128))
@@ -760,7 +760,7 @@ def buttons():
                           pressedBorderColour=(0, 0, 0),
                           borderThickness=3,
                           radius=btn_radius,
-                          font=btn_font,
+                          font=font,
                           text='Запуск сервера',
                           onClick=start_server)
 
@@ -777,7 +777,7 @@ def buttons():
                           pressedBorderColour=(0, 0, 0),
                           borderThickness=3,
                           radius=btn_radius,
-                          font=btn_font,
+                          font=font,
                           text='Начать игру',
                           onClick=start_game)
 
