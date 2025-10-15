@@ -68,7 +68,7 @@ screen = pg.display.set_mode((1280, 650))
 pg.display.set_caption(TITLE)
 clock = pg.time.Clock()
 
-all_tiles, positions = all_tiles_get(resolution_folder, tile_size, 'server')
+all_tiles, positions = all_tiles_get(resolution_folder, tile_size)
 background = pg.image.load(f'resources/{resolution_folder}/background.png').convert()
 board = pg.image.load(f'resources/{resolution_folder}/board grid.png').convert_alpha()
 profile_picture = pg.image.load(f'resources/{resolution_folder}/profile/profile.png').convert_alpha()
@@ -81,30 +81,10 @@ font = pg.font.Font('resources/fonts/bulbulpoly-3.ttf',25)
 start_server_disabled_btn = pg.image.load(f'resources/{resolution_folder}/buttons/start_server_disabled.png').convert_alpha()
 start_game_disabled_btn = pg.image.load(f'resources/{resolution_folder}/buttons/start_game_disabled.png').convert_alpha()
 
-def all_tiles_get():
-    all_tiles = []
-    with open('resources/tiles_data/kletki.csv', 'r', encoding='utf-8') as kletki:
-        kletki_reader = csv.DictReader(kletki)
-        kletki_list = []
-        for i in kletki_reader:
-            kletki_list.append(i)
-
-    with open(f'resources/{resolution_folder}/tiles_positions.csv', 'r', encoding='utf-8') as tile_position:
-        tile_position_reader = csv.DictReader(tile_position)
-        tile_position_list = []
-        for i in tile_position_reader:
-            tile_position_list.append(i)
-        for i in range(40):
-            all_tiles.append(Tiles(kletki_list[i], tile_position_list[i]))
-            if i not in (0, 10, 20, 30):
-                image = Image.open(f'resources/tiles_data/images/{i}.png')
-                image = image.resize(tile_size)
-                image.save(f'resources/temp/server/images/{i}.png')
-                globals()[f'tile_{i}_image'] = pg.image.load(f'resources/temp/server/images/{i}.png').convert()
-    return all_tiles
-
-
-all_tiles = all_tiles_get()
+for tile_image in range(40):
+    if tile_image not in (0, 10, 20, 30):
+        globals()[f'tile_{tile_image}_image'] = pg.transform.smoothscale(
+            pg.image.load(f'resources/tiles_data/images/{tile_image}.png'), tile_size).convert()
 
 auction_players = []
 auction_players_who_are_wanting_to_buy = []
@@ -484,6 +464,7 @@ def receive_data():
                         if not tile.mortgaged and tile.owner == player.color:
                             player.money += int(tile.price / 2)
                             tile.mortgaged = True
+                            tile.mortgaged_moves_count = 15
 
                             price_update(tile)
 
@@ -623,6 +604,21 @@ def moving_player_changing(do_change):
     for player in players:
         player.conn.send(f'onMove|{players[0].color}%'.encode())
         information_sent_to('Информация отправлена к', player.color, f'onMove|{players[0].color}%')
+        for tile in all_tiles:
+            if tile.mortgaged:
+                tile.mortgaged_moves_count -= 1
+                if tile.mortgaged_moves_count == 0:
+                    tile.mortgaged = False
+                    tile.owned = False
+                    tile.owner = ''
+                    for player2 in players:
+                        late_to_redeem_information = f'late to redeem|{tile.position}%'
+                        player2.conn.send(late_to_redeem_information.encode())
+                        information_sent_to('Информация отправлена к', player2.color, late_to_redeem_information)
+                for tile_ in all_tiles:
+                    if tile_.family == tile.family:
+                        tile_.family_members -= 1
+                tile.family_members = 0
 
 
 def position_update(color):
@@ -654,6 +650,9 @@ def blit_items():
             screen.blit(pg.image.load(f'resources/{resolution_folder}/property/{tile.owner}_property.png'), (tile.x_position, tile.y_position))
         if tile.mortgaged:
             screen.blit(mortgaged_tile, (tile.x_position, tile.y_position))
+            text = font.render(str(tile.mortgaged_moves_count), False, 'white')
+            text_rect = text.get_rect(center=(tile.x_center, tile.y_center))
+            screen.blit(text, text_rect)
         if 1 <= tile.penises <= 5:
             screen.blit(pg.image.load(f'resources/{resolution_folder}/white penises/{tile.penises}.png'), (tile.x_position, tile.y_position))
 
@@ -661,6 +660,11 @@ def blit_items():
         position_update(player.color)
 
         player_index = players.index(player)
+
+        screen.blit(profile_picture,
+                    (profile_coordinates[player_index]['profile'][0],
+                     profile_coordinates[player_index]['profile'][1]))
+
         screen.blit(avatar_file, (profile_coordinates[player_index]['avatar'][0],
                                     profile_coordinates[player_index]['avatar'][1]))
 
@@ -672,9 +676,7 @@ def blit_items():
                     (profile_coordinates[player_index]['avatar'][0],
                      profile_coordinates[player_index]['avatar'][1]))
 
-        screen.blit(profile_picture,
-                    (profile_coordinates[player_index]['profile'][0],
-                     profile_coordinates[player_index]['profile'][1]))
+
 
         screen.blit(font.render(f'{player.money}~', False, 'black'),
                     (profile_coordinates[player_index]['money'][0],

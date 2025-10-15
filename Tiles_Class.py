@@ -18,6 +18,8 @@ class Tiles:
         self.y_position = int(positions['tile position y'])
         self.xText = int(positions['price text center x'])
         self.yText = int(positions['price text center y'])
+        self.x_center = int(positions['tile center x'])
+        self.y_center = int(positions['tile center y'])
         self.family_members = 0
         if self.type == 'buildable':
             self.penis_price = round(int(self.price) * 0.63 / 50) * 50
@@ -30,6 +32,7 @@ class Tiles:
         self.full_family = False
         self.text = ''
         self.mortgaged = False
+        self.mortgaged_moves_count = 0
 
     def penis_income_calculation(self):
         if self.family_members == self.max_family_members and not self.mortgaged:
