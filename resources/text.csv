@@ -1,0 +1,11 @@
+key,text
+loading time,Длительность загрузки:
+cube throw button pressed,"Кнопка ""Бросить кубы"" нажата"
+buy button pressed,"Кнопка ""Купить"" нажата"
+pay button pressed,"Кнопка ""Оплатить"" нажата"
+exchange button pressed,"Кнопка ""Обмен"" нажата"
+name symbol error,"Ваше имя не должно содержать символов ""|"" и ""%"""
+cannot connect,Не удалось подключиться
+info sent,Информация отправлена
+command sent,Команда отправлена
+loading time,Длительность загрузки:

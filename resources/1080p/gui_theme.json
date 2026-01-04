@@ -1,0 +1,124 @@
+{
+	"button":
+	{
+		"colours":
+		{
+			"normal_border": "black",
+			"hovered_border": "rgb(105, 105, 105)",
+			"active_border": "rgb(105, 105, 105)",
+			"disabled_border": "rgb(99, 99, 99)",
+
+			"normal_bg": "rgb(255, 255, 255)",
+			"hovered_bg": "rgb(255, 255, 255)",
+			"active_bg": "rgb(191, 191, 191)",
+			"disabled_bg": "rgb(150, 150, 150)",
+
+			"normal_text": "rgb(0, 0, 0)",
+			"hovered_text": "rgb(0, 0, 0)",
+			"active_text": "rgb(0, 0, 0)",
+			"disabled_text": "rgb(0, 0, 0)"
+		},
+		"font":
+		{
+			"name": "btn_font",
+			"size": "25",
+			"bold": "0",
+			"italic": "0",
+			"regular_path": "resources/fonts/bulbulpoly-3.ttf"
+		},
+		"misc":
+		{
+			"shadow_width": "0",
+			"shape": "rounded_rectangle",
+			"shape_corner_radius": "10",
+			"border_width": "3"
+		}
+	},
+	"@transparent_buttons":
+	{
+		"colours":
+		{
+			"normal_border": "rgba(0, 0, 0, 0)",
+			"hovered_border": "rgba(0, 0, 0, 0)",
+			"active_border": "rgba(0, 0, 0, 0)",
+			"disabled_border": "rgba(0, 0, 0, 0)",
+
+			"normal_bg": "rgba(0, 0, 0, 0)",
+			"hovered_bg": "rgba(0, 0, 0, 0)",
+			"active_bg": "rgba(0, 0, 0, 0)",
+			"disabled_bg": "rgba(0, 0, 0, 0)",
+
+			"normal_text": "rgba(0, 0, 0, 0)",
+			"hovered_text": "rgba(0, 0, 0, 0)",
+			"active_text": "rgba(0, 0, 0, 0)",
+			"disabled_text": "rgba(0, 0, 0, 0)"
+		}
+	},
+	"#egg_button":
+	{
+		"images":
+		{
+			"normal_image": 
+			{
+				"path": "resources/720p/egg_buttons/normal/exit_prison_egg_btn.png"
+			},
+			"hovered_image": 
+			{
+				"path": "resources/720p/egg_buttons/hovered/exit_prison_egg_btn.png"
+			},
+			"selected_image": 
+			{
+				"path": "resources/720p/egg_buttons/selected/exit_prison_egg_btn.png"
+			}
+		}
+	},
+	"#eggs_button":
+	{
+		"images":
+		{
+			"normal_image": 
+			{
+				"path": "resources/720p/egg_buttons/normal/exit_prison_eggs_btn.png"
+			},
+			"hovered_image": 
+			{
+				"path": "resources/720p/egg_buttons/hovered/exit_prison_eggs_btn.png"
+			},
+			"selected_image": 
+			{
+				"path": "resources/720p/egg_buttons/selected/exit_prison_eggs_btn.png"
+			}
+		}
+	},
+	"text_entry_box": 
+	{
+		"colours": 
+		{
+			"dark_bg": "rgb(200, 200, 200)",
+			"selected_bg": "rgb(0, 77, 170)",
+			"normal_border": "rgb(0, 0, 0)",
+			"normal_text": "rgb(0, 0, 0)",
+			"selected_text": "rgb(255, 255, 255)",
+			"text_cursor": "rgb(0, 0, 0)"
+		},
+		"misc": 
+		{
+			"shadow_width": "0",
+			"shape": "rounded_rectangle",
+			"shape_corner_radius": "10",
+			"border_width": "2",
+			"padding": "5,1",
+			"link_normal_underline": "0",
+			"link_hover_underline": "1",
+			"line_spacing": "1.0"
+		},
+		"font": 
+		{
+			"name": "textbox_font",
+			"size": "25",
+			"bold": "0",
+			"italic": "0",
+			"regular_path": "resources/fonts/bulbulpoly-3.ttf"
+		}
+	}
+}

@@ -9,13 +9,15 @@ class Player:
         self.color = color
         self.money = 1500
         self.main = False
-        self.x = positions[0][0]
-        self.y = positions[0][1]
-        self.baseX = positions[0][0]
-        self.baseY = positions[0][1]
+        self.x = positions[0]
+        self.y = positions[1]
         self.on_move = False
         self.imprisoned = False
-        self.avatar = pg.image.load(f'resources/{resolution_folder}/profile/avatar_placeholder.png')
+        self.egg_prison_exit_card = False
+        self.eggs_prison_exit_card = False
+        self.avatar = pg.image.load(f'resources/{resolution_folder}/profile/avatar_placeholder.png').convert_alpha()
+        self.player_piece = pg.image.load(f'resources/{resolution_folder}/pieces/{self.color}_piece.png').convert_alpha()
+        self.player_piece_rect = self.player_piece.get_rect(center=(self.x, self.y))
 
     def main_color(self, main_color):
         self.color = main_color

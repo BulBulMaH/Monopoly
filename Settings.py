@@ -3,8 +3,9 @@ os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = '1'
 import pygame as pg
 import pygame_widgets
 from pygame_widgets.button import Button
-from pygame_widgets.dropdown import Dropdown, DropdownChoice
+from pygame_widgets.dropdown import Dropdown
 from pygame_widgets.textbox import TextBox
+from pygame_widgets.toggle import Toggle
 pg.init()
 
 TITLE = 'Settings'
@@ -21,12 +22,26 @@ def save():
     fps = fps_textbox.getText()
     if resolution_index and fps:
         with open('settings.txt', 'w+') as settings_file:
-            settings_file.write(f'{resolution_index}\n{fps}\n')
+            if debug_toggle.getValue():
+                debug_text = 'bdb'
+            else:
+                debug_text = ''
+            settings_file.write(f'{resolution_index}\n{fps}\n{debug_text}\n')
             print('Настройки сохранены')
             global running
             running = False
     else:
         print('Выберите правильные настройки')
+
+
+def fps_check():
+    text = fps_textbox.getText()
+    new_text = text
+    for character in text:
+        if character not in '0123456789':
+            new_text = new_text.replace(character, '')
+    if fps_textbox.getText() != new_text:
+        fps_textbox.setText(new_text)
 
 
 def event_handler():
@@ -43,7 +58,7 @@ def event_handler():
 
 
 def buttons():
-    global save_button, dropdown, fps_textbox, dropdown_choice
+    global save_button, dropdown, fps_textbox, dropdown_choice, debug_toggle
     save_button = Button(screen,
                          182,
                          592,
@@ -67,7 +82,7 @@ def buttons():
                         230,
                         50,
                         name='Выберите разрешение',
-                        choices=['1280x720', '1920x1080'],
+                        choices=['1280x720', '1920x1080', '2560x1440'],
                         radius=2,
                         borderRadius=2,
                         inactiveColour=(255, 255, 255),
@@ -77,30 +92,8 @@ def buttons():
                         pressedColour=(191, 191, 191),
                         pressedBorderColour=(0, 0, 0),
                         font=font,
-                        values=[1, 2],
+                        values=[1, 2, 3],
                         direction='down')
-
-    # dropdown_choice = DropdownChoice(screen,
-    #                                  100,
-    #                                  100,
-    #                                  230,
-    #                                  50,
-    #                                  dropdown=dropdown,
-    #                                  text='test',
-    #                                  last=True,
-    #                                  name='Выберите разрешение',
-    #                                  choices=['1280x720', '1920x1080'],
-    #                                  radius=2,
-    #                                  borderRadius=2,
-    #                                  inactiveColour=(255, 255, 255),
-    #                                  inactiveBorderColour=(0, 0, 0),
-    #                                  hoverColour=(255, 255, 255),
-    #                                  hoverBorderColour=(105, 105, 105),
-    #                                  pressedColour=(191, 191, 191),
-    #                                  pressedBorderColour=(0, 0, 0),
-    #                                  font=font,
-    #                                  values=[1, 2],
-    #                                  direction='down')
 
     fps_textbox = TextBox(screen,
                            270,
@@ -113,7 +106,15 @@ def buttons():
                            borderColour=(0, 0, 0),
                            font=font,
                            radius=2,
-                           placeholderTextColour=(128, 128, 128))
+                           placeholderTextColour=(128, 128, 128),
+                           onTextChanged=fps_check)
+
+    debug_toggle = Toggle(screen,
+                       130,
+                       110,
+                       30,
+                       15,
+                       startOn=False)
 
 
 buttons()
@@ -122,6 +123,7 @@ running = True
 while running:
     screen.fill((128, 128, 128))
     screen.blit(font.render('Введите максимальный FPS:', False, 'black'), (10, 70))
+    screen.blit(font.render('debug mode:', False, 'black'), (10, 103))
     event_handler()
     pg.display.flip()
 pg.quit()

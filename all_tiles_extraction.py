@@ -1,15 +1,32 @@
 import csv
 from Tiles_Class import Tiles
+from Eggs_Class import Eggs
 from PIL import Image
 import os
+import random
 
 def all_tiles_get(resolution_folder, tile_size):
     all_tiles = []
+    all_egg = []
+    all_eggs = []
+
     with open('resources/tiles_data/kletki.csv', 'r', encoding='utf-8') as kletki:
         kletki_reader = csv.DictReader(kletki)
         kletki_list = []
         for i in kletki_reader:
             kletki_list.append(i)
+
+    with open('resources/tiles_data/egg.csv', 'r', encoding='utf-8') as egg:
+        egg_reader = csv.DictReader(egg)
+        egg_list = []
+        for i in egg_reader:
+            egg_list.append(i)
+
+    with open('resources/tiles_data/eggs.csv', 'r', encoding='utf-8') as eggs:
+        eggs_reader = csv.DictReader(eggs)
+        eggs_list = []
+        for i in eggs_reader:
+            eggs_list.append(i)
 
     with open(f'resources/{resolution_folder}/tiles_positions.csv', 'r', encoding='utf-8') as tile_position:
         tile_position_reader = csv.DictReader(tile_position)
@@ -32,8 +49,14 @@ def all_tiles_get(resolution_folder, tile_size):
                     image = image.resize(tile_size)
                     image.save(f'resources/temp/images/{resolution_folder}/{i}.png')
 
+        for i in range(len(egg_list)):
+            all_egg.append(Eggs(egg_list[i]))
+
+        for i in range(len(eggs_list)):
+            all_eggs.append(Eggs(eggs_list[i]))
+
     positions = []
     for tile in all_tiles:
         positions.append((tile.x_position, tile.y_position))
 
-    return all_tiles, positions
+    return all_tiles, positions, all_egg, all_eggs

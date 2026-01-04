@@ -1,4 +1,5 @@
 import math
+import pygame
 
 class Tiles:
     def __init__(self, information_list, positions):
@@ -30,7 +31,8 @@ class Tiles:
         self.owned = False
         self.owner = ''
         self.full_family = False
-        self.text = ''
+        self.prerendered_text = ''
+        self.text_rect = ''
         self.mortgaged = False
         self.mortgaged_moves_count = 0
 
@@ -46,34 +48,59 @@ class Tiles:
                     coef = 8
                     coef2 = 2
 
-                    self.income = int(self.price) / coef
+                    self.income = self.price / coef
                     self.income = math.ceil(self.income * (coef2 ** self.penises))
                 else:
-                    self.income = math.ceil(int(self.price) / 16)
+                    self.income = math.ceil(self.price / 16)
 
             elif self.type == 'train':
                 coef = 8
                 coef2 = 2
 
-                self.income = int(self.price) / coef
+                self.income = self.price / coef
                 self.income = math.ceil(self.income * (coef2 ** (self.family_members - 1)))
         else:
-            self.income = int(self.price)
+            self.income = self.price
         return self.income
 
-    def text_defining(self):
+    def text_defining(self, font):
         self.penis_income_calculation()
         if self.type == 'buildable' or self.type == 'train' or self.type == 'minus':
             if not self.mortgaged:
-                self.text = f'{self.income}~'
+                text = f'{self.income}~'
             else:
-                self.text = ''
+                text = ''
 
         elif self.type == 'infrastructure':
             if self.owned:
                 if not self.full_family:
-                    self.text = 'куб*4'
+                    text = 'куб*4'
                 else:
-                    self.text = 'куб*10'
+                    text = 'куб*10'
             else:
-                self.text = f'{self.income}~'
+                text = f'{self.income}~'
+
+        else:
+            text = ''
+
+        if font.get_point_size() == 25:
+            offset_coefficients = (31, 29)
+        else:
+            offset_coefficients = (64, 60)
+
+        if self.angle == -90:
+            offset = (font.size(text)[0] - offset_coefficients[0]) / 2
+            # offset = round((font.size(text)[0] - font.get_point_size() * (31 / 25)) / 2)
+            # offset = 0
+        elif self.angle == 90:
+            offset = (font.size(text)[0] - offset_coefficients[1]) / 2
+            # offset = round((font.size(text)[0] - font.get_point_size() * (29 / 25)) / 2)
+            # offset = 0
+        else:
+            offset = 0
+        # print(offset, math.ceil(offset), font.size(text)[0], self.name)
+        text = font.render(text, False, self.color)
+        self.prerendered_text = pygame.transform.rotate(text, self.angle).convert()
+
+        self.text_rect = text.get_rect(center=(self.xText + math.ceil(offset), self.yText - math.ceil(offset))) # + round(offset) - round(offset) math.ceil
+

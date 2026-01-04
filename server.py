@@ -3,21 +3,16 @@ import time
 import random
 import threading
 import traceback
-import csv
-from PIL import Image
+import gc
 import os
 os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = '1'
 
 import pygame as pg
-import pygame_widgets
-from pygame_widgets.button import Button
-from pygame_widgets.textbox import TextBox
+import pygame_gui
 
 from all_tiles_extraction import all_tiles_get
 from resolution_choice import resolution_definition
-
-from colored_output import thread_open, new_connection, information_received, information_sent, information_sent_to
-from Tiles_Class import Tiles
+from colored_output import thread_open, new_connection, information_received, information_sent_to
 
 class Player:
     def __init__(self,conn,address,color):
@@ -35,6 +30,8 @@ class Player:
         self.avatar = []
         self.x = 0
         self.y = 0
+        self.egg_prison_exit_card = False
+        self.eggs_prison_exit_card = False
 
     def connect(self, colors):
         new_sck, address = main_sck.accept()
@@ -62,13 +59,17 @@ class Player:
         self.on_move = False
 
 pg.init()
-resolution, resolution_folder, piece_color_coefficient, bars_coordinates, btn_coordinates, profile_coordinates, start_btn_textboxes_coordinates, btn_radius, cubes_coordinates, speed, avatar_side_size, exchange_coordinates, FPS, auction_coordinates, tile_size, margin, debug_mode, fps_coordinates = resolution_definition(False)
+resolution, resolution_folder, btn_coordinates, profile_coordinates, start_btn_textboxes_coordinates, cubes_coordinates, speed, avatar_side_size, exchange_coordinates, FPS, auction_coordinates, tile_size, margin, debug_mode, fps_coordinates, font_size, egg_card_coordinates, egg_card_offset, egg_card_title_center, egg_title_font_size, egg_card_text_width, egg_btns_coordinates = resolution_definition(False)
+piece_color_coefficient = 28
 TITLE = 'Monopoly Server'
-screen = pg.display.set_mode((1280, 650))
+screen = pg.display.set_mode(resolution)
+manager = pygame_gui.UIManager(resolution, theme_path=f'resources/{resolution_folder}/gui_theme.json')
 pg.display.set_caption(TITLE)
 clock = pg.time.Clock()
 
-all_tiles, positions = all_tiles_get(resolution_folder, tile_size)
+all_tiles, positions, all_egg, all_eggs = all_tiles_get(resolution_folder, tile_size)
+random.shuffle(all_egg)
+random.shuffle(all_eggs)
 background = pg.image.load(f'resources/{resolution_folder}/background.png').convert()
 board = pg.image.load(f'resources/{resolution_folder}/board grid.png').convert_alpha()
 profile_picture = pg.image.load(f'resources/{resolution_folder}/profile/profile.png').convert_alpha()
@@ -78,9 +79,6 @@ avatar_file = pg.image.load(f'resources/{resolution_folder}/profile/avatar_place
 mortgaged_tile = pg.image.load(f'resources/{resolution_folder}/mortgaged.png').convert_alpha()
 font = pg.font.Font('resources/fonts/bulbulpoly-3.ttf',25)
 
-start_server_disabled_btn = pg.image.load(f'resources/{resolution_folder}/buttons/start_server_disabled.png').convert_alpha()
-start_game_disabled_btn = pg.image.load(f'resources/{resolution_folder}/buttons/start_game_disabled.png').convert_alpha()
-
 for tile_image in range(40):
     if tile_image not in (0, 10, 20, 30):
         globals()[f'tile_{tile_image}_image'] = pg.transform.smoothscale(
@@ -88,13 +86,15 @@ for tile_image in range(40):
 
 auction_players = []
 auction_players_who_are_wanting_to_buy = []
+eggs_players_who_need_to_pay_to_one_player = []
 
 players = []
 is_server_started = False
 is_game_started = False
 
+
 def receive_data():
-    global auction_players, auction_players_who_are_wanting_to_buy
+    global auction_players, auction_players_who_are_wanting_to_buy, eggs_players_who_need_to_pay_to_one_player, all_egg, egg_exit_prison, all_eggs, eggs_exit_prison
 
 
     def auction_win():
@@ -149,7 +149,6 @@ def receive_data():
 
                     elif data[0] == 'avatar':
                         player.avatar.append(data_unsplit_by_content + '%')
-                        # print(1, data_unsplit_by_content + '%')
                         if data[2] == data[4]:
                             for player2 in players:
                                 for avatar in player.avatar:
@@ -196,7 +195,7 @@ def receive_data():
 
                             if player.piece_position > 39:
                                 player.piece_position -= 40
-                                player.money += 200 # todo убрать 2000
+                                player.money += 200
 
                             move_data = f'move|{player.color}|{cube1}|{cube2}%'
                             for player2 in players:
@@ -209,8 +208,8 @@ def receive_data():
                                 prison_data = f'imprisoned|{player.color}%'
                                 move_data = f'move diagonally|{player.color}|10%'
                                 for player2 in players:
-                                    player2.conn.send(prison_data.encode())
                                     player2.conn.send(move_data.encode())
+                                    player2.conn.send(prison_data.encode())
                                     information_sent_to('Информация отправлена к', player2.color, prison_data)
                                     information_sent_to('Информация отправлена к', player2.color, move_data)
 
@@ -332,6 +331,13 @@ def receive_data():
                             player2.conn.send(money_data.encode())
                             information_sent_to('Информация отправлена к', player2.color, money_data)
 
+                    elif data[0] == 'pay sum':
+                        player.money -= int(data[1])
+                        money_data = f'money|{player.color}|{player.money}%'
+                        for player2 in players:
+                            player2.conn.send(money_data.encode())
+                            information_sent_to('Информация отправлена к', player2.color, money_data)
+
                     elif data[0] == 'payToColor':
                         player.piece_position = int(data[1])
                         if all_tiles[player.piece_position].type == 'infrastructure':
@@ -340,7 +346,11 @@ def receive_data():
                             if not all_tiles[player.piece_position].full_family:
                                 pay_sum = (cube1 + cube2) * 4
                             else:
-                                pay_sum = (cube1 + cube2) * 10 # todo: отправлять анимацию
+                                pay_sum = (cube1 + cube2) * 10 # todo: Переписать, потому что не происходит проверка, есть ли деньги на оплату инфраструктуры
+                            cubes_information = f'show cubes|{cube1}|{cube2}%'
+                            for player2 in players:
+                                player2.conn.send(cubes_information.encode())
+                                information_sent_to('Информация отправлена к', player2.color, cubes_information)
                         else:
                             pay_sum = all_tiles[player.piece_position].penis_income_calculation()
                         player.money -= pay_sum
@@ -352,19 +362,54 @@ def receive_data():
                         for player3 in players:
                             player3.conn.send(money_data1.encode())
                             player3.conn.send(money_data2.encode())
-                            information_sent_to('Информация отправлена к', player2.color, money_data1)
-                            information_sent_to('Информация отправлена к', player2.color, money_data2)
+                            information_sent_to('Информация отправлена к', player3.color, money_data1)
+                            information_sent_to('Информация отправлена к', player3.color, money_data2)
+
+                    elif data[0] == 'pay to player':
+                        eggs_players_who_need_to_pay_to_one_player.remove(player)
+                        player.money -= int(data[2])
+                        for player2 in players:
+                            if player2.color == data[1]:
+                                player2.money += int(data[2])
+                        if not eggs_players_who_need_to_pay_to_one_player:
+                            moving_player_changing(True)
+
+                    elif data[0] == 'pay to players':
+                        player.money -= int(data[1])
+                        for player2 in players:
+                            if player2 != player:
+                                player2.money += int(data[1]) // len(players)
 
                     elif data[0] == 'pay for prison':
-                        player.money -= player.prison_break_attempts * 25
-                        player.imprisoned = False
-                        money_data = f'money|{player.color}|{player.money}%'
-                        prison_data = f'unimprisoned|{player.color}%'
+                        if player.money - (player.prison_break_attempts + 1) * 25 >= 0:
+                            player.money -= (player.prison_break_attempts + 1) * 25
+                            player.imprisoned = False
+                            player.prison_break_attempts = 0
+                            money_data = f'money|{player.color}|{player.money}%'
+                            prison_data = f'unimprisoned|{player.color}%'
+                            for player2 in players:
+                                player2.conn.send(prison_data.encode())
+                                player2.conn.send(money_data.encode())
+                                information_sent_to('Информация отправлена к', player2.color, prison_data)
+                                information_sent_to('Информация отправлена к', player2.color, money_data)
+
+                    elif data[0] == 'prison exit by eggs':
+                        prison_data = ''
+                        if player.egg_prison_exit_card and data[1] == 'Яйцо':
+                            player.egg_prison_exit_card = False
+                            player.imprisoned = False
+                            player.prison_break_attempts = 0
+                            all_egg.append(egg_exit_prison)
+                            prison_data = f'unimprisoned|{player.color}%'
+                        elif player.eggs_prison_exit_card and data[1] == 'Яйца':
+                            player.eggs_prison_exit_card = False
+                            player.imprisoned = False
+                            player.prison_break_attempts = 0
+                            all_eggs.append(eggs_exit_prison)
+                            prison_data = f'unimprisoned|{player.color}%'
                         for player2 in players:
                             player2.conn.send(prison_data.encode())
-                            player2.conn.send(money_data.encode())
                             information_sent_to('Информация отправлена к', player2.color, prison_data)
-                            information_sent_to('Информация отправлена к', player2.color, money_data)
 
                     elif data[0] == 'penis build':
                         tile_position = int(data[1])
@@ -403,12 +448,6 @@ def receive_data():
                                 information_sent_to('Информация отправлена к', player2.color, money_data)
                                 information_sent_to('Информация отправлена к', player2.color, penis_data)
 
-                    elif data[0] == 'full family':
-                        # for i in range(len(all_tiles)):
-                        #     if all_tiles[i].family == data[1]:
-                        #         all_tiles[i].full_family = True
-                        pass
-
                     elif data[0] == 'exchange request':
                         for player2 in players:
                             if player2.color == data[3]:
@@ -426,19 +465,24 @@ def receive_data():
                         player.money = player.money - give_money + get_money
                         print(f'Обмен с {data[3]}: +{get_money}~, +{get_property}, -{give_money}~, -{give_property}')
                         for tile_position in give_property:
-                            player.property.remove(int(tile_position))
+                            if tile_position:
+                                player.property.remove(int(tile_position))
                         for tile_position in get_property:
-                            player.property.append(int(tile_position))
-                            all_tiles[int(tile_position)].owner = player.color
-
+                            if tile_position:
+                                player.property.append(int(tile_position))
+                                all_tiles[int(tile_position)].owner = player.color
+                        # А зачем оно так устроено?
+                        # А, ладно, понял. Всё работает как надо, ничего менять не надо
                         for player2 in players:
                             if player2.color == data[3]:
                                 player2.money = player2.money + give_money - get_money
                                 for tile_position in give_property:
-                                    player2.property.append(int(tile_position))
-                                    all_tiles[int(tile_position)].owner = player2.color
+                                    if tile_position:
+                                        player2.property.append(int(tile_position))
+                                        all_tiles[int(tile_position)].owner = player2.color
                                 for tile_position in get_property:
-                                    player2.property.remove(int(tile_position))
+                                    if tile_position:
+                                        player2.property.remove(int(tile_position))
 
                                 all_property_information = f'all property|{player2.color}|'
                                 for property in player2.property:
@@ -492,15 +536,129 @@ def receive_data():
                                 information_sent_to('Информация отправлена к', player2.color, redeem_information)
                                 information_sent_to('Информация отправлена к', player2.color, money_information)
 
+                    elif data[0] == 'pull card':
+
+                        if data[1] == 'Яйцо':
+                            pulled_card = all_egg[0]
+                            if pulled_card.command != 'exit prison':
+                                all_egg.append(pulled_card)
+                            else:
+                                egg_exit_prison = pulled_card
+                            all_egg.pop(0)
+
+                        else: # data[1] == 'Груда вопросительных яиц':
+                            pulled_card = all_eggs[0]
+                            if pulled_card.command != 'exit prison':
+                                all_eggs.append(pulled_card)
+                            else:
+                                eggs_exit_prison = pulled_card
+                            all_eggs.pop(0)
+
+                        pulled_card_data = f'pulled card position|{data[1]}|{pulled_card.position}%'
+                        for player2 in players:
+                            player2.conn.send(pulled_card_data.encode())
+                            information_sent_to('Информация отправлена к', player2.color, pulled_card_data)
+
+                        match pulled_card.command:
+                            case 'get money':
+                                player.money += pulled_card.value
+                                money_data = f'money|{player.color}|{player.money}%'
+                                for player2 in players:
+                                    player2.conn.send(money_data.encode())
+                                    information_sent_to('Информация отправлена к', player2.color, money_data)
+                                moving_player_changing(True)
+
+                            case 'get money from players':
+                                pay_command = f'need to pay to player|{player.color}|{pulled_card.value}%'
+                                for player2 in players:
+                                    if player2 != player:
+                                        eggs_players_who_need_to_pay_to_one_player.append(player2)
+                                        player2.conn.send(pay_command.encode())
+                                        information_sent_to('Информация отправлена к', player.color, pay_command)
+
+                            case 'go to start':
+                                player.piece_position = 0
+                                move_data = f'move diagonally|{player.color}|0%'
+                                player.money += pulled_card.value
+                                money_data = f'money|{player.color}|{player.money}%'
+                                for player2 in players:
+                                    player2.conn.send(move_data.encode())
+                                    player2.conn.send(money_data.encode())
+                                    information_sent_to('Информация отправлена к', player2.color, move_data)
+                                    information_sent_to('Информация отправлена к', player2.color, money_data)
+                                moving_player_changing(True)
+
+                            case 'pay':
+                                pay_command = f'need to pay|{pulled_card.value}%'
+                                player.conn.send(pay_command.encode())
+                                information_sent_to('Информация отправлена к', player.color, pay_command)
+
+                            case 'pay to players':
+                                pay_command = f'need to pay to players|{pulled_card.value * (len(players) - 1)}%'
+                                player.conn.send(pay_command.encode())
+                                information_sent_to('Информация отправлена к', player.color, pay_command)
+
+                            case 'pay for white penises':
+                                penises = 0
+                                for tile in all_tiles:
+                                    if tile.owner == player.color:
+                                        penises += tile.penises
+                                pay_command = f'need to pay|{pulled_card.value * penises}%'
+                                player.conn.send(pay_command.encode())
+                                information_sent_to('Информация отправлена к', player.color, pay_command)
+
+                            case 'go back':
+                                player.piece_position -= pulled_card.value
+                                move_data = f'move|{player.color}|-1|-2%'
+                                for player2 in players:
+                                    player2.conn.send(move_data.encode())
+                                    information_sent_to('Информация отправлена к', player2.color, move_data)
+
+                            case 'go to':
+                                player.piece_position = pulled_card.value
+                                move_data = f'move diagonally|{player.color}|{player.piece_position}%'
+                                for player2 in players:
+                                    player2.conn.send(move_data.encode())
+                                    information_sent_to('Информация отправлена к', player2.color, move_data)
+
+                            case 'go to next':
+                                while all_tiles[player.piece_position].type != pulled_card.value:
+                                    player.piece_position += 1
+                                    if player.piece_position >= 40:
+                                        player.piece_position -= 40
+                                move_data = f'move diagonally|{player.color}|{player.piece_position}%'
+                                for player2 in players:
+                                    player2.conn.send(move_data.encode())
+                                    information_sent_to('Информация отправлена к', player2.color, move_data)
+
+                            case 'go to prison':
+                                player.piece_position = 10
+                                player.imprisoned = True
+                                prison_data = f'imprisoned|{player.color}%'
+                                move_data = f'move diagonally|{player.color}|10%'
+                                for player2 in players:
+                                    player2.conn.send(move_data.encode())
+                                    player2.conn.send(prison_data.encode())
+                                    information_sent_to('Информация отправлена к', player2.color, move_data)
+                                    information_sent_to('Информация отправлена к', player2.color, prison_data)
+                                moving_player_changing(True)
+
+                            case 'exit prison':
+                                if data[1] == 'Яйцо':
+                                    player.egg_prison_exit_card = True
+                                else:
+                                    player.eggs_prison_exit_card = True
+
+                                prison_escape_data = f'free prison escape card|{data[1]}%'
+                                for player2 in players:
+                                    player2.conn.send(prison_escape_data.encode())
+                                    information_sent_to('Информация отправлена к', player2.color, prison_escape_data)
+
                     else:
                         player.conn.send(f'error|Незарегистрированная команда: {data[0]}'.encode())
 
             except (BlockingIOError, ConnectionAbortedError, ConnectionResetError, AttributeError):
                 pass
-            # except ConnectionAbortedError:
-            #     pass
-            # except ConnectionResetError:
-            #     pass
             except:
                 print(f'{"\033[31m{}".format(traceback.format_exc())}{'\033[0m'}')
 
@@ -549,8 +707,8 @@ def start_server():
     global colors, main_sck, is_server_started
     if not is_server_started:
         try:
-            ip = ip_textbox.getText()
-            port = port_textbox.getText()
+            ip = ip_textbox.get_text()
+            port = port_textbox.get_text()
             if ip == '':
                 ip = '26.190.64.4'
             if port == '':
@@ -686,28 +844,14 @@ def blit_items():
                     (profile_coordinates[player_index]['name'][0],
                      profile_coordinates[player_index]['name'][1]))
 
-    screen.blit(bars, bars_coordinates)
+    screen.blit(bars, (all_tiles[10].x_position, all_tiles[10].y_position))
 
 
 def price_printing():
     for tile in all_tiles:
         if tile.price != '':
-            tile.text_defining()
-            if tile.position == 4 or tile.position == 38 or not tile.owned:
-                text = font.render(tile.text, False, tile.color)
-            else:
-                text = font.render(tile.text, False, tile.color)
-            price_text = pg.transform.rotate(text, tile.angle)
-
-            if tile.angle == -90:
-                offset = round((font.size(tile.text)[0] - 31) / 2)
-            elif tile.angle == 90:
-                offset = round((font.size(tile.text)[0] - 29) / 2)
-            else:
-                offset = 0
-
-            text_rect = text.get_rect(center=(tile.xText + offset, tile.yText - offset))
-            screen.blit(price_text, text_rect)
+            tile.text_defining(font)
+            screen.blit(tile.prerendered_text, tile.text_rect)
 
 
 def event_handler():
@@ -716,96 +860,67 @@ def event_handler():
         if event.type == pg.QUIT:
             global running
             running = False
-    pygame_widgets.update(events)
+        manager.process_events(event)
+        match event.type:
+            case pygame_gui.UI_BUTTON_PRESSED:
+                event_type = event.ui_element
+                if event_type == start_server_button:
+                    start_server()
+                elif event_type == start_button:
+                    start_game()
 
 
 def buttons():
     global start_button, ip_textbox, port_textbox, start_server_button
-    ip_textbox = TextBox(screen,
-                         start_btn_textboxes_coordinates['IP'][0],
-                         start_btn_textboxes_coordinates['IP'][1],
-                         start_btn_textboxes_coordinates['IP'][2],
-                         start_btn_textboxes_coordinates['IP'][3],
-                         colour=(200, 200, 200),
-                         textColour=(0, 0, 0),
-                         borderThickness=2,
-                         borderColour=(0, 0, 0),
-                         font=font,
-                         radius=btn_radius,
-                         placeholderText='IP адрес',
-                         placeholderTextColour=(128, 128, 128))
+    ip_textbox = pygame_gui.elements.UITextEntryBox(
+        relative_rect=pg.Rect((start_btn_textboxes_coordinates['IP'][0], start_btn_textboxes_coordinates['IP'][1])),
+        placeholder_text='IP адрес',
+        manager=manager)
 
-    port_textbox = TextBox(screen,
-                           start_btn_textboxes_coordinates['port'][0],
-                           start_btn_textboxes_coordinates['port'][1],
-                           start_btn_textboxes_coordinates['port'][2],
-                           start_btn_textboxes_coordinates['port'][3],
-                           colour=(200, 200, 200),
-                           textColour=(0, 0, 0),
-                           borderThickness=2,
-                           borderColour=(0, 0, 0),
-                           font=font,
-                           radius=btn_radius,
-                           placeholderText='Порт',
-                           placeholderTextColour=(128, 128, 128))
+    port_textbox = pygame_gui.elements.UITextEntryBox(
+        relative_rect=pg.Rect((start_btn_textboxes_coordinates['port'][0], start_btn_textboxes_coordinates['port'][1])),
+        placeholder_text='Порт',
+        manager=manager)
 
-    start_server_button = Button(screen,
-                          1121,
-                          534,
-                          140,
-                          38,
-                          inactiveColour=(255, 255, 255),
-                          inactiveBorderColour=(0, 0, 0),
-                          hoverColour=(255, 255, 255),
-                          hoverBorderColour=(105, 105, 105),
-                          pressedColour=(191, 191, 191),
-                          pressedBorderColour=(0, 0, 0),
-                          borderThickness=3,
-                          radius=btn_radius,
-                          font=font,
-                          text='Запуск сервера',
-                          onClick=start_server)
+    start_server_button = pygame_gui.elements.UIButton(
+        relative_rect=pg.Rect((1040, 534), (217, 38)),
+        text='Запуск сервера',
+        manager=manager)
 
-    start_button = Button(screen,
-                          1121,
-                          592,
-                          140,
-                          38,
-                          inactiveColour=(255, 255, 255),
-                          inactiveBorderColour=(0, 0, 0),
-                          hoverColour=(255, 255, 255),
-                          hoverBorderColour=(105, 105, 105),
-                          pressedColour=(191, 191, 191),
-                          pressedBorderColour=(0, 0, 0),
-                          borderThickness=3,
-                          radius=btn_radius,
-                          font=font,
-                          text='Начать игру',
-                          onClick=start_game)
+    start_button = pygame_gui.elements.UIButton(
+        relative_rect=pg.Rect((1040, 592), (217, 38)),
+        text='Начать игру',
+        manager=manager)
 
 
 def active_buttons_check():
     # Бросок кубов
     if is_game_started or not is_server_started:
-        screen.blit(start_game_disabled_btn, (1121, 592, 140, 38))
+        start_button.disable()
+    else:
+        start_button.enable()
 
     if is_server_started:
-        screen.blit(start_server_disabled_btn, (1121, 534, 140, 38))
+        start_server_button.disable()
+    else:
+        start_server_button.enable()
 
 
 buttons()
+theme = manager.create_new_theme(f'resources/{resolution_folder}/gui_theme.json')
+manager.set_ui_theme(theme)
 running = True
 
+gc.enable()
+
 while running:
-    clock.tick(FPS)
+    dt = clock.tick(FPS) / 1000
     blit_items()
     price_printing()
     event_handler()
+    manager.update(dt)
+    manager.draw_ui(screen)
     active_buttons_check()
     pg.display.flip()
 
-for i in range(40):
-    print(f'\rУдаление временных файлов: {i + 1} из 40.', end='\r', flush=True)
-    if i not in (0, 10, 20, 30):
-        os.remove(f'resources/temp/server/images/{i}.png')
-print('\nСервер закрыт')
+print('Сервер закрыт')
