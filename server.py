@@ -59,7 +59,7 @@ class Player:
         self.on_move = False
 
 pg.init()
-resolution, resolution_folder, btn_coordinates, profile_coordinates, start_btn_textboxes_coordinates, cubes_coordinates, speed, avatar_side_size, exchange_coordinates, FPS, auction_coordinates, tile_size, margin, debug_mode, fps_coordinates, font_size, egg_card_coordinates, egg_card_offset, egg_card_title_center, egg_title_font_size, egg_card_text_width, egg_btns_coordinates = resolution_definition(False)
+resolution, resolution_folder, btn_coordinates, profile_coordinates, start_btn_textboxes_coordinates, cubes_coordinates, speed, avatar_side_size, exchange_coordinates, FPS, auction_coordinates, tile_size, margin, debug_mode, fps_coordinates, font_size, egg_card_coordinates, egg_card_offset, egg_card_title_center, egg_title_font_size, egg_card_text_width, egg_btns_coordinates, optimized = resolution_definition(False)
 piece_color_coefficient = 28
 TITLE = 'Monopoly Server'
 screen = pg.display.set_mode(resolution)
@@ -71,18 +71,13 @@ all_tiles, positions, all_egg, all_eggs = all_tiles_get(resolution_folder, tile_
 random.shuffle(all_egg)
 random.shuffle(all_eggs)
 background = pg.image.load(f'resources/{resolution_folder}/background.png').convert()
-board = pg.image.load(f'resources/{resolution_folder}/board grid.png').convert_alpha()
+board_image = pg.image.load(f'resources/temp/images/{resolution_folder}/board image.png').convert_alpha()
 profile_picture = pg.image.load(f'resources/{resolution_folder}/profile/profile.png').convert_alpha()
 bars = pg.image.load(f'resources/{resolution_folder}/bars.png').convert_alpha()
 player_bars = pg.image.load(f'resources/{resolution_folder}/profile/profile_bars.png').convert_alpha()
 avatar_file = pg.image.load(f'resources/{resolution_folder}/profile/avatar_placeholder.png').convert_alpha()
 mortgaged_tile = pg.image.load(f'resources/{resolution_folder}/mortgaged.png').convert_alpha()
 font = pg.font.Font('resources/fonts/bulbulpoly-3.ttf',25)
-
-for tile_image in range(40):
-    if tile_image not in (0, 10, 20, 30):
-        globals()[f'tile_{tile_image}_image'] = pg.transform.smoothscale(
-            pg.image.load(f'resources/tiles_data/images/{tile_image}.png'), tile_size).convert()
 
 auction_players = []
 auction_players_who_are_wanting_to_buy = []
@@ -798,19 +793,18 @@ def position_update(color):
 
 
 def blit_items():
-    screen.blit(background, (0, 0))
-    screen.blit(board, (0, 0))
-
+    screen.blit(background)
+    screen.blit(board_image)
     for tile in all_tiles:
-        if tile.family != 'Угловые':
-            screen.blit(globals()[f'tile_{tile.position}_image'], (tile.x_position, tile.y_position))
         if tile.owned:
             screen.blit(pg.image.load(f'resources/{resolution_folder}/property/{tile.owner}_property.png'), (tile.x_position, tile.y_position))
+
         if tile.mortgaged:
             screen.blit(mortgaged_tile, (tile.x_position, tile.y_position))
             text = font.render(str(tile.mortgaged_moves_count), False, 'white')
             text_rect = text.get_rect(center=(tile.x_center, tile.y_center))
             screen.blit(text, text_rect)
+
         if 1 <= tile.penises <= 5:
             screen.blit(pg.image.load(f'resources/{resolution_folder}/white penises/{tile.penises}.png'), (tile.x_position, tile.y_position))
 
@@ -866,8 +860,11 @@ def event_handler():
                 event_type = event.ui_element
                 if event_type == start_server_button:
                     start_server()
+                    start_server_button.disable()
+                    start_button.enable()
                 elif event_type == start_button:
                     start_game()
+                    start_button.disable()
 
 
 def buttons():
@@ -893,19 +890,6 @@ def buttons():
         manager=manager)
 
 
-def active_buttons_check():
-    # Бросок кубов
-    if is_game_started or not is_server_started:
-        start_button.disable()
-    else:
-        start_button.enable()
-
-    if is_server_started:
-        start_server_button.disable()
-    else:
-        start_server_button.enable()
-
-
 buttons()
 theme = manager.create_new_theme(f'resources/{resolution_folder}/gui_theme.json')
 manager.set_ui_theme(theme)
@@ -920,7 +904,6 @@ while running:
     event_handler()
     manager.update(dt)
     manager.draw_ui(screen)
-    active_buttons_check()
-    pg.display.flip()
+    pg.display.update()
 
 print('Сервер закрыт')

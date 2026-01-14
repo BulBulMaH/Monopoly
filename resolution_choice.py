@@ -3,10 +3,18 @@ import os
 def resolution_definition(do_choose):
     if do_choose:
         if os.path.exists('settings.txt'):
+            print('Выберите настройки. Вы можете поменять настройки позже, открыв файл settings.py')
             lines = open('settings.txt', 'r').readlines()
             resolution_index = lines[0][:-1]
-            fps = int(lines[1])
-            if lines[2][:-1] == 'bdb':
+            if '.' in lines[1]:
+                fps = float(lines[1])
+            else:
+                fps = int(lines[1])
+            if lines[2][:-1] == 'ultra optimization':
+                optimized = True
+            else:
+                optimized = False
+            if lines[3][:-1] == 'bdb':
                 debug_mode = True
             else:
                 debug_mode = False
@@ -17,28 +25,63 @@ def resolution_definition(do_choose):
                                          '1 - 1280x720\n'
                                          '2 - 1920x1080\n'
                                          '3 - 2560x1440\n')
-                if resolution_index in '1234':
+                if resolution_index in '123':
                     is_resolution_selected = True
 
             is_fps_selected = False
             while not is_fps_selected:
                 fps = input('Введите максимальный FPS:\n')
                 try:
-                    fps = int(fps)
+                    if '.' in fps:
+                        fps = float(fps)
+                    else:
+                        fps = int(fps)
                     is_fps_selected = True
                 except:
                     pass
 
-            debug_mode = True # todo: False
+            is_optimization_selected = False
+            while not is_optimization_selected:
+                is_optimized = input('Выберите наличие "ультраоптимизации":\n'
+                                     '[y / +] - есть\n'
+                                     '[n / -] - нет\n')
+                if is_optimized in 'y+':
+                    optimized = True
+                    is_optimization_selected = True
+                elif is_optimized in 'n-':
+                    optimized = False
+                    is_optimization_selected = True
+
+            is_debug_selected = False
+            while not is_debug_selected:
+                is_debug = input('debug?:\n'
+                                     '[y / +] - есть\n'
+                                     '[n / -] - нет\n')
+                if is_debug in 'y+':
+                    debug_mode = True
+                    is_debug_selected = True
+                elif is_debug in 'n-':
+                    debug_mode = False
+                    is_debug_selected = True
+            # debug_mode = False
+
 
             with open('settings.txt', 'w+') as settings_file:
-                settings_file.write(f'{resolution_index}\n{fps}\nbdb\n')
+                if debug_mode:
+                    debug_text = 'bdb'
+                else:
+                    debug_text = ''
+
+                if optimized:
+                    optimization_text = 'ultra optimization'
+                else:
+                    optimization_text = ''
+                settings_file.write(f'{resolution_index}\n{fps}\n{optimization_text}\n{debug_text}\n\n')
                 print('Настройки сохранены')
-                global running
-                running = False
 
     else:
         debug_mode = False
+        optimized = True
         resolution_index = '1'
         fps = 30
     if resolution_index == '1':
@@ -103,7 +146,7 @@ def resolution_definition(do_choose):
         egg_title_font_size = 25
         speed = 0.003
         if do_choose:
-            print(f'Выбрано разрешение 1280x720 и FPS равен {fps}. Вы можете поменять настройки, открыв файл settings.py')
+            print(f'Выбрано разрешение 1280x720 и FPS равен {fps}. Вы можете поменять настройки, открыв файл settings.py\n')
 
     elif resolution_index == '2':
         resolution = (1920, 1001)
@@ -167,7 +210,7 @@ def resolution_definition(do_choose):
         egg_title_font_size = 51
         speed = 0.00182
 
-        print(f'Выбрано разрешение 1920x1080 и FPS равен {fps}. Вы можете поменять настройки, открыв файл settings.py')
+        print(f'Выбрано разрешение 1920x1080 и FPS равен {fps}. Вы можете поменять настройки, открыв файл settings.py\n')
 
     elif resolution_index == '3':
         resolution = (2560, 1360)
@@ -231,6 +274,6 @@ def resolution_definition(do_choose):
         egg_title_font_size = 51
         speed = 0.0015
         if do_choose:
-            print(f'Выбрано разрешение 2560x1440 и FPS равен {fps}. Вы можете поменять настройки, открыв файл settings.py')
+            print(f'Выбрано разрешение 2560x1440 и FPS равен {fps}. Вы можете поменять настройки, открыв файл settings.py\n')
 
-    return resolution, resolution_folder, btn_coordinates, profile_coordinates, start_btn_textboxes_coordinates, cubes_coordinates, speed, avatar_side_size, exchange_coordinates, fps, auction_coordinates, tile_size, margin, debug_mode, fps_coordinates, font_size, egg_card_coordinates, egg_card_text_center, egg_card_title_center, egg_title_font_size, egg_card_text_width, egg_btns_coordinates
+    return resolution, resolution_folder, btn_coordinates, profile_coordinates, start_btn_textboxes_coordinates, cubes_coordinates, speed, avatar_side_size, exchange_coordinates, fps, auction_coordinates, tile_size, margin, debug_mode, fps_coordinates, font_size, egg_card_coordinates, egg_card_text_center, egg_card_title_center, egg_title_font_size, egg_card_text_width, egg_btns_coordinates, optimized

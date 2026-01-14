@@ -1,5 +1,5 @@
 position,command,value,description
-0,get money,50,get_50_penises
+0,get money,50,get_{value}_penises
 1,get money,150,"Сегодня прекрасный день, чтобы получить {value}~"
 2,go to start,200,Вам надо пройти к началу и получить {value}~
 3,pay,15,Заплатите в банк игры бюджет на следующее обновление в размере {value}~

@@ -1,6 +1,6 @@
 position,command,value,description
 0,get money,50,"Без видимой на то причины, ваш счёт пополнился на {value}~"
-1,get money,25,mainfont.ttf get_100_penises
+1,get money,25,get_{value}_penises
 2,get money,20,поалолучи {value} пэанисаов
 3,get money,10,"Вы получили моральную компенсацию в размере {value}~ за то, что в это играете"
 4,get money,200,Артём включил читы и начитерил вам {value}~

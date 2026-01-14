@@ -1,11 +1,10 @@
 import os
 os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = '1'
 import pygame as pg
-import pygame_widgets
-from pygame_widgets.button import Button
-from pygame_widgets.dropdown import Dropdown
-from pygame_widgets.textbox import TextBox
-from pygame_widgets.toggle import Toggle
+import pygame_gui
+import traceback
+import time
+
 pg.init()
 
 TITLE = 'Settings'
@@ -15,18 +14,59 @@ screen = pg.display.set_mode((500, 650))
 pg.display.set_caption(TITLE)
 
 font = pg.font.Font('resources/fonts/bulbulpoly-3.ttf',25)
+manager = pygame_gui.UIManager((500, 650), theme_path=f'resources/720p/gui_theme.json')
+
+if os.path.exists('settings.txt'):
+    lines = open('settings.txt', 'r').readlines()
+    previous_values = []
+    resolution_index = lines[0][:-1]
+    if lines[0][:-1] == '1':
+        previous_values.append('1280x720')
+    elif lines[0][:-1] == '2':
+        previous_values.append('1920x1080')
+    elif lines[0][:-1] == '3':
+        previous_values.append('2560x1440')
+
+    previous_values.append(lines[1][:-1]) # fps
+
+    if lines[2][:-1] == 'ultra optimization':
+        previous_values.append(True)
+    else:
+        previous_values.append(False)
+
+    if lines[3][:-1] == 'bdb':
+        previous_values.append(True)
+    else:
+        previous_values.append(False)
+else:
+    previous_values = []
+    resolution_index = '1'
+    previous_values.append('1280x720')
+    previous_values.append('')
+    previous_values.append(False)
+    previous_values.append(False)
+
+
+def delta_time(old_time):
+    now = time.time()
+    dt = now - old_time
+    old_time = now
+    return dt, old_time
 
 
 def save():
-    resolution_index = dropdown.getSelected()
-    fps = fps_textbox.getText()
+    fps = fps_textbox.get_text()
     if resolution_index and fps:
         with open('settings.txt', 'w+') as settings_file:
-            if debug_toggle.getValue():
+            if debug_checkbox.get_state():
                 debug_text = 'bdb'
             else:
                 debug_text = ''
-            settings_file.write(f'{resolution_index}\n{fps}\n{debug_text}\n')
+            if optimization_checkbox.get_state():
+                optimization_text = 'ultra optimization'
+            else:
+                optimization_text = ''
+            settings_file.write(f'{resolution_index}\n{fps}\n{optimization_text}\n{debug_text}\n\n')
             print('Настройки сохранены')
             global running
             running = False
@@ -47,83 +87,80 @@ def fps_check():
 def event_handler():
     events = pg.event.get()
     for event in events:
+
+        manager_initiated = False
+        while not manager_initiated:
+            try:
+                manager.process_events(event)
+                manager_initiated = True
+            except:
+                print(
+                    f'{"\033[32m{}".format(f'Не беспокойтесь. Эта ошибка не вредит игре:\n{traceback.format_exc()}')}{'\033[0m'}')
+
         if event.type == pg.QUIT:
             global running
             running = False
-    try:
-        pygame_widgets.update(events)
-    except AttributeError:
-        print(
-            f'{"\033[31m{}".format('Снова вылезла эта поганая ошибка. Я надеюсь, что игра не зависла на этот раз.')}{'\033[0m'}\n')
+
+        elif event.type == pygame_gui.UI_BUTTON_PRESSED:
+            if event.ui_element == save_button:
+                save()
+        elif event.type == pygame_gui.UI_DROP_DOWN_MENU_CHANGED:
+            global resolution_index
+            if event.text == '1280x720':
+                resolution_index = '1'
+            elif event.text == '1920x1080':
+                resolution_index = '2'
+            elif event.text == '2560x1440':
+                resolution_index = '3'
 
 
 def buttons():
-    global save_button, dropdown, fps_textbox, dropdown_choice, debug_toggle
-    save_button = Button(screen,
-                         182,
-                         592,
-                         136,
-                         38,
-                         inactiveColour=(255, 255, 255),
-                         inactiveBorderColour=(0, 0, 0),
-                         hoverColour=(255, 255, 255),
-                         hoverBorderColour=(105, 105, 105),
-                         pressedColour=(191, 191, 191),
-                         pressedBorderColour=(0, 0, 0),
-                         borderThickness=3,
-                         radius=2,
-                         font=font,
-                         text='Сохранить',
-                         onClick=save)
+    global save_button, dropdown, fps_textbox, dropdown_choice, optimization_checkbox, debug_checkbox
+    save_button = pygame_gui.elements.UIButton(
+        relative_rect=pg.Rect(182, 592, 136, 38),
+        text='Сохранить',
+        manager=manager)
 
-    dropdown = Dropdown(screen,
-                        10,
-                        10,
-                        230,
-                        50,
-                        name='Выберите разрешение',
-                        choices=['1280x720', '1920x1080', '2560x1440'],
-                        radius=2,
-                        borderRadius=2,
-                        inactiveColour=(255, 255, 255),
-                        inactiveBorderColour=(0, 0, 0),
-                        hoverColour=(255, 255, 255),
-                        hoverBorderColour=(105, 105, 105),
-                        pressedColour=(191, 191, 191),
-                        pressedBorderColour=(0, 0, 0),
-                        font=font,
-                        values=[1, 2, 3],
-                        direction='down')
+    dropdown = pygame_gui.elements.UIDropDownMenu(
+        relative_rect=pg.Rect(10, 10, 230, 50),
+        starting_option=previous_values[0],
+        options_list=['1280x720', '1920x1080', '2560x1440'],
+        manager=manager)
 
-    fps_textbox = TextBox(screen,
-                           270,
-                           70,
-                           50,
-                           30,
-                           colour=(200, 200, 200),
-                           textColour=(0, 0, 0),
-                           borderThickness=2,
-                           borderColour=(0, 0, 0),
-                           font=font,
-                           radius=2,
-                           placeholderTextColour=(128, 128, 128),
-                           onTextChanged=fps_check)
+    fps_textbox = pygame_gui.elements.UITextEntryBox(
+        relative_rect=pg.Rect(266, 70, 50, 30),
+        placeholder_text='',
+        initial_text=previous_values[1],
+        manager=manager)
 
-    debug_toggle = Toggle(screen,
-                       130,
-                       110,
-                       30,
-                       15,
-                       startOn=False)
+    optimization_checkbox = pygame_gui.elements.UICheckBox(
+        relative_rect=pg.Rect(200, 103, 25, 25),
+        text='',
+        initial_state=previous_values[2],
+        manager=manager)
 
+    debug_checkbox = pygame_gui.elements.UICheckBox(
+        relative_rect=pg.Rect(120, 140, 25, 25),
+        text='',
+        initial_state=previous_values[3],
+        manager=manager)
+
+    theme = manager.create_new_theme(f'resources/720p/gui_theme.json')
+    manager.set_ui_theme(theme)
 
 buttons()
 
+prev_time = time.time()
+
 running = True
 while running:
+    dt, prev_time = delta_time(prev_time)
     screen.fill((128, 128, 128))
     screen.blit(font.render('Введите максимальный FPS:', False, 'black'), (10, 70))
-    screen.blit(font.render('debug mode:', False, 'black'), (10, 103))
+    screen.blit(font.render('Ультраоптимизация:', False, 'black'), (10, 103))
+    screen.blit(font.render('debug mode:', False, 'black'), (10, 136))
     event_handler()
+    manager.update(dt)
+    manager.draw_ui(screen)
     pg.display.flip()
 pg.quit()
