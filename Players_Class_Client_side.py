@@ -15,8 +15,9 @@ class Player:
         self.imprisoned = False
         self.egg_prison_exit_card = False
         self.eggs_prison_exit_card = False
-        self.avatar = pg.image.load(f'resources/{resolution_folder}/profile/avatar_placeholder.png').convert_alpha()
-        self.player_piece = pg.image.load(f'resources/{resolution_folder}/pieces/{self.color}_piece.png').convert_alpha()
+        self.avatar = pg.image.load(f'resources/{resolution_folder}/profile/avatar_placeholder.png').convert()
+        self.player_piece = pg.image.load(f'resources/{resolution_folder}/pieces/{self.color}_piece.png')
+        self.player_piece.set_colorkey((255, 0, 255))
         self.player_piece_rect = self.player_piece.get_rect(center=(self.x, self.y))
 
     def main_color(self, main_color):

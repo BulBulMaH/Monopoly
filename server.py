@@ -10,6 +10,10 @@ os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = '1'
 import pygame as pg
 import pygame_gui
 
+import io
+from PIL import Image
+import base64
+
 from all_tiles_extraction import all_tiles_get
 from resolution_choice import resolution_definition
 from colored_output import thread_open, new_connection, information_received, information_sent_to
@@ -27,11 +31,14 @@ class Player:
         self.money = 1500
         self.ready = False
         self.on_move = False
-        self.avatar = []
+        self.avatar_temp = []
+        self.avatar_base64_encoded = ''
+        self.avatar_image = pg.image.load(f'resources/{resolution_folder}/profile/avatar_placeholder.png').convert_alpha()
         self.x = 0
         self.y = 0
         self.egg_prison_exit_card = False
         self.eggs_prison_exit_card = False
+
 
     def connect(self, colors):
         new_sck, address = main_sck.accept()
@@ -63,14 +70,13 @@ resolution, resolution_folder, btn_coordinates, profile_coordinates, start_btn_t
 piece_color_coefficient = 28
 TITLE = 'Monopoly Server'
 screen = pg.display.set_mode(resolution)
-manager = pygame_gui.UIManager(resolution, theme_path=f'resources/{resolution_folder}/gui_theme.json')
+manager = pygame_gui.UIManager(resolution, theme_path=f'resources/{resolution_folder}/gui_theme.json', enable_live_theme_updates=False)
 pg.display.set_caption(TITLE)
 clock = pg.time.Clock()
 
 all_tiles, positions, all_egg, all_eggs = all_tiles_get(resolution_folder, tile_size)
 random.shuffle(all_egg)
 random.shuffle(all_eggs)
-background = pg.image.load(f'resources/{resolution_folder}/background.png').convert()
 board_image = pg.image.load(f'resources/temp/images/{resolution_folder}/board image.png').convert_alpha()
 profile_picture = pg.image.load(f'resources/{resolution_folder}/profile/profile.png').convert_alpha()
 bars = pg.image.load(f'resources/{resolution_folder}/bars.png').convert_alpha()
@@ -143,13 +149,22 @@ def receive_data():
                         players_send()
 
                     elif data[0] == 'avatar':
-                        player.avatar.append(data_unsplit_by_content + '%')
+                        player.avatar_temp.append(data_unsplit_by_content + '%')
+                        player.avatar_base64_encoded += data[3]
                         if data[2] == data[4]:
                             for player2 in players:
-                                for avatar in player.avatar:
+                                for avatar in player.avatar_temp:
                                     time.sleep(0.07)
                                     player2.conn.send(avatar.encode())
-                            player.avatar = []
+                            image_bytes_decoded = base64.b64decode(player.avatar_base64_encoded)
+                            image_decoded = Image.open(io.BytesIO(image_bytes_decoded))
+                            image_decoded = image_decoded.resize((avatar_side_size, avatar_side_size))
+                            image_bytes = io.BytesIO()
+                            image_decoded.save(image_bytes, format='PNG')
+                            image_bytes.seek(0)
+                            player.avatar_image = pg.image.load(image_bytes).convert_alpha()
+                            player.avatar_base64_encoded = ''
+                            player.avatar_temp.clear()
 
                     elif data[0] == 'move':
                         cube1 = random.randint(1,6)
@@ -366,14 +381,30 @@ def receive_data():
                         for player2 in players:
                             if player2.color == data[1]:
                                 player2.money += int(data[2])
+                                money_data1 = f'money|{player2.color}|{player2.money}%'
                         if not eggs_players_who_need_to_pay_to_one_player:
                             moving_player_changing(True)
+                        money_data2 = f'money|{player.color}|{player.money}%'
+
+                        for player3 in players:
+                            player3.conn.send(money_data1.encode())
+                            player3.conn.send(money_data2.encode())
+                            information_sent_to('Информация отправлена к', player3.color, money_data1)
+                            information_sent_to('Информация отправлена к', player3.color, money_data2)
 
                     elif data[0] == 'pay to players':
                         player.money -= int(data[1])
+                        money_data2 = f'money|{player.color}|{player.money}%'
                         for player2 in players:
                             if player2 != player:
                                 player2.money += int(data[1]) // len(players)
+                                money_data1 = f'money|{player2.color}|{player.money}%'
+
+                        for player3 in players:
+                            player3.conn.send(money_data1.encode())
+                            player3.conn.send(money_data2.encode())
+                            information_sent_to('Информация отправлена к', player3.color, money_data1)
+                            information_sent_to('Информация отправлена к', player3.color, money_data2)
 
                     elif data[0] == 'pay for prison':
                         if player.money - (player.prison_break_attempts + 1) * 25 >= 0:
@@ -793,7 +824,7 @@ def position_update(color):
 
 
 def blit_items():
-    screen.blit(background)
+    screen.fill((128, 128, 128))
     screen.blit(board_image)
     for tile in all_tiles:
         if tile.owned:
@@ -817,7 +848,7 @@ def blit_items():
                     (profile_coordinates[player_index]['profile'][0],
                      profile_coordinates[player_index]['profile'][1]))
 
-        screen.blit(avatar_file, (profile_coordinates[player_index]['avatar'][0],
+        screen.blit(player.avatar_image, (profile_coordinates[player_index]['avatar'][0],
                                     profile_coordinates[player_index]['avatar'][1]))
 
         if player.imprisoned:
@@ -888,7 +919,7 @@ def buttons():
         relative_rect=pg.Rect((1040, 592), (217, 38)),
         text='Начать игру',
         manager=manager)
-
+    start_button.disable()
 
 buttons()
 theme = manager.create_new_theme(f'resources/{resolution_folder}/gui_theme.json')

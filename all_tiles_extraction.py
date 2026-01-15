@@ -1,5 +1,4 @@
 import csv
-
 from Tiles_Class import Tiles
 from Eggs_Class import Eggs
 from PIL import Image
@@ -43,9 +42,12 @@ def all_tiles_get(resolution_folder, tile_size):
             os.mkdir(f'resources/temp/images/{resolution_folder}')
 
         first_launch = not os.path.exists(f'resources/temp/images/{resolution_folder}/board image.png')
+
         if first_launch:
-            image_main = Image.new('RGBA', Image.open(f'resources/{resolution_folder}/board grid.png').size, (255, 255, 255))
-            image_main.paste(Image.open(f'resources/{resolution_folder}/board grid.png').convert('RGBA'))
+            image_main = Image.new('RGB', Image.open(f'resources/{resolution_folder}/board grid.png').size, (255, 255, 255))
+
+            image_main.paste(Image.open(f'resources/{resolution_folder}/board grid.png').convert('RGB'))
+            image_main.save(f'test.png')
         for i in range(40):
             all_tiles.append(Tiles(kletki_list[i], tile_position_list[i]))
             if i not in (0, 10, 20, 30):
@@ -55,7 +57,6 @@ def all_tiles_get(resolution_folder, tile_size):
                     image_main.paste(image, (all_tiles[i].x_position, all_tiles[i].y_position))
         if first_launch:
             image_main.save(f'resources/temp/images/{resolution_folder}/board image.png')
-                    # image.save(f'resources/temp/images/{resolution_folder}/{i}.png')
 
         for i in range(len(egg_list)):
             all_egg.append(Eggs(egg_list[i]))

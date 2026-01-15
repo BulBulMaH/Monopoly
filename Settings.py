@@ -134,7 +134,7 @@ def buttons():
         manager=manager)
 
     optimization_checkbox = pygame_gui.elements.UICheckBox(
-        relative_rect=pg.Rect(200, 103, 25, 25),
+        relative_rect=pg.Rect(225, 106, 25, 25),
         text='',
         initial_state=previous_values[2],
         manager=manager)
@@ -157,7 +157,7 @@ while running:
     dt, prev_time = delta_time(prev_time)
     screen.fill((128, 128, 128))
     screen.blit(font.render('Введите максимальный FPS:', False, 'black'), (10, 70))
-    screen.blit(font.render('Ультраоптимизация:', False, 'black'), (10, 103))
+    screen.blit(font.render('Оптимизация движения:', False, 'black'), (10, 103))
     screen.blit(font.render('debug mode:', False, 'black'), (10, 136))
     event_handler()
     manager.update(dt)
