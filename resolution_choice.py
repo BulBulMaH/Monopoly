@@ -1,4 +1,5 @@
 import os
+import pygame as pg
 
 def resolution_definition(do_choose):
     if do_choose:
@@ -18,6 +19,11 @@ def resolution_definition(do_choose):
                 debug_mode = True
             else:
                 debug_mode = False
+            color_values = lines[4][:-1].split(',')
+            color = []
+            for value in color_values:
+                color.append(int(value))
+            background_color = pg.Color(color)
         else:
             is_resolution_selected = False
             while not is_resolution_selected:
@@ -64,6 +70,7 @@ def resolution_definition(do_choose):
                     debug_mode = False
                     is_debug_selected = True
             # debug_mode = False
+            background_color = pg.Color(128, 128, 128)
 
 
             with open('settings.txt', 'w+') as settings_file:
@@ -84,6 +91,7 @@ def resolution_definition(do_choose):
         optimized = True
         resolution_index = '1'
         fps = 30
+        background_color = pg.Color(128, 128, 128)
     if resolution_index == '1':
         resolution = (1280, 650)
         resolution_folder = '720p'
@@ -106,8 +114,8 @@ def resolution_definition(do_choose):
                                {'profile': (669, 467),  'avatar': (830, 493),  'money': (674, 485), 'name': (674, 465)}]
 
         exchange_coordinates = {'exchange_screen':  (75,  75),
-                                'textbox_give':    ((120, 160), (183, 30)),
-                                'textbox_get':     ((345, 160), (183, 30)),
+                                'textbox_give':     (120, 160, 183, 30),
+                                'textbox_get':      (345, 160, 183, 30),
                                 'text_give':        (120, 196),
                                 'text_get':         (345, 196),
                                 'button':          ((256, 492), (136, 38)),
@@ -170,8 +178,8 @@ def resolution_definition(do_choose):
                                {'profile': [1028, 687], 'avatar': [1262, 723], 'money': [1034, 719], 'name': [1034, 691]}]
 
         exchange_coordinates = {'exchange_screen':  (108, 108),
-                                'textbox_give':    ((177, 240), (290, 30)),
-                                'textbox_get':     ((530, 240), (290, 30)),
+                                'textbox_give':     (177, 240, 290, 30),
+                                'textbox_get':      (530, 240, 290, 30),
                                 'text_give':        (177, 290),
                                 'text_get':         (530, 290),
                                 'button':          ((398, 765), (201, 57)),
@@ -234,8 +242,8 @@ def resolution_definition(do_choose):
                                {'profile': [1381, 934], 'avatar': [1703, 986], 'money': [1391, 970], 'name': [1391, 930]}]
 
         exchange_coordinates = {'exchange_screen':  (150, 150),
-                                'textbox_give':    ((240, 320), (366, 60)),
-                                'textbox_get':     ((690, 320), (366, 30)),
+                                'textbox_give':     (240, 320, 366, 60),
+                                'textbox_get':      (690, 320, 366, 30),
                                 'text_give':        (240, 392),
                                 'text_get':         (690, 392),
                                 'button':          ((512, 984), (272, 76)),
@@ -276,4 +284,4 @@ def resolution_definition(do_choose):
         if do_choose:
             print(f'Выбрано разрешение 2560x1440 и FPS равен {fps}. Вы можете поменять настройки, открыв файл settings.py\n')
 
-    return resolution, resolution_folder, btn_coordinates, profile_coordinates, start_btn_textboxes_coordinates, cubes_coordinates, speed, avatar_side_size, exchange_coordinates, fps, auction_coordinates, tile_size, margin, debug_mode, fps_coordinates, font_size, egg_card_coordinates, egg_card_text_center, egg_card_title_center, egg_title_font_size, egg_card_text_width, egg_btns_coordinates, optimized
+    return resolution, resolution_folder, btn_coordinates, profile_coordinates, start_btn_textboxes_coordinates, cubes_coordinates, speed, avatar_side_size, exchange_coordinates, fps, auction_coordinates, tile_size, margin, debug_mode, fps_coordinates, font_size, egg_card_coordinates, egg_card_text_center, egg_card_title_center, egg_title_font_size, egg_card_text_width, egg_btns_coordinates, optimized, background_color

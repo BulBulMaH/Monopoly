@@ -66,7 +66,7 @@ class Player:
         self.on_move = False
 
 pg.init()
-resolution, resolution_folder, btn_coordinates, profile_coordinates, start_btn_textboxes_coordinates, cubes_coordinates, speed, avatar_side_size, exchange_coordinates, FPS, auction_coordinates, tile_size, margin, debug_mode, fps_coordinates, font_size, egg_card_coordinates, egg_card_offset, egg_card_title_center, egg_title_font_size, egg_card_text_width, egg_btns_coordinates, optimized = resolution_definition(False)
+resolution, resolution_folder, btn_coordinates, profile_coordinates, start_btn_textboxes_coordinates, cubes_coordinates, speed, avatar_side_size, exchange_coordinates, FPS, auction_coordinates, tile_size, margin, debug_mode, fps_coordinates, font_size, egg_card_coordinates, egg_card_offset, egg_card_title_center, egg_title_font_size, egg_card_text_width, egg_btns_coordinates, optimized, background_color = resolution_definition(False)
 piece_color_coefficient = 28
 TITLE = 'Monopoly Server'
 screen = pg.display.set_mode(resolution)
@@ -244,7 +244,6 @@ def receive_data():
                                 all_tiles[player.piece_position].owned = True
                                 all_tiles[player.piece_position].owner = player.color
                                 player.money -= int(all_tiles[player.piece_position].price)
-                                tile_family_members = 0
 
                                 price_update(all_tiles[player.piece_position])
 
@@ -393,12 +392,12 @@ def receive_data():
                             information_sent_to('Информация отправлена к', player3.color, money_data2)
 
                     elif data[0] == 'pay to players':
-                        player.money -= int(data[1])
+                        player.money -= int(data[1]) * (len(players) - 1)
                         money_data2 = f'money|{player.color}|{player.money}%'
                         for player2 in players:
                             if player2 != player:
-                                player2.money += int(data[1]) // len(players)
-                                money_data1 = f'money|{player2.color}|{player.money}%'
+                                player2.money += int(data[1])
+                                money_data1 = f'money|{player2.color}|{player2.money}%'
 
                         for player3 in players:
                             player3.conn.send(money_data1.encode())
@@ -439,7 +438,7 @@ def receive_data():
 
                     elif data[0] == 'penis build':
                         tile_position = int(data[1])
-                        print(all_tiles[tile_position].full_family, all_tiles[tile_position].penises < 5, player.money >= all_tiles[tile_position].penis_price, all_tiles[tile_position].type == 'buildable', all_tiles[tile_position].owner == player.color)
+                        print(all_tiles[tile_position].penis_income_calculation, all_tiles[tile_position].penises < 5, player.money >= all_tiles[tile_position].penis_price, all_tiles[tile_position].type == 'buildable', all_tiles[tile_position].owner == player.color)
                         if (all_tiles[tile_position].full_family and
                             all_tiles[tile_position].penises < 5 and
                             player.money >= all_tiles[tile_position].penis_price and
@@ -464,8 +463,8 @@ def receive_data():
                                 all_tiles[tile_position].type == 'buildable' and
                                 all_tiles[tile_position].owner == player.color):
 
-                            player.money += round(all_tiles[tile_position].penis_price * 0.75)
-                            all_tiles[tile_position].penises += 1
+                            player.money += all_tiles[tile_position].penis_price
+                            all_tiles[tile_position].penises -= 1
                             money_data = f'money|{player.color}|{player.money}%'
                             penis_data = f'penis removed|{tile_position}%'
                             for player2 in players:
@@ -497,6 +496,7 @@ def receive_data():
                             if tile_position:
                                 player.property.append(int(tile_position))
                                 all_tiles[int(tile_position)].owner = player.color
+
                         # А зачем оно так устроено?
                         # А, ладно, понял. Всё работает как надо, ничего менять не надо
                         for player2 in players:
@@ -514,17 +514,31 @@ def receive_data():
                                 for property in player2.property:
                                     all_property_information += f'{property}_'
                                 all_property_information = all_property_information[:-1] + '%'
+                                money_data = f'money|{player2.color}|{player2.money}%'
                                 for player3 in players:
                                     player3.conn.send(all_property_information.encode())
+                                    player3.conn.send(money_data.encode())
                                     information_sent_to('Информация отправлена к', player3.color,all_property_information)
+                                    information_sent_to('Информация отправлена к', player3.color,money_data)
 
                         all_property_information = f'all property|{player.color}|'
                         for property in player.property:
                             all_property_information += f'{property}_'
                         all_property_information = all_property_information[:-1] + '%'
+                        money_data = f'money|{player.color}|{player.money}%'
                         for player3 in players:
                             player3.conn.send(all_property_information.encode())
+                            player3.conn.send(money_data.encode())
                             information_sent_to('Информация отправлена к', player3.color, all_property_information)
+                            information_sent_to('Информация отправлена к', player3.color, money_data)
+
+                        for tile_position in give_property:
+                            if tile_position:
+                                price_update(all_tiles[int(tile_position)])
+
+                        for tile_position in get_property:
+                            if tile_position:
+                                price_update(all_tiles[int(tile_position)])
 
                     elif data[0] == 'exchange request rejected':
                         print(f'Игрок {player.color} отказался от обмена')
@@ -675,13 +689,14 @@ def receive_data():
                                 else:
                                     player.eggs_prison_exit_card = True
 
-                                prison_escape_data = f'free prison escape card|{data[1]}%'
+                                prison_escape_data = f'free prison escape card|{data[1]}|{player.color}%'
                                 for player2 in players:
                                     player2.conn.send(prison_escape_data.encode())
                                     information_sent_to('Информация отправлена к', player2.color, prison_escape_data)
 
                     else:
-                        player.conn.send(f'error|Незарегистрированная команда: {data[0]}'.encode())
+                        player.conn.send(f'error|Незарегистрированная команда: {data[0]}%'.encode())
+                        information_sent_to('Информация отправлена к', player.color, f'error|Незарегистрированная команда: {data[0]}%')
 
             except (BlockingIOError, ConnectionAbortedError, ConnectionResetError, AttributeError):
                 pass
@@ -824,7 +839,7 @@ def position_update(color):
 
 
 def blit_items():
-    screen.fill((128, 128, 128))
+    screen.fill(background_color)
     screen.blit(board_image)
     for tile in all_tiles:
         if tile.owned:
