@@ -120,5 +120,27 @@
 			"italic": "0",
 			"regular_path": "resources/fonts/bulbulpoly-3.ttf"
 		}
+	},
+	"text_box":
+	{
+		"colours":
+		{
+			"dark_bg": "rgb(200, 200, 200)",
+			"normal_border": "rgb(0, 0, 0)"
+		},
+		"misc":
+		{
+			"shape": "rectangle",
+			"border_width": "2",
+			"shadow_width": "0"
+		}
+	},
+	"text_box.vertical_scroll_bar":
+	{
+		"colours":
+		{
+			"normal_border": "rgb(0, 0, 0)",
+			"dark_bg": "rgb(150, 150, 150)"
+		}
 	}
 }

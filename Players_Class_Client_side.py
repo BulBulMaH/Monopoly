@@ -1,12 +1,13 @@
 import pygame as pg
 
 class Player:
-    def __init__(self, color, positions, resolution_folder, property_family_count):
+    def __init__(self, color, positions, resolution_folder, property_family_count, color_value):
         self.piece_position = 0
         self.name = ''
         self.property = []
         self.property_family_count = property_family_count.copy()
         self.color = color
+        self.color_value = color_value
         self.money = 1500
         self.main = False
         self.x = positions[0]

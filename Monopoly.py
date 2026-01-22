@@ -1,11 +1,12 @@
 # для прочего
 import time
+
 time_for_loading = time.time()
 import os
 import traceback
 import gc
 import pprint
-os.environ['SDL_VIDEO_WINDOW_POS'] = '%d,%d' % (0, 31) # (0, 30)
+os.environ['SDL_VIDEO_WINDOW_POS'] = '%d,%d' % (0, 31) # (0, 31)
 os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = '1'
 
 # для функционала игры
@@ -35,13 +36,16 @@ from resolution_choice import resolution_definition
 pg.init()
 pg.mixer.init()  # для звука
 
-resolution, resolution_folder, btn_coordinates, profile_coordinates, start_btn_textboxes_coordinates, cubes_coordinates, speed, avatar_side_size, exchange_coordinates, FPS, auction_coordinates, tile_size, margin, debug_mode, fps_coordinates, font_size, egg_card_coordinates, egg_card_text_center, egg_card_title_center, egg_font_size, egg_card_text_width, egg_btns_coordinates, optimized, background_color = resolution_definition(True)
+resolution, resolution_folder, btn_coordinates, profile_coordinates, start_btn_textboxes_coordinates, cubes_coordinates, speed, avatar_side_size, exchange_coordinates, FPS, auction_coordinates, tile_size, margin, debug_mode, fps_coordinates, font_size, egg_card_coordinates, egg_card_text_center, egg_card_title_center, egg_font_size, egg_card_text_width, egg_btns_coordinates, optimized, background_color, log_textbox_coordinates = resolution_definition(True)
 
 TITLE = 'Monopoly v0.13'
 icon = pg.image.load(f'resources/icon.png')
 pg.display.set_icon(icon)
 screen = pg.display.set_mode(resolution, pg.DOUBLEBUF)
-manager = pygame_gui.UIManager(resolution, theme_path=f'resources/{resolution_folder}/gui_theme.json', enable_live_theme_updates=False, starting_language='ru')
+manager = pygame_gui.UIManager(resolution, theme_path=f'resources/{resolution_folder}/gui_theme.json', starting_language='ru')#enable_live_theme_updates=False,
+manager.add_font_paths('BulBulPoly', "C:/Users/zhigu/PycharmProjects/Monopoly/resources/fonts/bulbulpoly-3.ttf")
+# manager.preload_fonts([{'name': 'BulBulPoly', 'point_size': font_size, 'style': 'regular', 'antialiased': 0}])
+
 pg.display.set_caption(TITLE)
 clock = pg.time.Clock()
 prev_time = time.time()
@@ -66,7 +70,7 @@ def load_assets():
     for penis in range(5):
         globals()[f'{penis + 1}_penises_image'] = pg.image.load(f'resources/{resolution_folder}/white penises/{penis + 1}.png').convert_alpha()
 
-    global all_tiles, positions, all_players, players, exchange_value, exchange_color, state, sock, all_egg, all_eggs, update_list_static, update_list_dynamic, CLEAR_UPDATE_LIST
+    global all_tiles, positions, all_players, players, exchange_value, exchange_color, state, sock, all_egg, all_eggs, update_list_static, update_list_dynamic, CLEAR_UPDATE_LIST, ideal_dt
     property_family_count = {}
     all_tiles, positions, all_egg, all_eggs = all_tiles_get(resolution_folder, tile_size)
     for tile in all_tiles:
@@ -76,13 +80,14 @@ def load_assets():
 
     board_image = pg.image.load(f'resources/temp/images/{resolution_folder}/board image.png').convert()
 
-    all_players = [Player('red',    (all_tiles[0].x_center, all_tiles[0].y_center), resolution_folder, property_family_count),
-                   Player('blue',   (all_tiles[0].x_center, all_tiles[0].y_center), resolution_folder, property_family_count),
-                   Player('yellow', (all_tiles[0].x_center, all_tiles[0].y_center), resolution_folder, property_family_count),
-                   Player('green',  (all_tiles[0].x_center, all_tiles[0].y_center), resolution_folder, property_family_count)]
+    all_players = [Player('red',    (all_tiles[0].x_center, all_tiles[0].y_center), resolution_folder, property_family_count, '#ff0000'),
+                   Player('blue',   (all_tiles[0].x_center, all_tiles[0].y_center), resolution_folder, property_family_count, '#0000ff'),
+                   Player('yellow', (all_tiles[0].x_center, all_tiles[0].y_center), resolution_folder, property_family_count, '#ffff00'),
+                   Player('green',  (all_tiles[0].x_center, all_tiles[0].y_center), resolution_folder, property_family_count, '#0AA00A')]
     players = []
     exchange_value = -100
     exchange_color = ''
+    ideal_dt = 1 / FPS
     state = {'throw_cubes_btn_active': False,
              'buy_btn_active': False,
              'pay_btn_active': ['False'],
@@ -91,13 +96,13 @@ def load_assets():
              'mortgage_btn_active': False,
              'redeem_btn_active': False,
              'auction_btn_active': False,
+             'exchange_btn_active': False,
 
              'penis_remove_btn_used': False,
              'all_penises_build_btns_active': False,
              'all_penises_remove_btns_active': False,
              'mortgage_tile_btn_active': False,
              'redeem_tile_btn_active': False,
-             'exchange_btn_active': False,
              'exchange_player_btn_active': False,
              'exchange_tile_btn_active': False,
              'show_exchange_screen': False,
@@ -107,12 +112,14 @@ def load_assets():
              'connected': False,
              'double': False,
              'paid': False,
+             'refused_to_buy': False,
              'avatar_chosen': False,
              'cube_animation_playing': False,
              'tile_debug': False,
              'show_auction_screen': [False],
              'egg_btn_active': False,
-             'eggs_btn_active': False}
+             'eggs_btn_active': False,
+             'render_moving_text': [False]}
 
     cube_1_picture = pg.image.load(f'resources/{resolution_folder}/cubes/1.png').convert()
     update_list_static = [
@@ -145,10 +152,11 @@ def load_assets():
     pg.Rect(egg_btns_coordinates['egg']),
     pg.Rect(egg_btns_coordinates['eggs']),
 
-    pg.Rect(fps_coordinates, (50, 50)),
+    pg.Rect(fps_coordinates, (100, 50)),
     board_image.get_rect(),
     cube_1_picture.get_rect(topleft=cubes_coordinates[0]),
-    cube_1_picture.get_rect(topleft=cubes_coordinates[1])]
+    cube_1_picture.get_rect(topleft=cubes_coordinates[1]),
+    pg.Rect(profile_coordinates[0]['profile'][0], 0, profile_picture.width, profile_coordinates[-1]['profile'][1] + profile_picture.height),]
 
     update_list_dynamic = [pg.Rect((0, 0), resolution)]
     CLEAR_UPDATE_LIST = pg.event.custom_type()
@@ -156,16 +164,22 @@ def load_assets():
 
     sock = sck.socket(sck.AF_INET, sck.SOCK_STREAM)
     sock.setsockopt(sck.IPPROTO_TCP, sck.TCP_NODELAY, 1)
+    sock.settimeout(0)
+    sock.setblocking(True)
+
     buttons()
     theme = manager.create_new_theme(f'resources/{resolution_folder}/gui_theme.json')
+
     manager.set_ui_theme(theme)
-    pg.event.set_allowed([pg.QUIT, pg.KEYUP, pg.MOUSEBUTTONUP, pg.WINDOWRESTORED, pygame_gui.UI_BUTTON_PRESSED, pygame_gui.UI_TEXT_ENTRY_CHANGED, CLEAR_UPDATE_LIST])
+    pg.event.set_allowed([pg.QUIT, pg.KEYUP, pg.MOUSEBUTTONUP, pg.WINDOWRESTORED, pg.WINDOWMOVED, pygame_gui.UI_BUTTON_PRESSED, pygame_gui.UI_TEXT_ENTRY_CHANGED, CLEAR_UPDATE_LIST])
+    active_buttons_check()
     global assets_loaded
     assets_loaded = True
     print(f'Длительность загрузки: {time.time() - time_for_loading}')
 
 
 def throw_cubes():
+    exchange_screen_reset()
     for player in players:
         if player.on_move and state['is_game_started']:
             print('Кнопка "Бросить кубы" нажата')
@@ -182,6 +196,8 @@ def throw_cubes():
                     state['mortgage_btn_active'] = False
                     state['pay_btn_active'] = ['False']
                     state['paid'] = False
+                    state['refused_to_buy'] = False
+                    active_buttons_check()
 
 
 def buy():
@@ -198,6 +214,7 @@ def buy():
                 else:
                     player_move_change(True)
         mortgage_btn_check()
+        active_buttons_check()
 
 
 def pay():
@@ -214,6 +231,7 @@ def pay():
                         player_move_change(False)
                     else:
                         player_move_change(True)
+                    state['pay_btn_active'] = ['False']
 
         elif state['pay_btn_active'][0] == 'pay sum':
             for player in players:
@@ -225,6 +243,7 @@ def pay():
                         player_move_change(False)
                     else:
                         player_move_change(True)
+                    state['pay_btn_active'] = ['False']
 
         elif state['pay_btn_active'][0] == 'color':
             for player in players:
@@ -236,6 +255,7 @@ def pay():
                         player_move_change(False)
                     else:
                         player_move_change(True)
+                    state['pay_btn_active'] = ['False']
 
         elif state['pay_btn_active'][0] == 'player':
             for player in players:
@@ -259,6 +279,7 @@ def pay():
                             player_move_change(False)
                         else:
                             player_move_change(True)
+                        state['pay_btn_active'] = ['False']
 
         elif state['pay_btn_active'][0] == 'prison':
             for player in players:
@@ -267,8 +288,10 @@ def pay():
                     sock.send(pay_command.encode())
                     information_sent('Команда отправлена', pay_command)
                     player_move_change(False)
-        state['pay_btn_active'] = ['False']
+                    state['pay_btn_active'] = ['False']
+
         mortgage_btn_check()
+        active_buttons_check()
 
 
 def debug_output():
@@ -304,26 +327,26 @@ def connect():
                 port = int(port)
             name = name_textbox.get_text()
             if '%' not in name and '|' not in name:
-                sock.connect((ip, port))
-                sock.send(f'name|{name}%'.encode())
-                state['connected'] = True
+                if name:
+                    sock.connect((ip, port))
+                    sock.send(f'name|{name}%'.encode())
+                    state['connected'] = True
 
-                connection_handler = threading.Thread(target=handle_connection, name='connection_handler')
-                connection_handler.start()
-                thread_open('Поток открыт', connection_handler.name)
+                    log_entry_button.enable()
+                    connection_handler = threading.Thread(target=handle_connection, name='connection_handler')
+                    connection_handler.start()
+                    thread_open('Поток открыт', connection_handler.name)
 
-                new_connection('Подключено к', f'{ip}:{port}')
+                    new_connection('Подключено к', f'{ip}:{port}')
+                else:
+                    print(f'{"\033[31m{}".format('Ваше имя не должно быть пустым')}{'\033[0m'}')
+                    log_textbox.append_html_text(f'<font face="BulBulPoly" pixel_size={font_size} color="#D0392A">Ваше имя не должно быть пустым</font><br>')
             else:
                 print(f'{"\033[31m{}".format('Ваше имя не должно содержать символов "|" и "%"')}{'\033[0m'}')
+                log_textbox.append_html_text(f'<font face="BulBulPoly" pixel_size={font_size} color="#D0392A">Ваше имя не должно содержать символов "|" и "%"</font><br>')
         except:
             print(f'{"\033[31m{}".format('Не удалось подключиться')}{'\033[0m'}')  # красный
-
-
-def start_game():
-    global state
-    if state['connected'] and not state['ready']:
-        sock.send('ready%'.encode())
-        state['ready'] = True
+            log_textbox.append_html_text(f'<font face="BulBulPoly" pixel_size={font_size} color="#D0392A">Не удалось подключиться</font><br>')
 
 
 def tile_button(tile_position):
@@ -374,11 +397,9 @@ def tile_button(tile_position):
         for player in players:
             if player.main:
                 print(all_tiles[tile_position].full_family, all_tiles[tile_position].penises < 5,
-                      player.money >= all_tiles[tile_position].penis_price,
                       all_tiles[tile_position].type == 'buildable', all_tiles[tile_position].owner == player.color)
                 if (all_tiles[tile_position].full_family and
                         1 <= all_tiles[tile_position].penises <= 5 and
-                        player.money >= all_tiles[tile_position].penis_price and
                         all_tiles[tile_position].type == 'buildable' and
                         all_tiles[tile_position].owner == player.color):
                     state['penis_remove_btn_active'] = False
@@ -433,20 +454,21 @@ def tile_button(tile_position):
 
 def player_button(color):
     global state, available_tiles_for_exchange, exchange_color, exchange_give, exchange_get
-    for player2 in players:
-        if player2.color == color:
-            if not player2.main:
-                if state['is_game_started'] and state['exchange_player_btn_active']:
+    if state['is_game_started'] and state['exchange_player_btn_active']:
+        for player2 in players:
+            if player2.color == color:
+                if not player2.main:
                     print(f'Нажат игрок: {color}')
                     available_tiles_for_exchange = []
                     for player in players:
                         if player.main:
-                            available_tiles_for_exchange += player.property
-                            # print(player.property)
-                        elif player.color == color:
-                            # print(player.property)
-                            available_tiles_for_exchange += player.property
-                    # print(available_tiles_for_exchange)
+                            for tile in all_tiles:
+                                if not tile.penised_family:
+                                    if tile.owner == player.color:
+                                        available_tiles_for_exchange.append(tile.position)
+                                    elif tile.owner == color:
+                                        available_tiles_for_exchange.append(tile.position)
+
                     exchange_give = []
                     exchange_get = []
                     state['exchange_tile_btn_active'] = True
@@ -458,12 +480,14 @@ def player_button(color):
                     state['show_exchange_screen'] = True
                     exchange_color = str(color)
                     exchange_commit_button.show()
+                    exchange_cancel_button.show()
                     exchange_give_textbox.show()
                     exchange_get_textbox.show()
+                    active_buttons_check()
 
 
 def shove_penis_activation():
-    global state
+    exchange_screen_reset()
     if state['is_game_started'] and state['penis_build_btn_active']:
         for tile in all_tiles:
             if tile.full_family:
@@ -475,10 +499,11 @@ def shove_penis_activation():
                             state['mortgage_tile_btn_active'] = False
                             state['redeem_tile_btn_active'] = False
                             state['exchange_tile_btn_active'] = False
+                            active_buttons_check()
 
 
 def remove_penis_activation():
-    global state
+    exchange_screen_reset()
     if state['is_game_started'] and state['penis_remove_btn_active'] and not state['penis_remove_btn_used']:
         for tile in all_tiles:
             if tile.full_family:
@@ -491,13 +516,17 @@ def remove_penis_activation():
                                 state['mortgage_tile_btn_active'] = False
                                 state['redeem_tile_btn_active'] = False
                                 state['exchange_tile_btn_active'] = False
+                                active_buttons_check()
 
 
 def exchange():
+    exchange_screen_reset()
     global state
     if state['is_game_started'] and state['exchange_btn_active']:
         state['exchange_player_btn_active'] = True
+        log_textbox.append_html_text(f'<font face="BulBulPoly" pixel_size={font_size} color="#000000">Нажмите на аватар человека, с которым хотите обменяться</font><br>')
         print('Нажата кнопка обмена')
+        active_buttons_check()
 
 
 def exchange_commit():
@@ -523,7 +552,15 @@ def exchange_commit():
                 exchange_give_textbox.set_text(exchange_money_give_sum[:-1])
                 incorrect_values = True
 
-        if -50 <= exchange_value <= 50 and not incorrect_values:
+        for player in players:
+            if player.main:
+                if player.money <= exchange_money_give_sum:
+                    incorrect_values = True
+            elif player.color == exchange_color:
+                if player.money <= exchange_money_get_sum:
+                    incorrect_values = True
+
+        if -50 <= exchange_value <= 50 and not incorrect_values and (exchange_give or exchange_get):
             exchange_command = f'exchange request|{exchange_money_give_sum}_'
 
             for give_tile in exchange_give:
@@ -550,6 +587,11 @@ def exchange_commit():
             exchange_give_textbox.hide()
             exchange_get_textbox.set_text('')
             exchange_get_textbox.hide()
+            log_textbox.show()
+            log_entry_button.show()
+            log_entry_textbox.show()
+
+            active_buttons_check()
 
 
 def exchange_value_calculation():
@@ -599,6 +641,7 @@ def exchange_value_calculation():
             exchange_value = -100
     else:
         exchange_value = -100
+    active_buttons_check()
 
 
 def exchange_request_confirm():
@@ -635,6 +678,10 @@ def exchange_request_confirm():
             state['show_exchange_request_screen'] = [False]
             exchange_request_confirm_button.hide()
             exchange_request_reject_button.hide()
+            log_textbox.show()
+            log_entry_button.show()
+            log_entry_textbox.show()
+            active_buttons_check()
 
 
 def exchange_request_reject():
@@ -645,6 +692,10 @@ def exchange_request_reject():
         state['show_exchange_request_screen'] = [False]
         exchange_request_confirm_button.hide()
         exchange_request_reject_button.hide()
+        log_textbox.show()
+        log_entry_button.show()
+        log_entry_textbox.show()
+        active_buttons_check()
 
 
 def choose_avatar():
@@ -663,7 +714,9 @@ def choose_avatar():
         top.destroy()
         if file_name != '' and not state['avatar_chosen']:
             state['avatar_chosen'] = True
+            active_buttons_check()
             image = Image.open(file_name)
+
             width, height = image.size
             if width > 203:
                 image = image.resize([203, height])
@@ -696,11 +749,9 @@ def choose_avatar():
 
             for i in all_sendable_data:
                 sock.send(i)
-                time.sleep(0.1)
 
 
 def auction():
-    global state
     if state['is_game_started'] and state['auction_btn_active']:
         for player in players:
             if player.main:
@@ -710,10 +761,13 @@ def auction():
                     information_sent('Команда отправлена', auction_command)
                     state['buy_btn_active'] = False
                     state['auction_btn_active'] = False
+                    state['exchange_btn_active'] = False
+                    state['mortgage_btn_active'] = False
+                    state['refused_to_buy'] = True
+                    active_buttons_check()
 
 
 def auction_buy():
-    global state
     if state['show_auction_screen'][0]:
         for player in players:
             if player.main:
@@ -724,10 +778,13 @@ def auction_buy():
                     state['show_auction_screen'] = [False]
                     auction_buy_button.hide()
                     auction_reject_button.hide()
+                    log_textbox.show()
+                    log_entry_button.show()
+                    log_entry_textbox.show()
+                    active_buttons_check()
 
 
 def auction_reject():
-    global state
     if state['show_auction_screen'][0]:
         auction_command = f'auction reject|{state['show_auction_screen'][1]}|{state['show_auction_screen'][2]}%'
         sock.send(auction_command.encode())
@@ -735,26 +792,34 @@ def auction_reject():
         state['show_auction_screen'] = [False]
         auction_buy_button.hide()
         auction_reject_button.hide()
+        log_textbox.show()
+        log_entry_button.show()
+        log_entry_textbox.show()
+        active_buttons_check()
 
 
 def mortgage():  # заложить
-    global state
+    exchange_screen_reset()
     if state['mortgage_btn_active']:
         state['mortgage_tile_btn_active'] = True
         state['redeem_tile_btn_active'] = False
         state['exchange_tile_btn_active'] = False
         state['all_penises_build_btns_active'] = False
         state['all_penises_remove_btns_active'] = False
+        active_buttons_check()
+        log_textbox.append_html_text(f'<font face="BulBulPoly" pixel_size={font_size} color="#000000">Нажмите на поле, которое хотите заложить></font><br>')
 
 
 def redeem():  # выкупить
-    global state
+    exchange_screen_reset()
     if state['redeem_btn_active']:
         state['redeem_tile_btn_active'] = True
         state['mortgage_tile_btn_active'] = False
         state['exchange_tile_btn_active'] = False
         state['all_penises_build_btns_active'] = False
         state['all_penises_remove_btns_active'] = False
+        active_buttons_check()
+        log_textbox.append_html_text(f'<font face="BulBulPoly" pixel_size={font_size} color="#000000">Нажмите на поле, которое хотите выкупить</font><br>')
 
 
 def exit_prison_by_egg_s(egg_type):
@@ -764,16 +829,47 @@ def exit_prison_by_egg_s(egg_type):
             if player.egg_prison_exit_card and egg_type == 'Яйцо':
                 prison_exit_information = f'prison exit by eggs|Яйцо%'
                 player.egg_prison_exit_card = False
+                exit_prison_egg_btn.hide()
             elif player.eggs_prison_exit_card and egg_type == 'Яйца':
                 prison_exit_information = f'prison exit by eggs|Яйца%'
                 player.eggs_prison_exit_card = False
+                exit_prison_eggs_btn.hide()
             sock.send(prison_exit_information.encode())
+            information_sent('Команда отправлена', prison_exit_information)
 
 
 def egg_s_reset():
     state['egg_btn_active'] = False
     state['eggs_btn_active'] = False
+    log_textbox.show()
+    log_entry_button.show()
+    log_entry_textbox.show()
+    active_buttons_check()
     print('Произведён сброс яиц')
+
+
+def exchange_screen_reset():
+    if state['show_exchange_screen']:
+        state['exchange_tile_btn_active'] = False
+        state['show_exchange_screen'] = False
+        exchange_commit_button.hide()
+        exchange_cancel_button.hide()
+        exchange_give_textbox.hide()
+        exchange_get_textbox.hide()
+        log_textbox.show()
+        log_entry_button.show()
+        log_entry_textbox.show()
+        active_buttons_check()
+
+
+def send_message():
+    if state['connected']:
+        message = log_entry_textbox.get_text()
+        if message:
+            message_information = f'message|{message}%'
+            log_entry_textbox.set_text('')
+            sock.send(message_information.encode())
+            information_sent('Команда отправлена', message_information)
 
 
 # ^
@@ -944,6 +1040,10 @@ def blit_board():
         screen.blit(font.render(tile.name, False, 'black'), auction_coordinates['company_text'])
         screen.blit(font.render(text, False, 'black'), auction_coordinates['price_text'])
 
+    elif state['render_moving_text'][0]:
+        for i, text_ in enumerate(state['render_moving_text'][1]):
+            screen.blit(text_, state['render_moving_text'][2][i])
+
 
 def price_printing():
     for tile in all_tiles:
@@ -1019,13 +1119,13 @@ def move_by_cubes(cube1, cube2, color):  # Не спрашивайте, как �
                     else:
                         player_move_change(False)
 
-                for tile in all_tiles:
-                    if tile.full_family and tile.owner == player.color and tile.type == 'buildable':
-                        if 1 <= tile.penises <= 5:
-                            state['penis_remove_btn_active'] = True
-
-                if len(players) > 1:
-                    state['exchange_btn_active'] = True
+                # for tile in all_tiles:
+                #     if tile.full_family and tile.owner == player.color and tile.type == 'buildable':
+                #         if 1 <= tile.penises <= 5:
+                #             state['penis_remove_btn_active'] = True
+                #
+                # if len(players) > 1:
+                #     state['exchange_btn_active'] = True
 
 
 
@@ -1041,7 +1141,7 @@ def move_by_cubes(cube1, cube2, color):  # Не спрашивайте, как �
                 information_sent('Информация отправлена', 'moved%')
                 mortgage_btn_check()
 
-                buy_btn_check(player.color)
+                buy_btn_check()
                 pay_btn_check()
 
 
@@ -1073,9 +1173,9 @@ def move(players_on_tile, end_positions, cube_sum):
                 if player == player2:
                     # print(f'{diff_x = :.2f}, {diff_y = :.2f}, {step_amount = }, {steps = }, {player2.x = :.2f}, {player2.y = :.2f}, {player.piece_position = }, {average_fps = :.2f}, {start_position = }, {end_positions = }')
                     if not optimized:
-                        time.sleep(abs(7 / cube_sum) * speed)
+                        time.sleep(abs(7 / cube_sum) * 3.3 * speed) # 75 * 3.3 ~~ 250
                     else:
-                        time.sleep(abs(7 / cube_sum) * 25 * speed)
+                        time.sleep(abs(7 / cube_sum) * 25 * speed) # 25 * 10 = 250
                     step_index = players_on_tile.index(player)
                     # print((steps[step_index][0] * average_fps, steps[step_index][1] * average_fps))
                     player2.x += steps[step_index][0] #* (1 / (10 * dt)) # 100
@@ -1083,19 +1183,51 @@ def move(players_on_tile, end_positions, cube_sum):
                     player2.player_piece_rect = player2.player_piece.get_rect(center=(player2.x, player2.y))
 
 
+def move_text(texts, colors, start_positions, end_positions):
+    rendered_texts = []
+    steps = []
+    positions_ = []
+
+    for i in range(len(texts)):
+        diff_x = end_positions[i][0] - start_positions[i][0]
+        diff_y = end_positions[i][1] - start_positions[i][1]
+        positions_.append(list(start_positions[i]))
+        rendered_texts.append(font.render(texts[i], False, colors[i]))
+
+        if i == 0:
+            step_amount = abs(round(math.sqrt(diff_x ** 2 + diff_y ** 2) * 150 * speed))
+
+        if step_amount != 0:
+            steps.append((diff_x / step_amount, diff_y / step_amount))
+        else:
+            steps.append((0, 0))
+
+    state['render_moving_text'] = [True, rendered_texts, positions_]
+
+    for i in range(step_amount):
+        for ii, text in enumerate(texts):
+            time.sleep(10 * speed)
+            positions_[ii][0] += steps[ii][0]
+            positions_[ii][1] += steps[ii][1]
+            # screen.blit(rendered_texts[ii], positions_[ii])
+
+
 def handle_connection():
     global players, all_tiles, avatar, avatar_file, cube_1_picture, cube_2_picture
     avatar = ''
+    buffer = ''
     while running:
+        time.sleep(ideal_dt)
         if assets_loaded:
             if state['connected']:
                 try:
-                    data_unsplit = sock.recv(1024).decode().replace('test', '')
-                    data_split_by_types = data_unsplit.split('%')
-                    while len(data_split_by_types) > 1:
-                        data = data_split_by_types[0].split('|')
+                    data_unsplit = sock.recv(1024).decode().replace('[1foe_S]', '')
+                    buffer += data_unsplit
 
-                        data_split_by_types.pop(0)
+                    while '%' in buffer:
+                        single_command, buffer = buffer.split('%', 1)
+                        data = single_command.split('|')
+
                         if data[0] != '':
 
                             if data[0] != 'avatar':
@@ -1137,6 +1269,10 @@ def handle_connection():
                                         state['double'] = int(data[2]) == int(data[3])
                                         print(f'Состояние double установлено на {state['double']}')
                                 move_by_cubes(int(data[2]), int(data[3]), data[1])
+                                for player in players:
+                                    if player.color == data[1]:
+                                        log_textbox.append_html_text(f'<font face="BulBulPoly" pixel_size={font_size} color="{player.color_value}">{player.name} </font>'
+                                                                     f'<font face="BulBulPoly" pixel_size={font_size} color="#000000">выбросил {data[2]}:{data[3]} и попал на поле {all_tiles[player.piece_position].name}</font><br>')
                                 mortgage_btn_check()
                                 redeem_btn_check()
 
@@ -1154,13 +1290,16 @@ def handle_connection():
                                             end_positions.append((all_tiles[player3.piece_position].x_center + margin[len(players_on_tile) - 1][players_on_tile.index(player3)][0],
                                                                   all_tiles[player3.piece_position].y_center + margin[len(players_on_tile) - 1][players_on_tile.index(player3)][1]))
 
-                                        move([player], end_positions, 7)
+                                        move([player], end_positions, 10)
+                                        log_textbox.append_html_text(
+                                            f'<font face="BulBulPoly" pixel_size={font_size} color="{player.color_value}">{player.name} </font>'
+                                            f'<font face="BulBulPoly" pixel_size={font_size} color="#000000">переносится на поле {all_tiles[player.piece_position].name}</font><br>')
                                         if all_tiles[player.piece_position].owner == player.color:
                                             player_move_change(True)
 
                                         position_update()
                                         pay_btn_check()
-                                        buy_btn_check(player.color)
+                                        buy_btn_check()
                                         mortgage_btn_check()
                                         redeem_btn_check()
 
@@ -1177,8 +1316,6 @@ def handle_connection():
                                         player.money = int(data[2])
                                         player.piece_position = int(data[3])
                                         player.name = data[4]
-                                    if profile_picture.get_rect(topleft=profile_coordinates[i]['profile']) not in update_list_static:
-                                        update_list_static.append(profile_picture.get_rect(topleft=profile_coordinates[i]['profile']))
 
                                 position_update()
                                 mortgage_btn_check()
@@ -1205,8 +1342,11 @@ def handle_connection():
                                                 all_tiles[i].text_defining(font)
 
                                         print(f'У {player.color} есть {player.property}')
+                                        log_textbox.append_html_text(
+                                            f'<font face="BulBulPoly" pixel_size={font_size} color="{player.color_value}">{player.name} </font>'
+                                            f'<font face="BulBulPoly" pixel_size={font_size} color="#000000">купил {all_tiles[tile_position].name}</font><br>')
 
-                                        buy_btn_check(data[1])
+                                        buy_btn_check()
                                     if player.main:
                                         if int(data[2]) == player.piece_position:
                                             state['paid'] = True
@@ -1220,13 +1360,16 @@ def handle_connection():
                                         update_list_dynamic.append(profile_picture.get_rect(topleft=profile_coordinates[i]['profile']))
                                         if not state['egg_btn_active'] or not state['eggs_btn_active']:
                                             pay_btn_check()
-                                        buy_btn_check(player.color)
+                                        buy_btn_check()
                                         mortgage_btn_check()
                                         redeem_btn_check()
 
                             elif data[0] == 'playerDeleted':
                                 for player in players:
                                     if player.color == data[1]:
+                                        log_textbox.append_html_text(
+                                            f'<font face="BulBulPoly" pixel_size={font_size} color="{player.color_value}">{player.name} </font>'
+                                            f'<font face="BulBulPoly" pixel_size={font_size} color="#000000">отключился</font><br>')
                                         players.remove(player)
 
                             elif data[0] == 'gameStarted':
@@ -1246,7 +1389,7 @@ def handle_connection():
                                         player.on_move = True
 
                                         if player.main:
-                                            if len(players) > 1:
+                                            if len(players) > 1 and not player.imprisoned:
                                                 state['exchange_btn_active'] = True
 
                                             state['throw_cubes_btn_active'] = True
@@ -1277,13 +1420,16 @@ def handle_connection():
 
                             elif data[0] == 'error':
                                 print(f'Ошибка: {"\033[31m{}".format(data[1])}{'\033[0m'}')
+                                state['avatar_chosen'] = False
 
                             elif data[0] == 'imprisoned':
                                 for i, player in enumerate(players):
                                     if data[1] == player.color:
                                         player.imprisoned = True
                                         player.piece_position = 10
-                                        update_list_dynamic.append(profile_picture.get_rect(topleft=profile_coordinates[i]['profile']))
+                                        log_textbox.append_html_text(
+                                            f'<font face="BulBulPoly" pixel_size={font_size} color="{player.color_value}">{player.name} </font>'
+                                            f'<font face="BulBulPoly" pixel_size={font_size} color="#000000">отправляется в тюрьму</font><br>')
                                         pay_btn_check()
                                         mortgage_btn_check()
                                         redeem_btn_check()
@@ -1293,29 +1439,67 @@ def handle_connection():
                                     if data[1] == player.color:
                                         player.imprisoned = False
                                         update_list_dynamic.append(profile_picture.get_rect(topleft=profile_coordinates[i]['profile']))
+                                        log_textbox.append_html_text(
+                                            f'<font face="BulBulPoly" pixel_size={font_size} color="{player.color_value}">{player.name} </font>'
+                                            f'<font face="BulBulPoly" pixel_size={font_size} color="#000000">выходит из тюрьмы</font><br>')
 
                                 if len(data) > 2:
                                     move_by_cubes(int(data[2]), int(data[3]), data[1])
+                                    for player in players:
+                                        if player.color == data[1]:
+                                            log_textbox.append_html_text(
+                                                f'<font face="BulBulPoly" pixel_size={font_size} color="{player.color_value}">{player.name} </font>'
+                                                f'<font face="BulBulPoly" pixel_size={font_size} color="#000000">выбросил {data[2]}:{data[3]} и попал на поле {all_tiles[player.piece_position].name}</font><br>')
                                 mortgage_btn_check()
                                 redeem_btn_check()
 
                             elif data[0] == 'penis built':
-                                all_tiles[int(data[1])].penises += 1
-                                all_tiles[int(data[1])].text_defining(font)
+                                tile_position = int(data[1])
+                                all_tiles[tile_position].penises += 1
+                                all_tiles[tile_position].text_defining(font)
+                                for tile in all_tiles:
+                                    if tile.family == all_tiles[tile_position].family:
+                                        tile.penised_family = True
+                                for player in players:
+                                    if player.color == all_tiles[tile_position].owner:
+                                        log_textbox.append_html_text(
+                                            f'<font face="BulBulPoly" pixel_size={font_size} color="{player.color_value}">{player.name} </font>'
+                                            f'<font face="BulBulPoly" pixel_size={font_size} color="#000000">сунул пЭнис в {all_tiles[tile_position].name}</font><br>')
                                 mortgage_btn_check()
                                 redeem_btn_check()
 
                             elif data[0] == 'penis removed':
-                                all_tiles[int(data[1])].penises -= 1
-                                all_tiles[int(data[1])].text_defining(font)
+                                tile_position = int(data[1])
+                                all_tiles[tile_position].penises -= 1
+                                all_tiles[tile_position].text_defining(font)
+                                penised = False
+                                for tile in all_tiles:
+                                    if tile.family == all_tiles[tile_position].family:
+                                        if tile.penises:
+                                            penised = True
+                                for tile in all_tiles:
+                                    if tile.family == all_tiles[tile_position].family:
+                                        tile.penised_family = penised
+
+                                for player in players:
+                                    if player.color == all_tiles[tile_position].owner:
+                                        log_textbox.append_html_text(
+                                            f'<font face="BulBulPoly" pixel_size={font_size} color="{player.color_value}">{player.name} </font>'
+                                            f'<font face="BulBulPoly" pixel_size={font_size} color="#000000">высунул пЭнис из {all_tiles[tile_position].name}</font><br>')
                                 mortgage_btn_check()
                                 redeem_btn_check()
 
                             elif data[0] == 'bribe':
-                                state['throw_cubes_btn_active'] = False
-                                state['pay_btn_active'] = ['prison']
-                                mortgage_btn_check()
-                                redeem_btn_check()
+                                for player in players:
+                                    if player.color == data[1]:
+                                        if player.main:
+                                            state['throw_cubes_btn_active'] = False
+                                            state['pay_btn_active'] = ['prison']
+                                            mortgage_btn_check()
+                                            redeem_btn_check()
+                                        log_textbox.append_html_text(
+                                            f'<font face="BulBulPoly" pixel_size={font_size} color="{player.color_value}">{player.name} </font>'
+                                            f'<font face="BulBulPoly" pixel_size={font_size} color="#000000">не смог выйти из тюрьмы и должен заплатить {data[2]}~</font><br>')
 
                             elif data[0] == 'imprisoned double failed':
                                 show_cubes(data[2], data[3])
@@ -1324,6 +1508,10 @@ def handle_connection():
                                 redeem_btn_check()
 
                                 print(f'У игрока {data[1]} осталось {3 - int(data[4])} попытки чтобы выйти из тюрьмы')
+                                log_textbox.append_html_text(
+                                    f'<font face="BulBulPoly" pixel_size={font_size} color="#000000">У </font>'
+                                    f'<font face="BulBulPoly" pixel_size={font_size} color="{player.color_value}">{player.name} </font>'
+                                    f'<font face="BulBulPoly" pixel_size={font_size} color="#000000">осталось {3 - int(data[4])} попытки, чтобы выйти из тюрьмы</font><br>')
 
                             elif data[0] == 'all property':
                                 for player in players:
@@ -1377,13 +1565,29 @@ def handle_connection():
 
                                 state['show_exchange_request_screen'] = [True, give_money, give_property, get_money,
                                                                          get_property, color]
+                                log_textbox.hide()
+                                log_entry_button.hide()
+                                log_entry_textbox.hide()
                                 exchange_request_confirm_button.show()
                                 exchange_request_reject_button.show()
 
                             elif data[0] == 'auction bid':
                                 state['show_auction_screen'] = [True, int(data[1]), int(data[2])]
+                                log_textbox.hide()
+                                log_entry_button.hide()
+                                log_entry_textbox.hide()
                                 auction_buy_button.show()
                                 auction_reject_button.show()
+                                mortgage_btn_check()
+                                for player in players:
+                                    if player.main:
+                                        for tile in all_tiles:
+                                            if tile.full_family and tile.owner == player.color and tile.type == 'buildable':
+                                                if 1 <= tile.penises <= 5:
+                                                    state['penis_remove_btn_active'] = True
+
+                                if len(players) > 1:
+                                    state['exchange_btn_active'] = True
 
                             elif data[0] == 'mortgaged':
                                 all_tiles[int(data[1])].mortgaged = True
@@ -1392,6 +1596,11 @@ def handle_connection():
                                     if tile.family == all_tiles[int(data[1])].family:
                                         tile.family_members -= 1
                                         tile.text_defining(font)
+                                for player in players:
+                                    if player.color == all_tiles[int(data[1])].owner:
+                                        log_textbox.append_html_text(
+                                            f'<font face="BulBulPoly" pixel_size={font_size} color="{player.color_value}">{player.name} </font>'
+                                            f'<font face="BulBulPoly" pixel_size={font_size} color="#000000">закладывает {all_tiles[int(data[1])].name}</font><br>')
 
                             elif data[0] == 'redeemed':
                                 all_tiles[int(data[1])].mortgaged = False
@@ -1399,6 +1608,12 @@ def handle_connection():
                                     if tile.family == all_tiles[int(data[1])].family:
                                         tile.family_members += 1
                                         tile.text_defining(font)
+
+                                for player in players:
+                                    if player.color == all_tiles[int(data[1])].owner:
+                                        log_textbox.append_html_text(
+                                            f'<font face="BulBulPoly" pixel_size={font_size} color="{player.color_value}">{player.name} </font>'
+                                            f'<font face="BulBulPoly" pixel_size={font_size} color="#000000">выкупает {all_tiles[int(data[1])].name}</font><br>')
 
                             elif data[0] == 'late to redeem':
                                 for tile in all_tiles:
@@ -1410,6 +1625,12 @@ def handle_connection():
                                     if tile.family == all_tiles[int(data[1])].family:
                                         tile.family_members -= 1
                                     tile.text_defining(font)
+
+                                for player in players:
+                                    if player.color == all_tiles[int(data[1])].owner:
+                                        log_textbox.append_html_text(
+                                            f'<font face="BulBulPoly" pixel_size={font_size} color="{player.color_value}">{player.name} </font>'
+                                            f'<font face="BulBulPoly" pixel_size={font_size} color="#000000">не смог выкупить {all_tiles[int(data[1])].name}</font><br>')
 
                             elif data[0] == 'need to pay':
                                 for player in players:
@@ -1433,6 +1654,7 @@ def handle_connection():
                                         player_move_change(True)
 
                             elif data[0] == 'need to pay to player':
+                                global pulled_card_strings
                                 for player in players:
                                     if player.main:
                                         for tile in all_tiles:
@@ -1446,6 +1668,10 @@ def handle_connection():
                                 mortgage_btn_check()
 
                                 state['pay_btn_active'] = ['player', data[1], int(data[2])]
+                                for player in players:
+                                    if player.color == data[1]:
+                                        for i in pulled_card_strings:
+                                            i.replace('{player_name}', player.name)
 
                             elif data[0] == 'need to pay to players':
                                 for player in players:
@@ -1463,32 +1689,39 @@ def handle_connection():
                                 state['pay_btn_active'] = ['players', int(data[1])]
 
                             elif data[0] == 'pulled card position':
-                                global pulled_card_text, pulled_card_strings, pulled_card_title, pulled_card_title_rect
-                                if data[1] == 'Яйцо':
+                                global pulled_card_text,  pulled_card_title, pulled_card_title_rect
+                                if data[2] == 'Яйцо':
                                     pulled_card_title = egg_font.render('Вопросительное яйцо', False, 'black')
                                     pulled_card_title_rect = pulled_card_title.get_rect(center=egg_card_title_center)
                                     state['egg_btn_active'] = True
-                                    egg_card_position = int(data[2])
+                                    egg_card_position = int(data[3])
                                     pulled_card_strings = []
                                     text = all_egg[egg_card_position].description
                                     if '{value}' in text:
                                         text = text.replace('{value}', f'{all_egg[egg_card_position].value}')
                                     if '{tile_name}' in text:
                                         text = text.replace('{tile_name}', all_tiles[all_egg[egg_card_position].value].name)
-                                    # text = 'Заплатите всем игрокам моральную компенсацию в размере 50~ за то, что вы показали всем пЭнис'
+                                    if '{player_name}' in text:
+                                        for player in players:
+                                            if player.color == data[1]:
+                                                text = text.replace('{player_name}', player.name)
                                     text = text.split(' ')
 
-                                elif data[1] == 'Яйца':
+                                elif data[2] == 'Яйца':
                                     pulled_card_title = egg_font.render('Груда вопросительных яиц', False, 'black')
                                     pulled_card_title_rect = pulled_card_title.get_rect(center=egg_card_title_center)
                                     state['eggs_btn_active'] = True
-                                    egg_card_position = int(data[2])
+                                    egg_card_position = int(data[3])
                                     pulled_card_strings = []
                                     text = all_eggs[egg_card_position].description
                                     if '{value}' in text:
                                         text = text.replace('{value}', f'{all_eggs[egg_card_position].value}')
                                     if '{tile_name}' in text:
                                         text = text.replace('{tile_name}', all_tiles[all_eggs[egg_card_position].value].name)
+                                    if '{player_name}' in text:
+                                        for player in players:
+                                            if player.color == data[1]:
+                                                text = text.replace('{player_name}', player.name)
                                     text = text.split(' ')
 
                                 while text:
@@ -1502,6 +1735,9 @@ def handle_connection():
                                     if egg_font.size(' '.join(text))[0] <= egg_card_text_width:
                                         pulled_card_strings.append(' '.join(text))
                                         text.clear()
+                                log_textbox.hide()
+                                log_entry_button.hide()
+                                log_entry_textbox.hide()
 
                             elif data[0] == 'show cubes':
                                 show_cubes(data[1], data[2])
@@ -1517,9 +1753,98 @@ def handle_connection():
                                                 player.eggs_prison_exit_card = True
                                                 exit_prison_eggs_btn.show()
                                             player_move_change(True)
+                                        log_textbox.append_html_text(
+                                            f'<font face="BulBulPoly" pixel_size={font_size} color="{player.color_value}">{player.name} </font>'
+                                            f'<font face="BulBulPoly" pixel_size={font_size} color="#000000">вытянул карточку выхода из тюрьмы</font><br>')
+
+                            elif data[0] == 'paid':
+                                time.sleep(0.1)
+                                instances = data[1].split('-')
+                                for i in range(len(instances)):
+                                    instances[i] = instances[i].split('_') # откуда_куда_сколько_за что
+
+                                texts = []
+                                colors = []
+                                start_positions = []
+                                end_positions = []
+
+                                for instance in instances:
+                                    texts.append(instance[2])
+
+                                    if instance[0] == 'system':
+                                        start_positions.append((profile_coordinates[0]['money'][0], -45))
+                                        colors.append('black')
+                                    else:
+                                        for i, player in enumerate(players):
+                                            if player.color == instance[0]:
+                                                start_positions.append(profile_coordinates[i]['money'])
+                                                colors.append(player.color)
+
+                                    if instance[1] == 'system':
+                                        end_positions.append((profile_coordinates[0]['money'][0], -45))
+                                    else:
+                                        for i, player in enumerate(players):
+                                            if player.color == instance[1]:
+                                                end_positions.append(profile_coordinates[i]['money'])
+
+                                    if instance[3] == 'income':
+                                        for player in players:
+                                            if player.color == instance[0]:
+                                                log_textbox.append_html_text(
+                                                    f'<font face="BulBulPoly" pixel_size={font_size} color="{player.color_value}">{player.name} </font>'
+                                                    f'<font face="BulBulPoly" pixel_size={font_size} color="#000000">получает {instance[2]}</font><br>')
+                                    elif instance[3] == 'minus':
+                                        for player in players:
+                                            if player.color == instance[0]:
+                                                log_textbox.append_html_text(
+                                                    f'<font face="BulBulPoly" pixel_size={font_size} color="{player.color_value}">{player.name} </font>'
+                                                    f'<font face="BulBulPoly" pixel_size={font_size} color="#000000">заплатил Глебу {instance[2]}</font><br>')
+                                    elif instance[3] == 'simple':
+                                        for player in players:
+                                            if player.color == instance[0]:
+                                                log_textbox.append_html_text(
+                                                    f'<font face="BulBulPoly" pixel_size={font_size} color="{player.color_value}">{player.name} </font>'
+                                                    f'<font face="BulBulPoly" pixel_size={font_size} color="#000000">заплатил {instance[2]}</font><br>')
+                                    elif instance[3] == 'prison':
+                                        for player in players:
+                                            if player.color == instance[0]:
+                                                log_textbox.append_html_text(
+                                                    f'<font face="BulBulPoly" pixel_size={font_size} color="{player.color_value}">{player.name} </font>'
+                                                    f'<font face="BulBulPoly" pixel_size={font_size} color="#000000">заплатил {instance[2]} за выход из тюрьмы</font><br>')
+                                    elif instance[3] == 'buy':
+                                        for player in players:
+                                            if player.color == instance[0]:
+                                                log_textbox.append_html_text(
+                                                    f'<font face="BulBulPoly" pixel_size={font_size} color="{player.color_value}">{player.name} </font>'
+                                                    f'<font face="BulBulPoly" pixel_size={font_size} color="#000000">потратил {instance[2]}</font><br>')
+                                    elif instance[3] == 'to player':
+                                        for player in players:
+                                            if player.color == instance[0]:
+                                                for player2 in players:
+                                                    if player2.color == instance[1]:
+                                                        log_textbox.append_html_text(
+                                                            f'<font face="BulBulPoly" pixel_size={font_size} color="{player.color_value}">{player.name} </font>'
+                                                            f'<font face="BulBulPoly" pixel_size={font_size} color="#000000">заплатил игроку </font>'
+                                                            f'<font face="BulBulPoly" pixel_size={font_size} color="{player.color_value}">{player2.name} </font>'
+                                                            f'<font face="BulBulPoly" pixel_size={font_size} color="#000000">{instance[2]}</font><br>')
+                                    elif instance[3] == 'strange':
+                                        for player in players:
+                                            if player.color == instance[0]:
+                                                log_textbox.append_html_text(
+                                                    f'<font face="BulBulPoly" pixel_size={font_size} color="{player.color_value}">{player.name} </font>'
+                                                    f'<font face="BulBulPoly" pixel_size={font_size} color="#000000">заплатил {instance[2]} за что-то</font><br>')
+
+                                state['render_moving_text'] = [0, texts, colors, start_positions, end_positions]
+
+                                # функция move_text перенесена в dynamic_changes
+
+                            elif data[0] == 'message':
+                                log_textbox.append_html_text(data[1].replace('[font_size]', str(font_size)))
 
                             else:
-                                print(f'Ошибка: {"\033[31m{}".format(f'Незарегистрированная команда: {data[0]}')}{'\033[0m'}')
+                                print(f'Ошибка: {"\033[31m{}".format(f'Незарегистрированная команда на стороне клиента: {data[0]}')}{'\033[0m'}')
+
+                            active_buttons_check()
 
                         if not running:
                             break
@@ -1539,12 +1864,13 @@ def delta_time(old_time):
 def event_handler():
     events = pg.event.get()
     for event in events:
+        # print(event)
         if event.type == pg.QUIT:
             global running
             running = False
 
         elif event.type == pg.KEYUP and debug_mode and not optimized:
-            if not ip_textbox.is_focused and not port_textbox.is_focused and not name_textbox.is_focused and not exchange_give_textbox.is_focused and not exchange_get_textbox.is_focused:
+            if not ip_textbox.is_focused and not port_textbox.is_focused and not name_textbox.is_focused and not exchange_give_textbox.is_focused and not exchange_get_textbox.is_focused and not log_entry_textbox.is_focused:
                 if event.key == pg.K_c:
                     connect()
                 elif event.key == pg.K_d:
@@ -1556,7 +1882,7 @@ def event_handler():
             elif state['eggs_btn_active']:
                 egg_s_reset()
 
-        elif event.type == pg.WINDOWRESTORED:
+        elif event.type == pg.WINDOWRESTORED or event.type == pg.WINDOWMOVED:
             update_list_dynamic.append(pg.Rect((0, 0), resolution))
 
         if assets_loaded:
@@ -1602,6 +1928,8 @@ def event_handler():
                     debug_output()
                 elif event_type == exchange_commit_button:
                     exchange_commit()
+                elif event_type == exchange_cancel_button:
+                    exchange_screen_reset()
                 elif event_type == exchange_request_confirm_button:
                     exchange_request_confirm()
                 elif event_type == exchange_request_reject_button:
@@ -1614,6 +1942,8 @@ def event_handler():
                     exit_prison_by_egg_s('Яйцо')
                 elif event_type == exit_prison_eggs_btn:
                     exit_prison_by_egg_s('Яйца')
+                elif event_type == log_entry_button:
+                    send_message()
                 else:
                     if state['is_game_started']:
                         for player in players:
@@ -1627,6 +1957,8 @@ def event_handler():
                 event_type = event.ui_element
                 if event_type == name_textbox:
                     name_check()
+                elif event_type == log_entry_textbox:
+                    log_entry_check()
                 elif event_type == ip_textbox:
                     ip_ = ip_textbox.get_text()
                     ip_ = allowed_characters_check(ip_, '0123456789.')
@@ -1650,7 +1982,7 @@ def player_move_change(do_change):
 
 
 def buttons():
-    global cube_button, buy_button, pay_button, name_textbox, ip_textbox, port_textbox, connect_button, debug_button, avatar_choose_button, shove_penis_button, remove_penis_button, exchange_button, exchange_commit_button, exchange_give_textbox, exchange_get_textbox, exchange_request_confirm_button, exchange_request_reject_button, auction_button, auction_buy_button, auction_reject_button, mortgage_button, redeem_button, exit_prison_egg_btn, exit_prison_eggs_btn
+    global cube_button, buy_button, pay_button, name_textbox, ip_textbox, port_textbox, connect_button, debug_button, avatar_choose_button, shove_penis_button, remove_penis_button, exchange_button, exchange_commit_button, exchange_cancel_button, exchange_give_textbox, exchange_get_textbox, exchange_request_confirm_button, exchange_request_reject_button, auction_button, auction_buy_button, auction_reject_button, mortgage_button, redeem_button, exit_prison_egg_btn, exit_prison_eggs_btn, log_textbox, log_entry_textbox, log_entry_button
 
     cube_button = pygame_gui.elements.UIButton(
         relative_rect=pg.Rect(btn_coordinates['throw_cubes']),
@@ -1730,8 +2062,14 @@ def buttons():
 
 
     exchange_commit_button = pygame_gui.elements.UIButton(
-        relative_rect=pg.Rect(exchange_coordinates['button']),
+        relative_rect=pg.Rect(exchange_coordinates['confirm']),
         text='Обмен',
+        visible=False,
+        manager=manager)
+
+    exchange_cancel_button = pygame_gui.elements.UIButton(
+        relative_rect=pg.Rect(exchange_coordinates['reject']),
+        text='Отмена',
         visible=False,
         manager=manager)
 
@@ -1785,10 +2123,25 @@ def buttons():
         object_id=pygame_gui.core.ObjectID(class_id='@transparent_buttons', object_id='#eggs_button'),
         manager=manager)
 
+    log_textbox = pygame_gui.elements.UITextBox(
+        relative_rect=pg.Rect(log_textbox_coordinates['main_box']),
+        html_text='',
+        manager=manager)
+
+    log_entry_textbox = pygame_gui.elements.UITextEntryBox(
+        relative_rect=pg.Rect(log_textbox_coordinates['user_input_box']),
+        placeholder_text='',
+        manager=manager)
+
+    log_entry_button = pygame_gui.elements.UIButton(
+        relative_rect=pg.Rect(log_textbox_coordinates['user_input_send_button']),
+        text='Отправить',
+        manager=manager)
+    log_entry_button.disable()
+
     for i in range(40):
         globals()[f'tile_{i}_button'] = pygame_gui.elements.UIButton(
             relative_rect=pg.Rect(positions[i], tile_size),
-            # tool_tip_text=all_tiles[i].name,
             text='',
             manager=manager,
             object_id=pygame_gui.core.ObjectID(class_id='@transparent_buttons', object_id='#tile_button'))
@@ -1809,7 +2162,12 @@ def show_cubes(cube1, cube2):
 
 def dynamic_changes():
     while running:
-        active_buttons_check()
+        time.sleep(ideal_dt)
+        # active_buttons_check()
+
+        if len(state['render_moving_text']) > 1:
+            move_text(state['render_moving_text'][1], state['render_moving_text'][2], state['render_moving_text'][3], state['render_moving_text'][4])
+            state['render_moving_text'] = [False]
 
 
 # Проверки
@@ -1835,9 +2193,18 @@ def forbidden_characters_check(text, forbidden_characters):
 
 def name_check():
     name = name_textbox.get_text()
-    name = forbidden_characters_check(name, '|%')
+    name = forbidden_characters_check(name, ['|', '%', '[1foe_S]'])
+    while font.size(name)[0] >= profile_picture.width - 10:
+        name = name[:-1]
     if name_textbox.get_text() != name:
         name_textbox.set_text(name)
+
+
+def log_entry_check():
+    log_text = log_entry_textbox.get_text()
+    log_text = forbidden_characters_check(log_text, ['|', '%', '[1foe_S]'])
+    if log_entry_textbox.get_text() != log_text:
+        log_entry_textbox.set_text(log_text)
 
 
 def active_buttons_check():
@@ -1913,41 +2280,43 @@ def pay_btn_check():
     if state['is_game_started']:
         for player in players:
             if player.main:
-                if player.imprisoned:
+                if player.imprisoned and player.on_move:
                     state['pay_btn_active'] = ['prison']
+                    mortgage_btn_check()
                 elif not state['paid']:
-                    if (player.piece_position == 4 or player.piece_position == 38) and player.money >= all_tiles[
-                        player.piece_position].income * -1:
+                    if (player.piece_position == 4 or player.piece_position == 38) and player.money >= all_tiles[player.piece_position].income * -1:
                         state['pay_btn_active'] = ['minus']
                         state['paid'] = True
+                        mortgage_btn_check()
                     else:
                         for player2 in players:
                             if not player2.main:
-                                if player.piece_position in player2.property and not all_tiles[
-                                    player.piece_position].mortgaged:
+                                if player.piece_position in player2.property and not all_tiles[player.piece_position].mortgaged:
                                     state['pay_btn_active'] = ['color', player2.color]
+                                    mortgage_btn_check()
                                     state['paid'] = True
                                 else:
                                     if state['pay_btn_active'][0] not in ('pay sum', 'player', 'players'):
                                         state['pay_btn_active'] = ['False']
-                    print(f'Состояние pay_btn_active установлено на {state['pay_btn_active']}')
+                print(f'Состояние pay_btn_active установлено на {state['pay_btn_active']}')
 
 
-def buy_btn_check(color):
+def buy_btn_check():
     global state, players
     for player in players:
-        if player.main and player.color == color:
+        if player.main:
             if all_tiles[player.piece_position].buyable:
-                if not all_tiles[player.piece_position].owned:
-                    if player.money >= int(all_tiles[player.piece_position].price):
-                        state['buy_btn_active'] = True
+                if not state['refused_to_buy']:
+                    if not all_tiles[player.piece_position].owned:
+                        if player.money >= int(all_tiles[player.piece_position].price):
+                            state['buy_btn_active'] = True
+                        else:
+                            state['buy_btn_active'] = False
+                        # print(f'Состояние buy_btn_active установлено на {state['buy_btn_active']}')
+                        state['auction_btn_active'] = True
                     else:
+                        state['auction_btn_active'] = False
                         state['buy_btn_active'] = False
-                    print(f'Состояние buy_btn_active установлено на {state['buy_btn_active']}')
-                    state['auction_btn_active'] = True
-                else:
-                    state['auction_btn_active'] = False
-                    state['buy_btn_active'] = False
 
 
 def mortgage_btn_check():  # заложить
@@ -1955,14 +2324,22 @@ def mortgage_btn_check():  # заложить
     if state['is_game_started']: # and (state['buy_btn_active'] or state['pay_btn_active'][0] != 'False' or state['throw_cubes_btn_active']):
         for player in players:
             if player.main:
-                if player.on_move or state['buy_btn_active'] or state['pay_btn_active'][0] != 'False':
+                if player.on_move or state['buy_btn_active'] or state['pay_btn_active'][0] != 'False' or state['show_auction_screen'][0]:
                     for tile_position in player.property:
                         if all_tiles[tile_position].penises <= 0 and not all_tiles[tile_position].mortgaged:
                             state['mortgage_btn_active'] = True
                         else:
                             state['mortgage_btn_active'] = False
+
+                elif all_tiles[player.piece_position].buyable: # если нельзя купить, то можно заложить
+                    if not all_tiles[player.piece_position].owned:
+                        state['mortgage_btn_active'] = True
+                    else:
+                        state['mortgage_btn_active'] = False
+
                 else:
                     state['mortgage_btn_active'] = False
+                # print(f'Состояние mortgage_btn_active установлено на {state['mortgage_btn_active']}')
 
 
 def redeem_btn_check():  # выкупить
@@ -1978,6 +2355,8 @@ def redeem_btn_check():  # выкупить
                         if player.color == tile.owner:
                             if player.money >= tile.price / 2 * 1.1:
                                 state['redeem_btn_active'] = True
+                        else:
+                            state['redeem_btn_active'] = False
 
 
 running = True
@@ -2004,8 +2383,6 @@ while running and not assets_loaded:
     clock.tick(FPS)
     screen.fill((128, 128, 128))
     screen.blit(loading_text_1, loading_text_1_rect)
-    # if first_launch:
-    #     screen.blit(loading_text_2, loading_text_2_rect)
     event_handler()
     pg.display.flip()
 

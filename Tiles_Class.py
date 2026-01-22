@@ -27,6 +27,7 @@ class Tiles:
         else:
             self.penis_price = 0
         self.penises = 0
+        self.penised_family = False # запЭнисованная семья, если семья имеет хотя бы один пЭнис
         self.income = 0
         self.owned = False
         self.owner = ''

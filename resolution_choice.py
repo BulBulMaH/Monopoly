@@ -48,7 +48,7 @@ def resolution_definition(do_choose):
 
             is_optimization_selected = False
             while not is_optimization_selected:
-                is_optimized = input('Выберите наличие "ультраоптимизации":\n'
+                is_optimized = input('Выберите наличие оптимизации движения:\n'
                                      '[y / +] - есть\n'
                                      '[n / -] - нет\n')
                 if is_optimized in 'y+':
@@ -83,7 +83,7 @@ def resolution_definition(do_choose):
                     optimization_text = 'ultra optimization'
                 else:
                     optimization_text = ''
-                settings_file.write(f'{resolution_index}\n{fps}\n{optimization_text}\n{debug_text}\n\n')
+                settings_file.write(f'{resolution_index}\n{fps}\n{optimization_text}\n{debug_text}\n128,128,128,\n')
                 print('Настройки сохранены')
 
     else:
@@ -95,7 +95,7 @@ def resolution_definition(do_choose):
     if resolution_index == '1':
         resolution = (1280, 650)
         resolution_folder = '720p'
-        fps_coordinates = (657, 0)
+        fps_coordinates = (652, -5)
         font_size = 25
 
         btn_coordinates = {'throw_cubes':   ((953,  20 ), (136, 38)),
@@ -135,6 +135,10 @@ def resolution_definition(do_choose):
                                             'connect':       ((1040, 534), (217, 38)),
                                             'choose_avatar': ((1040, 592), (217, 38)),
                                             'debug':         ((1040, 384), (140, 38))}
+
+        log_textbox_coordinates = {'main_box':               (95,  95,  459, 426),
+                                   'user_input_box':         (95,  519, 350, 35),
+                                   'user_input_send_button': (443, 519, 111, 35)}
 
         egg_btns_coordinates = {'egg':  ((953,  310), (52, 38)),
                                 'eggs': ((1037, 310), (52, 38))}
@@ -200,6 +204,10 @@ def resolution_definition(do_choose):
                                             'choose_avatar': ((1683, 914), (208, 57)),
                                             'debug':         ((1683, 660), (208, 57))}
 
+        log_textbox_coordinates = {'main_box':               (138, 138, 721, 688),
+                                   'user_input_box':         (138, 819, 640, 40),
+                                   'user_input_send_button': (748, 819, 111, 40)}
+
         egg_btns_coordinates = {'egg':  ((1455, 465), (78, 57)),
                                 'eggs': ((1581, 465), (78, 57))}
 
@@ -264,6 +272,10 @@ def resolution_definition(do_choose):
                                            'connect':       ((2127, 1127), (392, 76)),
                                            'choose_avatar': ((2127, 1243), (392, 76))}
 
+        log_textbox_coordinates = {'main_box':               (197, 197,  961, 911),
+                                   'user_input_box':         (197, 1098, 760, 60),
+                                   'user_input_send_button': (936, 1098, 222, 60)}
+
         egg_btns_coordinates = {'egg':  ((1935, 620), (106, 76)),
                                 'eggs': ((2101, 620), (106, 76))}
 
@@ -284,4 +296,4 @@ def resolution_definition(do_choose):
         if do_choose:
             print(f'Выбрано разрешение 2560x1440 и FPS равен {fps}. Вы можете поменять настройки, открыв файл settings.py\n')
 
-    return resolution, resolution_folder, btn_coordinates, profile_coordinates, start_btn_textboxes_coordinates, cubes_coordinates, speed, avatar_side_size, exchange_coordinates, fps, auction_coordinates, tile_size, margin, debug_mode, fps_coordinates, font_size, egg_card_coordinates, egg_card_text_center, egg_card_title_center, egg_title_font_size, egg_card_text_width, egg_btns_coordinates, optimized, background_color
+    return resolution, resolution_folder, btn_coordinates, profile_coordinates, start_btn_textboxes_coordinates, cubes_coordinates, speed, avatar_side_size, exchange_coordinates, fps, auction_coordinates, tile_size, margin, debug_mode, fps_coordinates, font_size, egg_card_coordinates, egg_card_text_center, egg_card_title_center, egg_title_font_size, egg_card_text_width, egg_btns_coordinates, optimized, background_color, log_textbox_coordinates

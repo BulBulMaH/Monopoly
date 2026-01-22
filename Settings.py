@@ -44,6 +44,7 @@ if os.path.exists('settings.txt'):
     for value in color_values:
         color.append(int(value))
     previous_values.append(pg.Color(color))
+    picked_color = pg.Color(color)
 else:
     previous_values = []
     resolution_index = '1'
@@ -133,9 +134,6 @@ def event_handler():
                 global picked_color
                 picked_color = event.colour
                 print(f'Цвет выбран:{picked_color}')
-
-
-
 
 
 def buttons():
