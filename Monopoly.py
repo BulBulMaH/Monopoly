@@ -38,12 +38,12 @@ pg.mixer.init()  # для звука
 
 resolution, resolution_folder, btn_coordinates, profile_coordinates, start_btn_textboxes_coordinates, cubes_coordinates, speed, avatar_side_size, exchange_coordinates, FPS, auction_coordinates, tile_size, margin, debug_mode, fps_coordinates, font_size, egg_card_coordinates, egg_card_text_center, egg_card_title_center, egg_font_size, egg_card_text_width, egg_btns_coordinates, optimized, background_color, log_textbox_coordinates = resolution_definition(True)
 
-TITLE = 'Monopoly v0.13'
+TITLE = 'Monopoly v0.14'
 icon = pg.image.load(f'resources/icon.png')
 pg.display.set_icon(icon)
 screen = pg.display.set_mode(resolution, pg.DOUBLEBUF)
 manager = pygame_gui.UIManager(resolution, theme_path=f'resources/{resolution_folder}/gui_theme.json', starting_language='ru')#enable_live_theme_updates=False,
-manager.add_font_paths('BulBulPoly', "C:/Users/zhigu/PycharmProjects/Monopoly/resources/fonts/bulbulpoly-3.ttf")
+manager.add_font_paths('BulBulPoly', "resources/fonts/bulbulpoly-3.ttf")
 # manager.preload_fonts([{'name': 'BulBulPoly', 'point_size': font_size, 'style': 'regular', 'antialiased': 0}])
 
 pg.display.set_caption(TITLE)
@@ -118,8 +118,7 @@ def load_assets():
              'tile_debug': False,
              'show_auction_screen': [False],
              'egg_btn_active': False,
-             'eggs_btn_active': False,
-             'render_moving_text': [False]}
+             'eggs_btn_active': False}
 
     cube_1_picture = pg.image.load(f'resources/{resolution_folder}/cubes/1.png').convert()
     update_list_static = [
@@ -483,6 +482,9 @@ def player_button(color):
                     exchange_cancel_button.show()
                     exchange_give_textbox.show()
                     exchange_get_textbox.show()
+                    log_textbox.hide()
+                    log_entry_button.hide()
+                    log_entry_textbox.hide()
                     active_buttons_check()
 
 
@@ -1040,10 +1042,6 @@ def blit_board():
         screen.blit(font.render(tile.name, False, 'black'), auction_coordinates['company_text'])
         screen.blit(font.render(text, False, 'black'), auction_coordinates['price_text'])
 
-    elif state['render_moving_text'][0]:
-        for i, text_ in enumerate(state['render_moving_text'][1]):
-            screen.blit(text_, state['render_moving_text'][2][i])
-
 
 def price_printing():
     for tile in all_tiles:
@@ -1183,35 +1181,6 @@ def move(players_on_tile, end_positions, cube_sum):
                     player2.player_piece_rect = player2.player_piece.get_rect(center=(player2.x, player2.y))
 
 
-def move_text(texts, colors, start_positions, end_positions):
-    rendered_texts = []
-    steps = []
-    positions_ = []
-
-    for i in range(len(texts)):
-        diff_x = end_positions[i][0] - start_positions[i][0]
-        diff_y = end_positions[i][1] - start_positions[i][1]
-        positions_.append(list(start_positions[i]))
-        rendered_texts.append(font.render(texts[i], False, colors[i]))
-
-        if i == 0:
-            step_amount = abs(round(math.sqrt(diff_x ** 2 + diff_y ** 2) * 150 * speed))
-
-        if step_amount != 0:
-            steps.append((diff_x / step_amount, diff_y / step_amount))
-        else:
-            steps.append((0, 0))
-
-    state['render_moving_text'] = [True, rendered_texts, positions_]
-
-    for i in range(step_amount):
-        for ii, text in enumerate(texts):
-            time.sleep(10 * speed)
-            positions_[ii][0] += steps[ii][0]
-            positions_[ii][1] += steps[ii][1]
-            # screen.blit(rendered_texts[ii], positions_[ii])
-
-
 def handle_connection():
     global players, all_tiles, avatar, avatar_file, cube_1_picture, cube_2_picture
     avatar = ''
@@ -1269,10 +1238,7 @@ def handle_connection():
                                         state['double'] = int(data[2]) == int(data[3])
                                         print(f'Состояние double установлено на {state['double']}')
                                 move_by_cubes(int(data[2]), int(data[3]), data[1])
-                                for player in players:
-                                    if player.color == data[1]:
-                                        log_textbox.append_html_text(f'<font face="BulBulPoly" pixel_size={font_size} color="{player.color_value}">{player.name} </font>'
-                                                                     f'<font face="BulBulPoly" pixel_size={font_size} color="#000000">выбросил {data[2]}:{data[3]} и попал на поле {all_tiles[player.piece_position].name}</font><br>')
+
                                 mortgage_btn_check()
                                 redeem_btn_check()
 
@@ -1291,9 +1257,7 @@ def handle_connection():
                                                                   all_tiles[player3.piece_position].y_center + margin[len(players_on_tile) - 1][players_on_tile.index(player3)][1]))
 
                                         move([player], end_positions, 10)
-                                        log_textbox.append_html_text(
-                                            f'<font face="BulBulPoly" pixel_size={font_size} color="{player.color_value}">{player.name} </font>'
-                                            f'<font face="BulBulPoly" pixel_size={font_size} color="#000000">переносится на поле {all_tiles[player.piece_position].name}</font><br>')
+
                                         if all_tiles[player.piece_position].owner == player.color:
                                             player_move_change(True)
 
@@ -1342,9 +1306,6 @@ def handle_connection():
                                                 all_tiles[i].text_defining(font)
 
                                         print(f'У {player.color} есть {player.property}')
-                                        log_textbox.append_html_text(
-                                            f'<font face="BulBulPoly" pixel_size={font_size} color="{player.color_value}">{player.name} </font>'
-                                            f'<font face="BulBulPoly" pixel_size={font_size} color="#000000">купил {all_tiles[tile_position].name}</font><br>')
 
                                         buy_btn_check()
                                     if player.main:
@@ -1367,13 +1328,18 @@ def handle_connection():
                             elif data[0] == 'playerDeleted':
                                 for player in players:
                                     if player.color == data[1]:
-                                        log_textbox.append_html_text(
-                                            f'<font face="BulBulPoly" pixel_size={font_size} color="{player.color_value}">{player.name} </font>'
-                                            f'<font face="BulBulPoly" pixel_size={font_size} color="#000000">отключился</font><br>')
                                         players.remove(player)
 
                             elif data[0] == 'gameStarted':
                                 state['is_game_started'] = True
+                                players_queue = data[1].split('_')
+                                players_temp = []
+                                for new_color in players_queue:
+                                    for player in players:
+                                        if player.color == new_color:
+                                            players_temp.append(player)
+                                players = players_temp
+
                                 for player in players:
                                     globals()[f'{player.color}_player_button'] = pygame_gui.elements.UIButton(
                                         relative_rect=pg.Rect(profile_coordinates[players.index(player)]['avatar'], (avatar_side_size, avatar_side_size)),
@@ -1427,9 +1393,6 @@ def handle_connection():
                                     if data[1] == player.color:
                                         player.imprisoned = True
                                         player.piece_position = 10
-                                        log_textbox.append_html_text(
-                                            f'<font face="BulBulPoly" pixel_size={font_size} color="{player.color_value}">{player.name} </font>'
-                                            f'<font face="BulBulPoly" pixel_size={font_size} color="#000000">отправляется в тюрьму</font><br>')
                                         pay_btn_check()
                                         mortgage_btn_check()
                                         redeem_btn_check()
@@ -1439,17 +1402,6 @@ def handle_connection():
                                     if data[1] == player.color:
                                         player.imprisoned = False
                                         update_list_dynamic.append(profile_picture.get_rect(topleft=profile_coordinates[i]['profile']))
-                                        log_textbox.append_html_text(
-                                            f'<font face="BulBulPoly" pixel_size={font_size} color="{player.color_value}">{player.name} </font>'
-                                            f'<font face="BulBulPoly" pixel_size={font_size} color="#000000">выходит из тюрьмы</font><br>')
-
-                                if len(data) > 2:
-                                    move_by_cubes(int(data[2]), int(data[3]), data[1])
-                                    for player in players:
-                                        if player.color == data[1]:
-                                            log_textbox.append_html_text(
-                                                f'<font face="BulBulPoly" pixel_size={font_size} color="{player.color_value}">{player.name} </font>'
-                                                f'<font face="BulBulPoly" pixel_size={font_size} color="#000000">выбросил {data[2]}:{data[3]} и попал на поле {all_tiles[player.piece_position].name}</font><br>')
                                 mortgage_btn_check()
                                 redeem_btn_check()
 
@@ -1460,11 +1412,6 @@ def handle_connection():
                                 for tile in all_tiles:
                                     if tile.family == all_tiles[tile_position].family:
                                         tile.penised_family = True
-                                for player in players:
-                                    if player.color == all_tiles[tile_position].owner:
-                                        log_textbox.append_html_text(
-                                            f'<font face="BulBulPoly" pixel_size={font_size} color="{player.color_value}">{player.name} </font>'
-                                            f'<font face="BulBulPoly" pixel_size={font_size} color="#000000">сунул пЭнис в {all_tiles[tile_position].name}</font><br>')
                                 mortgage_btn_check()
                                 redeem_btn_check()
 
@@ -1480,12 +1427,6 @@ def handle_connection():
                                 for tile in all_tiles:
                                     if tile.family == all_tiles[tile_position].family:
                                         tile.penised_family = penised
-
-                                for player in players:
-                                    if player.color == all_tiles[tile_position].owner:
-                                        log_textbox.append_html_text(
-                                            f'<font face="BulBulPoly" pixel_size={font_size} color="{player.color_value}">{player.name} </font>'
-                                            f'<font face="BulBulPoly" pixel_size={font_size} color="#000000">высунул пЭнис из {all_tiles[tile_position].name}</font><br>')
                                 mortgage_btn_check()
                                 redeem_btn_check()
 
@@ -1497,9 +1438,6 @@ def handle_connection():
                                             state['pay_btn_active'] = ['prison']
                                             mortgage_btn_check()
                                             redeem_btn_check()
-                                        log_textbox.append_html_text(
-                                            f'<font face="BulBulPoly" pixel_size={font_size} color="{player.color_value}">{player.name} </font>'
-                                            f'<font face="BulBulPoly" pixel_size={font_size} color="#000000">не смог выйти из тюрьмы и должен заплатить {data[2]}~</font><br>')
 
                             elif data[0] == 'imprisoned double failed':
                                 show_cubes(data[2], data[3])
@@ -1508,10 +1446,6 @@ def handle_connection():
                                 redeem_btn_check()
 
                                 print(f'У игрока {data[1]} осталось {3 - int(data[4])} попытки чтобы выйти из тюрьмы')
-                                log_textbox.append_html_text(
-                                    f'<font face="BulBulPoly" pixel_size={font_size} color="#000000">У </font>'
-                                    f'<font face="BulBulPoly" pixel_size={font_size} color="{player.color_value}">{player.name} </font>'
-                                    f'<font face="BulBulPoly" pixel_size={font_size} color="#000000">осталось {3 - int(data[4])} попытки, чтобы выйти из тюрьмы</font><br>')
 
                             elif data[0] == 'all property':
                                 for player in players:
@@ -1596,11 +1530,6 @@ def handle_connection():
                                     if tile.family == all_tiles[int(data[1])].family:
                                         tile.family_members -= 1
                                         tile.text_defining(font)
-                                for player in players:
-                                    if player.color == all_tiles[int(data[1])].owner:
-                                        log_textbox.append_html_text(
-                                            f'<font face="BulBulPoly" pixel_size={font_size} color="{player.color_value}">{player.name} </font>'
-                                            f'<font face="BulBulPoly" pixel_size={font_size} color="#000000">закладывает {all_tiles[int(data[1])].name}</font><br>')
 
                             elif data[0] == 'redeemed':
                                 all_tiles[int(data[1])].mortgaged = False
@@ -1608,12 +1537,6 @@ def handle_connection():
                                     if tile.family == all_tiles[int(data[1])].family:
                                         tile.family_members += 1
                                         tile.text_defining(font)
-
-                                for player in players:
-                                    if player.color == all_tiles[int(data[1])].owner:
-                                        log_textbox.append_html_text(
-                                            f'<font face="BulBulPoly" pixel_size={font_size} color="{player.color_value}">{player.name} </font>'
-                                            f'<font face="BulBulPoly" pixel_size={font_size} color="#000000">выкупает {all_tiles[int(data[1])].name}</font><br>')
 
                             elif data[0] == 'late to redeem':
                                 for tile in all_tiles:
@@ -1625,12 +1548,6 @@ def handle_connection():
                                     if tile.family == all_tiles[int(data[1])].family:
                                         tile.family_members -= 1
                                     tile.text_defining(font)
-
-                                for player in players:
-                                    if player.color == all_tiles[int(data[1])].owner:
-                                        log_textbox.append_html_text(
-                                            f'<font face="BulBulPoly" pixel_size={font_size} color="{player.color_value}">{player.name} </font>'
-                                            f'<font face="BulBulPoly" pixel_size={font_size} color="#000000">не смог выкупить {all_tiles[int(data[1])].name}</font><br>')
 
                             elif data[0] == 'need to pay':
                                 for player in players:
@@ -1668,10 +1585,11 @@ def handle_connection():
                                 mortgage_btn_check()
 
                                 state['pay_btn_active'] = ['player', data[1], int(data[2])]
-                                for player in players:
-                                    if player.color == data[1]:
-                                        for i in pulled_card_strings:
-                                            i.replace('{player_name}', player.name)
+                                if state['egg_btn_active'] or state['eggs_btn_active']:
+                                    for player in players:
+                                        if player.color == data[1]:
+                                            for i in pulled_card_strings:
+                                                i.replace('{player_name}', player.name)
 
                             elif data[0] == 'need to pay to players':
                                 for player in players:
@@ -1752,91 +1670,6 @@ def handle_connection():
                                             else:
                                                 player.eggs_prison_exit_card = True
                                                 exit_prison_eggs_btn.show()
-                                            player_move_change(True)
-                                        log_textbox.append_html_text(
-                                            f'<font face="BulBulPoly" pixel_size={font_size} color="{player.color_value}">{player.name} </font>'
-                                            f'<font face="BulBulPoly" pixel_size={font_size} color="#000000">вытянул карточку выхода из тюрьмы</font><br>')
-
-                            elif data[0] == 'paid':
-                                time.sleep(0.1)
-                                instances = data[1].split('-')
-                                for i in range(len(instances)):
-                                    instances[i] = instances[i].split('_') # откуда_куда_сколько_за что
-
-                                texts = []
-                                colors = []
-                                start_positions = []
-                                end_positions = []
-
-                                for instance in instances:
-                                    texts.append(instance[2])
-
-                                    if instance[0] == 'system':
-                                        start_positions.append((profile_coordinates[0]['money'][0], -45))
-                                        colors.append('black')
-                                    else:
-                                        for i, player in enumerate(players):
-                                            if player.color == instance[0]:
-                                                start_positions.append(profile_coordinates[i]['money'])
-                                                colors.append(player.color)
-
-                                    if instance[1] == 'system':
-                                        end_positions.append((profile_coordinates[0]['money'][0], -45))
-                                    else:
-                                        for i, player in enumerate(players):
-                                            if player.color == instance[1]:
-                                                end_positions.append(profile_coordinates[i]['money'])
-
-                                    if instance[3] == 'income':
-                                        for player in players:
-                                            if player.color == instance[0]:
-                                                log_textbox.append_html_text(
-                                                    f'<font face="BulBulPoly" pixel_size={font_size} color="{player.color_value}">{player.name} </font>'
-                                                    f'<font face="BulBulPoly" pixel_size={font_size} color="#000000">получает {instance[2]}</font><br>')
-                                    elif instance[3] == 'minus':
-                                        for player in players:
-                                            if player.color == instance[0]:
-                                                log_textbox.append_html_text(
-                                                    f'<font face="BulBulPoly" pixel_size={font_size} color="{player.color_value}">{player.name} </font>'
-                                                    f'<font face="BulBulPoly" pixel_size={font_size} color="#000000">заплатил Глебу {instance[2]}</font><br>')
-                                    elif instance[3] == 'simple':
-                                        for player in players:
-                                            if player.color == instance[0]:
-                                                log_textbox.append_html_text(
-                                                    f'<font face="BulBulPoly" pixel_size={font_size} color="{player.color_value}">{player.name} </font>'
-                                                    f'<font face="BulBulPoly" pixel_size={font_size} color="#000000">заплатил {instance[2]}</font><br>')
-                                    elif instance[3] == 'prison':
-                                        for player in players:
-                                            if player.color == instance[0]:
-                                                log_textbox.append_html_text(
-                                                    f'<font face="BulBulPoly" pixel_size={font_size} color="{player.color_value}">{player.name} </font>'
-                                                    f'<font face="BulBulPoly" pixel_size={font_size} color="#000000">заплатил {instance[2]} за выход из тюрьмы</font><br>')
-                                    elif instance[3] == 'buy':
-                                        for player in players:
-                                            if player.color == instance[0]:
-                                                log_textbox.append_html_text(
-                                                    f'<font face="BulBulPoly" pixel_size={font_size} color="{player.color_value}">{player.name} </font>'
-                                                    f'<font face="BulBulPoly" pixel_size={font_size} color="#000000">потратил {instance[2]}</font><br>')
-                                    elif instance[3] == 'to player':
-                                        for player in players:
-                                            if player.color == instance[0]:
-                                                for player2 in players:
-                                                    if player2.color == instance[1]:
-                                                        log_textbox.append_html_text(
-                                                            f'<font face="BulBulPoly" pixel_size={font_size} color="{player.color_value}">{player.name} </font>'
-                                                            f'<font face="BulBulPoly" pixel_size={font_size} color="#000000">заплатил игроку </font>'
-                                                            f'<font face="BulBulPoly" pixel_size={font_size} color="{player.color_value}">{player2.name} </font>'
-                                                            f'<font face="BulBulPoly" pixel_size={font_size} color="#000000">{instance[2]}</font><br>')
-                                    elif instance[3] == 'strange':
-                                        for player in players:
-                                            if player.color == instance[0]:
-                                                log_textbox.append_html_text(
-                                                    f'<font face="BulBulPoly" pixel_size={font_size} color="{player.color_value}">{player.name} </font>'
-                                                    f'<font face="BulBulPoly" pixel_size={font_size} color="#000000">заплатил {instance[2]} за что-то</font><br>')
-
-                                state['render_moving_text'] = [0, texts, colors, start_positions, end_positions]
-
-                                # функция move_text перенесена в dynamic_changes
 
                             elif data[0] == 'message':
                                 log_textbox.append_html_text(data[1].replace('[font_size]', str(font_size)))
@@ -2160,16 +1993,6 @@ def show_cubes(cube1, cube2):
     state['cube_animation_playing'] = False
 
 
-def dynamic_changes():
-    while running:
-        time.sleep(ideal_dt)
-        # active_buttons_check()
-
-        if len(state['render_moving_text']) > 1:
-            move_text(state['render_moving_text'][1], state['render_moving_text'][2], state['render_moving_text'][3], state['render_moving_text'][4])
-            state['render_moving_text'] = [False]
-
-
 # Проверки
 # |
 # V
@@ -2388,10 +2211,6 @@ while running and not assets_loaded:
 
 gc.collect()
 
-dynamic_changes_handler = threading.Thread(target=dynamic_changes, name='dynamic_changes')
-dynamic_changes_handler.start()
-thread_open('Поток открыт', dynamic_changes_handler.name)
-
 while running:
     clock.tick(FPS)
     dt, prev_time = delta_time(prev_time)
@@ -2399,8 +2218,11 @@ while running:
     event_handler()
     blit_board()
     price_printing()
-    manager.update(dt)
-    manager.draw_ui(screen)
+    try:
+        manager.update(dt)
+        manager.draw_ui(screen)
+    except:
+        pass
 
     past_second_fps.append(1 / dt)
     fps_time = time.time()
@@ -2417,4 +2239,4 @@ while running:
     pg.display.update(update_list_static + update_list_dynamic)
 
 print('\nПрограмма завершена')
-print(f'Средний FPS: {sum(all_fps) / len(all_fps)}') # 112.31550775040346
+print(f'Средний FPS: {sum(all_fps) / len(all_fps)}')

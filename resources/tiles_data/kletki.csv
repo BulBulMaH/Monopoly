@@ -29,7 +29,7 @@ position,buyable,type,family,name,price,color,angle,max_family_members
 27,True,buildable,Егор,Егор Родин 2,260,black,0,3
 28,True,infrastructure,Варя,Варвара Репина 2,150,black,0,2
 29,True,buildable,Егор,Егор Родин 3,260,black,0,3
-30,False,nonbuildable,Угловые,Туда — сюда,9999,black,0,-1
+30,False,nonbuildable,Угловые,Туда - сюда,9999,black,0,-1
 31,True,buildable,Даня,Даниил Манцевич 1,300,black,90,3
 32,True,buildable,Даня,Даниил Манцевич 2,300,black,90,3
 33,False,nonbuildable,Яйца,Груда вопросительных яиц,9999,black,90,-1
