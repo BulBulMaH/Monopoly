@@ -13,7 +13,7 @@ pg.display.set_icon(icon)
 screen = pg.display.set_mode((500, 650))
 pg.display.set_caption(TITLE)
 
-font = pg.font.Font('resources/fonts/bulbulpoly-3.ttf',25)
+font = pg.font.Font('resources/fonts/bulbulpoly-4.ttf',25)
 manager = pygame_gui.UIManager((500, 650), theme_path=f'resources/720p/gui_theme.json', starting_language='ru')
 
 if os.path.exists('settings.txt'):
@@ -45,6 +45,18 @@ if os.path.exists('settings.txt'):
         color.append(int(value))
     previous_values.append(pg.Color(color))
     picked_color = pg.Color(color)
+
+    fullscreen_data = lines[5][:-1].split(',')
+    if fullscreen_data[0] == 'True':
+        fullscreen = True
+        if fullscreen_data[1] == 'True':
+            smooth_scale = True
+        else:
+            smooth_scale = False
+    else:
+        fullscreen = False
+        smooth_scale = False
+    previous_values.append((fullscreen, smooth_scale))
 else:
     previous_values = []
     resolution_index = '1'
@@ -53,6 +65,7 @@ else:
     previous_values.append(False)
     previous_values.append(False)
     previous_values.append(pg.Color(128, 128, 128))
+    previous_values.append((False, False))
 
 
 def delta_time(old_time):
@@ -78,8 +91,10 @@ def save():
             for i in picked_color:
                 color_text += f'{i},'
             color_text = color_text[:-1]
+            fullscreen = fullscreen_checkbox.get_state()
+            sharp_scale = not smooth_scale_checkbox.get_state()
 
-            settings_file.write(f'{resolution_index}\n{fps}\n{optimization_text}\n{debug_text}\n{color_text}\n')
+            settings_file.write(f'{resolution_index}\n{fps}\n{optimization_text}\n{debug_text}\n{color_text}\n{fullscreen},{sharp_scale}\n')
             print('Настройки сохранены')
             global running
             running = False
@@ -120,6 +135,15 @@ def event_handler():
             elif event.ui_element == pick_color_button:
                 color_picker.show()
 
+        elif event.type == pygame_gui.UI_CHECK_BOX_CHECKED:
+            if event.ui_element == fullscreen_checkbox:
+                smooth_scale_checkbox.enable()
+
+        elif event.type == pygame_gui.UI_CHECK_BOX_UNCHECKED:
+            if event.ui_element == fullscreen_checkbox:
+                smooth_scale_checkbox.disable()
+                smooth_scale_checkbox.set_state(False)
+
         elif event.type == pygame_gui.UI_DROP_DOWN_MENU_CHANGED:
             global resolution_index
             if event.text == '1280x720':
@@ -133,11 +157,10 @@ def event_handler():
                 color_picker.hide()
                 global picked_color
                 picked_color = event.colour
-                print(f'Цвет выбран:{picked_color}')
 
 
 def buttons():
-    global save_button, dropdown, fps_textbox, dropdown_choice, optimization_checkbox, debug_checkbox, pick_color_button, color_picker
+    global save_button, dropdown, fps_textbox, dropdown_choice, optimization_checkbox, debug_checkbox, pick_color_button, color_picker, fullscreen_checkbox, smooth_scale_checkbox
     save_button = pygame_gui.elements.UIButton(
         relative_rect=pg.Rect(182, 592, 136, 38),
         text='Сохранить',
@@ -156,19 +179,33 @@ def buttons():
         manager=manager)
 
     optimization_checkbox = pygame_gui.elements.UICheckBox(
-        relative_rect=pg.Rect(225, 106, 25, 25),
+        relative_rect=pg.Rect(226, 105, 25, 25),
         text='',
         initial_state=previous_values[2],
         manager=manager)
 
     debug_checkbox = pygame_gui.elements.UICheckBox(
-        relative_rect=pg.Rect(120, 140, 25, 25),
+        relative_rect=pg.Rect(120, 137, 25, 25),
         text='',
         initial_state=previous_values[3],
         manager=manager)
 
+    fullscreen_checkbox = pygame_gui.elements.UICheckBox(
+        relative_rect=pg.Rect(222, 169, 25, 25),
+        text='',
+        initial_state=previous_values[5][0],
+        manager=manager)
+
+    smooth_scale_checkbox = pygame_gui.elements.UICheckBox(
+        relative_rect=pg.Rect(339, 201, 25, 25),
+        text='',
+        initial_state=previous_values[5][1],
+        manager=manager)
+    if not fullscreen_checkbox.get_state():
+        smooth_scale_checkbox.disable()
+
     pick_color_button = pygame_gui.elements.UIButton(
-        relative_rect=pg.Rect(10, 175, 180, 38),
+        relative_rect=pg.Rect(10, 240, 180, 38),
         text='Выбрать цвет фона',
         manager=manager)
 
@@ -190,8 +227,10 @@ while running:
     dt, prev_time = delta_time(prev_time)
     screen.fill(previous_values[4])
     screen.blit(font.render('Введите максимальный FPS:', False, 'black'), (10, 70))
-    screen.blit(font.render('Оптимизация движения:', False, 'black'), (10, 103))
-    screen.blit(font.render('debug mode:', False, 'black'), (10, 136))
+    screen.blit(font.render('Оптимизация движения:', False, 'black'), (10, 102))
+    screen.blit(font.render('debug mode:', False, 'black'), (10, 134))
+    screen.blit(font.render('Полноэкранный режим:', False, 'black'), (10, 166))
+    screen.blit(font.render('Сглаживание при растяжении экрана:', False, 'black'), (10, 198))
     event_handler()
     manager.update(dt)
     manager.draw_ui(screen)

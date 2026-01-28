@@ -36,14 +36,20 @@ from resolution_choice import resolution_definition
 pg.init()
 pg.mixer.init()  # для звука
 
-resolution, resolution_folder, btn_coordinates, profile_coordinates, start_btn_textboxes_coordinates, cubes_coordinates, speed, avatar_side_size, exchange_coordinates, FPS, auction_coordinates, tile_size, margin, debug_mode, fps_coordinates, font_size, egg_card_coordinates, egg_card_text_center, egg_card_title_center, egg_font_size, egg_card_text_width, egg_btns_coordinates, optimized, background_color, log_textbox_coordinates = resolution_definition(True)
+resolution, resolution_folder, btn_coordinates, profile_coordinates, start_btn_textboxes_coordinates, cubes_coordinates, speed, avatar_side_size, exchange_coordinates, FPS, auction_coordinates, tile_size, margin, debug_mode, fps_coordinates, font_size, egg_card_coordinates, egg_card_text_center, egg_card_title_center, egg_font_size, egg_card_text_width, egg_btns_coordinates, optimized, background_color, log_textbox_coordinates, tile_info_coordinates, fullscreen, sharp_scale = resolution_definition(True)
 
 TITLE = 'Monopoly v0.14'
 icon = pg.image.load(f'resources/icon.png')
 pg.display.set_icon(icon)
-screen = pg.display.set_mode(resolution, pg.DOUBLEBUF)
-manager = pygame_gui.UIManager(resolution, theme_path=f'resources/{resolution_folder}/gui_theme.json', starting_language='ru')#enable_live_theme_updates=False,
-manager.add_font_paths('BulBulPoly', "resources/fonts/bulbulpoly-3.ttf")
+flags = pg.HWSURFACE
+if fullscreen:
+    flags = flags | pg.FULLSCREEN
+if sharp_scale:
+    flags = flags | pg.SCALED
+
+screen = pg.display.set_mode(resolution, flags)
+manager = pygame_gui.UIManager(resolution, theme_path=f'resources/{resolution_folder}/gui_theme.json', enable_live_theme_updates=False, starting_language='ru')
+manager.add_font_paths('BulBulPoly', "resources/fonts/bulbulpoly-4.ttf")
 # manager.preload_fonts([{'name': 'BulBulPoly', 'point_size': font_size, 'style': 'regular', 'antialiased': 0}])
 
 pg.display.set_caption(TITLE)
@@ -64,8 +70,8 @@ def load_assets():
     avatar_file = pg.image.load(f'resources/{resolution_folder}/profile/avatar_placeholder.png').convert_alpha()
     mortgaged_tile = pg.image.load(f'resources/{resolution_folder}/mortgaged.png').convert_alpha()
     eggs_card_uncovered = pg.image.load(f'resources/{resolution_folder}/egg-s_card_uncovered.png').convert()
-    font = pg.font.Font('resources/fonts/bulbulpoly-3.ttf', font_size)
-    egg_font = pg.font.Font('resources/fonts/bulbulpoly-3.ttf', egg_font_size)
+    font = pg.font.Font('resources/fonts/bulbulpoly-4.ttf', font_size)
+    egg_font = pg.font.Font('resources/fonts/bulbulpoly-4.ttf', egg_font_size)
 
     for penis in range(5):
         globals()[f'{penis + 1}_penises_image'] = pg.image.load(f'resources/{resolution_folder}/white penises/{penis + 1}.png').convert_alpha()
@@ -118,7 +124,8 @@ def load_assets():
              'tile_debug': False,
              'show_auction_screen': [False],
              'egg_btn_active': False,
-             'eggs_btn_active': False}
+             'eggs_btn_active': False,
+             'tile_info_show': [False]}
 
     cube_1_picture = pg.image.load(f'resources/{resolution_folder}/cubes/1.png').convert()
     update_list_static = [
@@ -449,6 +456,50 @@ def tile_button(tile_position):
                     sock.send(redeem_command.encode())
                     information_sent('Команда отправлена', redeem_command)
                     state['redeem_tile_btn_active'] = False
+
+    elif not state['redeem_tile_btn_active'] and not state['all_penises_build_btns_active'] and not state['all_penises_remove_btns_active'] and not state['exchange_tile_btn_active'] and not state['mortgage_tile_btn_active'] and not state['redeem_tile_btn_active']:
+        tile = all_tiles[tile_position]
+        if tile.type == 'nonbuildable':
+            message = [f'{tile.name}:',
+                       f'Про это поле мне нечего сказать']
+        elif tile.type == 'buildable':
+            message = [f'{tile.name}:',
+                       f'Базовая стоимость: {math.ceil(tile.price / 16)}~',
+                       f'Стоимость при полной семье: {math.ceil(tile.price / 8)}~',
+                       f'Стоимость при 1 белом пЭнисе: {math.ceil(tile.price / 8 * 2)}~',
+                       f'Стоимость при 2 белых пЭнисах: {math.ceil(tile.price / 8 * 4)}~',
+                       f'Стоимость при 3 белых пЭнисах: {math.ceil(tile.price / 8 * 8)}~',
+                       f'Стоимость при 4 белых пЭнисах: {math.ceil(tile.price / 8 * 16)}~',
+                       f'Стоимость при 5 белых пЭнисах: {math.ceil(tile.price / 8 * 32)}~',
+                       f'Стоимость белого пЭниса: {tile.penis_price}~']
+        elif tile.type == 'train':
+            message = [f'{tile.name}:',
+                       f'Стоимость при 1 поле: {math.ceil(tile.price / 8)}~',
+                       f'Стоимость при 2 полях: {math.ceil(tile.price / 8 * 2)}~',
+                       f'Стоимость при 3 полях: {math.ceil(tile.price / 8 * 4)}~',
+                       f'Стоимость при 4 полях: {math.ceil(tile.price / 8 * 8)}~']
+        elif tile.type == 'infrastructure':
+            message = [f'{tile.name}:',
+                       f'Стоимость при 1 поле: сумма кубов * 4',
+                       f'Стоимость при 2 полях: сумма кубов * 10']
+        elif tile.type == 'minus':
+            message = [f'{tile.name}:',
+                       f'Это {tile.family}, он украдёт ваши {-tile.price}~, хе-хе',]
+        else:
+            message = [f'{tile.name}:',
+                       f'Не знаю, что тут пошло не так,',
+                       f'но описания тут нет']
+
+
+        strings_widths = []
+        for string in message:
+            strings_widths.append(font.size(string)[0] + 20)
+        rect_dimensions = (max(strings_widths), font.get_linesize() * (len(message) + 1))
+        message_panel.set_dimensions(rect_dimensions)
+        message_panel.rebuild()
+        message_panel.show()
+
+        state['tile_info_show'] = [True, message]
 
 
 def player_button(color):
@@ -828,24 +879,25 @@ def exit_prison_by_egg_s(egg_type):
     prison_exit_information = ''
     for player in players:
         if player.main:
-            if player.egg_prison_exit_card and egg_type == 'Яйцо':
-                prison_exit_information = f'prison exit by eggs|Яйцо%'
-                player.egg_prison_exit_card = False
-                exit_prison_egg_btn.hide()
-            elif player.eggs_prison_exit_card and egg_type == 'Яйца':
-                prison_exit_information = f'prison exit by eggs|Яйца%'
-                player.eggs_prison_exit_card = False
-                exit_prison_eggs_btn.hide()
-            sock.send(prison_exit_information.encode())
-            information_sent('Команда отправлена', prison_exit_information)
+            if player.imprisoned:
+                if player.egg_prison_exit_card and egg_type == 'Яйцо':
+                    prison_exit_information = f'prison exit by eggs|Яйцо%'
+                    player.egg_prison_exit_card = False
+                    exit_prison_egg_btn.hide()
+                elif player.eggs_prison_exit_card and egg_type == 'Яйца':
+                    prison_exit_information = f'prison exit by eggs|Яйца%'
+                    player.eggs_prison_exit_card = False
+                    exit_prison_eggs_btn.hide()
+                sock.send(prison_exit_information.encode())
+                information_sent('Команда отправлена', prison_exit_information)
 
 
 def egg_s_reset():
     state['egg_btn_active'] = False
     state['eggs_btn_active'] = False
-    log_textbox.show()
-    log_entry_button.show()
-    log_entry_textbox.show()
+    # log_textbox.show()
+    # log_entry_button.show()
+    # log_entry_textbox.show()
     active_buttons_check()
     print('Произведён сброс яиц')
 
@@ -862,6 +914,12 @@ def exchange_screen_reset():
         log_entry_button.show()
         log_entry_textbox.show()
         active_buttons_check()
+
+
+def tile_info_reset():
+    if state['tile_info_show'][0]:
+        state['tile_info_show'] = [False]
+        message_panel.hide()
 
 
 def send_message():
@@ -893,11 +951,6 @@ def render_multiline_text(text, x, y, font_, line_height, align):
 def blit_board():
     screen.blit(board_image)
 
-    if state['egg_btn_active'] or state['eggs_btn_active']:
-        screen.blit(eggs_card_uncovered, egg_card_coordinates)
-        screen.blit(pulled_card_title, pulled_card_title_rect)
-        render_multiline_text(pulled_card_strings, egg_card_text_center[0], egg_card_text_center[1], egg_font, egg_font.get_linesize(), 'center')
-
     for tile in all_tiles:
         if tile.owned:
             screen.blit(globals()[f'{tile.owner}_property_image'], (tile.x_position, tile.y_position))
@@ -911,27 +964,6 @@ def blit_board():
             text = font.render(str(tile.mortgaged_moves_count), False, 'white')
             text_rect = text.get_rect(center=(tile.x_center, tile.y_center))
             screen.blit(text, text_rect)
-
-    if state['connected']:
-        for player in players:
-            player_index = players.index(player)
-
-            screen.blit(profile_picture, profile_coordinates[player_index]['profile'])
-
-            screen.blit(player.avatar, profile_coordinates[player_index]['avatar'])
-
-            if player.imprisoned:
-                screen.blit(player_bars, profile_coordinates[player_index]['avatar'])
-
-            screen.blit(globals()[f'{player.color}_profile'], profile_coordinates[player_index]['avatar'])
-
-            screen.blit(font.render(f'{player.money}~', False, 'black'), profile_coordinates[player_index]['money'])
-
-            screen.blit(font.render(player.name, False, 'black'), profile_coordinates[player_index]['name'])
-
-            screen.blit(player.player_piece, player.player_piece_rect)
-
-    screen.blit(bars, (all_tiles[10].x_position, all_tiles[10].y_position))
 
     if state['cube_animation_playing']:
         screen.blit(cube_1_picture, cubes_coordinates[0])
@@ -1041,6 +1073,38 @@ def blit_board():
         screen.blit(auction_screen, auction_coordinates['auction_screen'])
         screen.blit(font.render(tile.name, False, 'black'), auction_coordinates['company_text'])
         screen.blit(font.render(text, False, 'black'), auction_coordinates['price_text'])
+
+
+def blit_board_above_interface():
+    if state['egg_btn_active'] or state['eggs_btn_active']:
+        screen.blit(eggs_card_uncovered, egg_card_coordinates)
+        screen.blit(pulled_card_title, pulled_card_title_rect)
+        render_multiline_text(pulled_card_strings, egg_card_text_center[0], egg_card_text_center[1], egg_font, egg_font.get_linesize(), 'center')
+
+    if state['connected']:
+        for player in players:
+            player_index = players.index(player)
+
+            screen.blit(profile_picture, profile_coordinates[player_index]['profile'])
+
+            screen.blit(player.avatar, profile_coordinates[player_index]['avatar'])
+
+            if player.imprisoned:
+                screen.blit(player_bars, profile_coordinates[player_index]['avatar'])
+
+            screen.blit(globals()[f'{player.color}_profile'], profile_coordinates[player_index]['avatar'])
+
+            screen.blit(font.render(f'{player.money}~', False, 'black'), profile_coordinates[player_index]['money'])
+
+            screen.blit(font.render(player.name, False, 'black'), profile_coordinates[player_index]['name'])
+
+            screen.blit(player.player_piece, player.player_piece_rect)
+
+    screen.blit(bars, (all_tiles[10].x_position, all_tiles[10].y_position))
+
+    if state['tile_info_show'][0]:
+        tile_info = state['tile_info_show'][1]
+        render_multiline_text(tile_info, tile_info_coordinates[0] + 10, tile_info_coordinates[1], font, font.get_linesize(), 'topleft')
 
 
 def price_printing():
@@ -1402,6 +1466,8 @@ def handle_connection():
                                     if data[1] == player.color:
                                         player.imprisoned = False
                                         update_list_dynamic.append(profile_picture.get_rect(topleft=profile_coordinates[i]['profile']))
+                                if len(data) > 2:
+                                    move_by_cubes(int(data[2]), int(data[3]), data[1])
                                 mortgage_btn_check()
                                 redeem_btn_check()
 
@@ -1653,9 +1719,9 @@ def handle_connection():
                                     if egg_font.size(' '.join(text))[0] <= egg_card_text_width:
                                         pulled_card_strings.append(' '.join(text))
                                         text.clear()
-                                log_textbox.hide()
-                                log_entry_button.hide()
-                                log_entry_textbox.hide()
+                                # log_textbox.hide()
+                                # log_entry_button.hide()
+                                # log_entry_textbox.hide()
 
                             elif data[0] == 'show cubes':
                                 show_cubes(data[1], data[2])
@@ -1714,15 +1780,19 @@ def event_handler():
                 egg_s_reset()
             elif state['eggs_btn_active']:
                 egg_s_reset()
+            elif state['tile_info_show'][0]:
+                tile_info_reset()
 
-        elif event.type == pg.WINDOWRESTORED or event.type == pg.WINDOWMOVED:
-            update_list_dynamic.append(pg.Rect((0, 0), resolution))
+
 
         if assets_loaded:
             if event.type == CLEAR_UPDATE_LIST:
                 if update_list_dynamic:
                     # print(f'{update_list_dynamic = }')
                     update_list_dynamic.clear()
+
+            elif event.type == pg.WINDOWRESTORED or event.type == pg.WINDOWMOVED:
+                update_list_dynamic.append(pg.Rect((0, 0), resolution))
 
         manager_initiated = False
         while not manager_initiated:
@@ -1815,7 +1885,7 @@ def player_move_change(do_change):
 
 
 def buttons():
-    global cube_button, buy_button, pay_button, name_textbox, ip_textbox, port_textbox, connect_button, debug_button, avatar_choose_button, shove_penis_button, remove_penis_button, exchange_button, exchange_commit_button, exchange_cancel_button, exchange_give_textbox, exchange_get_textbox, exchange_request_confirm_button, exchange_request_reject_button, auction_button, auction_buy_button, auction_reject_button, mortgage_button, redeem_button, exit_prison_egg_btn, exit_prison_eggs_btn, log_textbox, log_entry_textbox, log_entry_button
+    global cube_button, buy_button, pay_button, name_textbox, ip_textbox, port_textbox, connect_button, debug_button, avatar_choose_button, shove_penis_button, remove_penis_button, exchange_button, exchange_commit_button, exchange_cancel_button, exchange_give_textbox, exchange_get_textbox, exchange_request_confirm_button, exchange_request_reject_button, auction_button, auction_buy_button, auction_reject_button, mortgage_button, redeem_button, exit_prison_egg_btn, exit_prison_eggs_btn, log_textbox, log_entry_textbox, log_entry_button, message_panel
 
     cube_button = pygame_gui.elements.UIButton(
         relative_rect=pg.Rect(btn_coordinates['throw_cubes']),
@@ -1972,6 +2042,13 @@ def buttons():
         manager=manager)
     log_entry_button.disable()
 
+    message_panel = pygame_gui.elements.UIPanel(relative_rect=pg.Rect(tile_info_coordinates, tile_info_coordinates),
+                                                manager=manager,
+                                                visible=False)
+
+    # time_bar = pygame_gui.elements.UIStatusBar(relative_rect=pg.Rect(676, 66, 148, 12),
+    #                                            manager=manager)
+    # print(time_bar.status_text())
     for i in range(40):
         globals()[f'tile_{i}_button'] = pygame_gui.elements.UIButton(
             relative_rect=pg.Rect(positions[i], tile_size),
@@ -2112,15 +2189,14 @@ def pay_btn_check():
                         state['paid'] = True
                         mortgage_btn_check()
                     else:
-                        for player2 in players:
-                            if not player2.main:
-                                if player.piece_position in player2.property and not all_tiles[player.piece_position].mortgaged:
-                                    state['pay_btn_active'] = ['color', player2.color]
-                                    mortgage_btn_check()
-                                    state['paid'] = True
-                                else:
-                                    if state['pay_btn_active'][0] not in ('pay sum', 'player', 'players'):
-                                        state['pay_btn_active'] = ['False']
+                        if all_tiles[player.piece_position].owner != player.color and all_tiles[player.piece_position].owned and not all_tiles[player.piece_position].mortgaged and player.money >= all_tiles[player.piece_position].penis_income_calculation():
+                            state['pay_btn_active'] = ['color', all_tiles[player.piece_position].owner]
+                            mortgage_btn_check()
+                            state['paid'] = True
+                        else:
+                            if state['pay_btn_active'][0] not in ('pay sum', 'player', 'players'):
+                                state['pay_btn_active'] = ['False']
+                                mortgage_btn_check()
                 print(f'Состояние pay_btn_active установлено на {state['pay_btn_active']}')
 
 
@@ -2189,13 +2265,8 @@ load_assets_handler = threading.Thread(target=load_assets, name='load_assets_han
 load_assets_handler.start()
 thread_open('Поток открыт', load_assets_handler.name)
 
-loading_text_1 = pg.font.Font('resources/fonts/bulbulpoly-3.ttf', 120).render('Загрузка...', False, 'black').convert_alpha()
+loading_text_1 = pg.font.Font('resources/fonts/bulbulpoly-4.ttf', 120).render('Загрузка...', False, 'black').convert_alpha()
 loading_text_1_rect = loading_text_1.get_rect(center=(resolution[0] // 2, resolution[1] // 2))
-
-# first_launch = not os.path.exists(f'resources/temp/images/{resolution_folder}')
-# if first_launch:
-#     loading_text_2 = pg.font.Font('resources/fonts/bulbulpoly-3.ttf', 60).render('Первая загрузка может занять до минуты', False, 'black').convert_alpha()
-#     loading_text_2_rect = loading_text_2.get_rect(center=(resolution[0] // 2, resolution[1] // 2 + 90))
 
 past_second_fps = []
 prev_fps_time = time.time()
@@ -2223,6 +2294,7 @@ while running:
         manager.draw_ui(screen)
     except:
         pass
+    blit_board_above_interface()
 
     past_second_fps.append(1 / dt)
     fps_time = time.time()

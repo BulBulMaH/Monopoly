@@ -13,6 +13,7 @@ import pygame_gui
 import io
 from PIL import Image
 import base64
+import pprint
 
 from all_tiles_extraction import all_tiles_get
 from resolution_choice import resolution_definition
@@ -68,12 +69,12 @@ class Player:
         self.on_move = False
 
 pg.init()
-resolution, resolution_folder, btn_coordinates, profile_coordinates, start_btn_textboxes_coordinates, cubes_coordinates, speed, avatar_side_size, exchange_coordinates, FPS, auction_coordinates, tile_size, margin, debug_mode, fps_coordinates, font_size, egg_card_coordinates, egg_card_offset, egg_card_title_center, egg_title_font_size, egg_card_text_width, egg_btns_coordinates, optimized, background_color, log_textbox_coordinates = resolution_definition(False)
+resolution, resolution_folder, btn_coordinates, profile_coordinates, start_btn_textboxes_coordinates, cubes_coordinates, speed, avatar_side_size, exchange_coordinates, FPS, auction_coordinates, tile_size, margin, debug_mode, fps_coordinates, font_size, egg_card_coordinates, egg_card_offset, egg_card_title_center, egg_title_font_size, egg_card_text_width, egg_btns_coordinates, optimized, background_color, log_textbox_coordinates, tile_info_coordinates, fullscreen, sharp_scale = resolution_definition(False)
 piece_color_coefficient = 28
 TITLE = 'Monopoly Server'
 screen = pg.display.set_mode(resolution)
 manager = pygame_gui.UIManager(resolution, theme_path=f'resources/{resolution_folder}/gui_theme.json', enable_live_theme_updates=False)
-manager.add_font_paths('BulBulPoly', "resources/fonts/bulbulpoly-3.ttf")
+manager.add_font_paths('BulBulPoly', "resources/fonts/bulbulpoly-4.ttf")
 pg.display.set_caption(TITLE)
 clock = pg.time.Clock()
 
@@ -86,7 +87,7 @@ bars = pg.image.load(f'resources/{resolution_folder}/bars.png').convert_alpha()
 player_bars = pg.image.load(f'resources/{resolution_folder}/profile/profile_bars.png').convert_alpha()
 avatar_file = pg.image.load(f'resources/{resolution_folder}/profile/avatar_placeholder.png').convert_alpha()
 mortgaged_tile = pg.image.load(f'resources/{resolution_folder}/mortgaged.png').convert_alpha()
-font = pg.font.Font('resources/fonts/bulbulpoly-3.ttf',25)
+font = pg.font.Font('resources/fonts/bulbulpoly-4.ttf',25)
 
 players = []
 is_server_started = False
@@ -148,8 +149,6 @@ def receive_data():
             try:
                 data_unsplit = player.conn.recv(1024).decode()
                 buffer += data_unsplit
-                if data_unsplit != '':
-                    information_received('data_unsplit', data_unsplit)
                 while '%' in buffer:
                     single_command, buffer = buffer.split('%', 1)
                     data = single_command.split('|')
@@ -165,10 +164,12 @@ def receive_data():
                         player.avatar_temp.append(single_command + '%')
                         player.avatar_base64_encoded += data[3]
                         if data[2] == data[4]:
+                            pprint.pprint(player.avatar_temp)
                             for player2 in players:
                                 for avatar in player.avatar_temp:
-                                    # time.sleep(0.07)
+                                    time.sleep(0.001)
                                     player2.conn.send(avatar.encode())
+
                             image_bytes_decoded = base64.b64decode(player.avatar_base64_encoded)
                             image_decoded = Image.open(io.BytesIO(image_bytes_decoded))
                             image_decoded = image_decoded.resize((avatar_side_size, avatar_side_size))
@@ -178,6 +179,7 @@ def receive_data():
                             player.avatar_image = pg.image.load(image_bytes).convert_alpha()
                             player.avatar_base64_encoded = ''
                             player.avatar_temp.clear()
+                            print('Аватар установлен')
 
                     elif data[0] == 'move':
                         cube1 = random.randint(1,6)
@@ -190,15 +192,15 @@ def receive_data():
                             if player.double:
                                 player.imprisoned = False
                                 player.prison_break_attempts = 0
+                                player.piece_position += cube1 + cube2
                                 prison_data = f'unimprisoned|{player.color}|{cube1}|{cube2}%'
                                 message = (
                                     f'<font face="BulBulPoly" pixel_size=[font_size] color="{player.color_value}">{player.name} </font>'
                                     f'<font face="BulBulPoly" pixel_size=[font_size] color="#000000">выходит из тюрьмы</font><br>'
                                     f'<font face="BulBulPoly" pixel_size=[font_size] color="{player.color_value}">{player.name} </font>'
-                                    f'<font face="BulBulPoly" pixel_size=[font_size] color="#000000">выбросил {data[2]}:{data[3]} и попал на поле {all_tiles[player.piece_position].name}</font><br>')
+                                    f'<font face="BulBulPoly" pixel_size=[font_size] color="#000000">выбросил {cube1}:{cube2} и попал на поле {all_tiles[player.piece_position].name}</font><br>')
                                 message_data = f'message|{message}%'
                                 log_textbox.append_html_text(message.replace('[font_size]', str(font_size)))
-                                player.piece_position += cube1 + cube2
                                 for player2 in players:
                                     player2.conn.send(prison_data.encode())
                                     player2.conn.send(message_data.encode())
@@ -209,7 +211,7 @@ def receive_data():
                                 message = (
                                     f'<font face="BulBulPoly" pixel_size=[font_size] color="#000000">У </font>'
                                     f'<font face="BulBulPoly" pixel_size=[font_size] color="{player.color_value}">{player.name} </font>'
-                                    f'<font face="BulBulPoly" pixel_size=[font_size] color="#000000">осталось {3 - int(data[4])} попытки, чтобы выйти из тюрьмы</font><br>')
+                                    f'<font face="BulBulPoly" pixel_size=[font_size] color="#000000">осталось {3 - player.prison_break_attempts} попытки, чтобы выйти из тюрьмы</font><br>')
                                 message_data = f'message|{message}%'
                                 log_textbox.append_html_text(message.replace('[font_size]', str(font_size)))
                                 imprisoned_double_failed_data = f'imprisoned double failed|{player.color}|{cube1}|{cube2}|{player.prison_break_attempts}%'
@@ -261,7 +263,7 @@ def receive_data():
                                 player.money += 100
                                 message = (
                                     f'<font face="BulBulPoly" pixel_size=[font_size] color="{player.color_value}">{player.name} </font>'
-                                    f'<font face="BulBulPoly" pixel_size=[font_size] color="#000000">попадает {all_tiles[0].name} 300~</font><br>')
+                                    f'<font face="BulBulPoly" pixel_size=[font_size] color="#000000">попадает на поле {all_tiles[0].name} и получает 300~</font><br>')
                                 message_data = f'message|{message}%'
                                 log_textbox.append_html_text(message.replace('[font_size]', str(font_size)))
                                 for player2 in players:
@@ -414,7 +416,7 @@ def receive_data():
 
                         message = (
                             f'<font face="BulBulPoly" pixel_size=[font_size] color="{player.color_value}">{player.name} </font>'
-                            f'<font face="BulBulPoly" pixel_size=[font_size] color="#000000">отказался от участия в аукционе~</font><br>')
+                            f'<font face="BulBulPoly" pixel_size=[font_size] color="#000000">отказался от участия в аукционе</font><br>')
                         message_data = f'message|{message}%'
                         log_textbox.append_html_text(message.replace('[font_size]', str(font_size)))
                         for player2 in players:
@@ -535,7 +537,7 @@ def receive_data():
                                     f'<font face="BulBulPoly" pixel_size=[font_size] color="{player.color_value}">{player.name} </font>'
                                     f'<font face="BulBulPoly" pixel_size=[font_size] color="#000000">заплатил игроку </font>'
                                     f'<font face="BulBulPoly" pixel_size=[font_size] color="{player2.color_value}">{player2.name} </font>'
-                                    f'<font face="BulBulPoly" pixel_size=[font_size] color="#000000">{data[2]}</font><br>')
+                                    f'<font face="BulBulPoly" pixel_size=[font_size] color="#000000">{data[2]}~</font><br>')
                                 message_data = f'message|{message}%'
                                 log_textbox.append_html_text(message.replace('[font_size]', str(font_size)))
                         if not eggs_players_who_need_to_pay_to_one_player:
@@ -565,7 +567,7 @@ def receive_data():
                                     f'<font face="BulBulPoly" pixel_size=[font_size] color="{player.color_value}">{player.name} </font>'
                                     f'<font face="BulBulPoly" pixel_size=[font_size] color="#000000">заплатил игроку </font>'
                                     f'<font face="BulBulPoly" pixel_size=[font_size] color="{player2.color_value}">{player2.name} </font>'
-                                    f'<font face="BulBulPoly" pixel_size=[font_size] color="#000000">{int(data[1])}</font><br>')
+                                    f'<font face="BulBulPoly" pixel_size=[font_size] color="#000000">{int(data[1])}~</font><br>')
                                 message_data = f'message|{message}%'
                                 log_textbox.append_html_text(message.replace('[font_size]', str(font_size)))
 
@@ -587,7 +589,7 @@ def receive_data():
                             money_data = f'money|{player.color}|{player.money}%'
                             message = (
                                 f'<font face="BulBulPoly" pixel_size=[font_size] color="{player.color_value}">{player.name} </font>'
-                                f'<font face="BulBulPoly" pixel_size=[font_size] color="#000000">заплатил {(player.prison_break_attempts + 1) * 25} за выход из тюрьмы</font><br>')
+                                f'<font face="BulBulPoly" pixel_size=[font_size] color="#000000">заплатил {(player.prison_break_attempts + 1) * 25}~ за выход из тюрьмы</font><br>')
                             message_data = f'message|{message}%'
                             log_textbox.append_html_text(message.replace('[font_size]', str(font_size)))
                             prison_data = f'unimprisoned|{player.color}%'
@@ -707,13 +709,7 @@ def receive_data():
                         give_m_ = ''
                         if give_money:
                             give_m_ = f' и {give_money}~'
-                        message = (
-                            f'<font face="BulBulPoly" pixel_size=[font_size] color="{player.color_value}">{player.name} </font>'
-                            f'<font face="BulBulPoly" pixel_size=[font_size] color="#000000">получает{get_p_}{get_m_}</font><br>'
-                            f'<font face="BulBulPoly" pixel_size=[font_size] color="{player2.color_value}">{player2.name} </font>'
-                            f'<font face="BulBulPoly" pixel_size=[font_size] color="#000000">получает{give_p_}{give_m_}</font><br>')
-                        message_data = f'message|{message}%'
-                        log_textbox.append_html_text(message.replace('[font_size]', str(font_size)))
+
                         for tile_position in give_property:
                             if tile_position:
                                 player.property.remove(int(tile_position))
@@ -734,6 +730,14 @@ def receive_data():
                                 for tile_position in get_property:
                                     if tile_position:
                                         player2.property.remove(int(tile_position))
+
+                                message = (
+                                    f'<font face="BulBulPoly" pixel_size=[font_size] color="{player.color_value}">{player.name} </font>'
+                                    f'<font face="BulBulPoly" pixel_size=[font_size] color="#000000">получает{get_p_}{get_m_}</font><br>'
+                                    f'<font face="BulBulPoly" pixel_size=[font_size] color="{player2.color_value}">{player2.name} </font>'
+                                    f'<font face="BulBulPoly" pixel_size=[font_size] color="#000000">получает{give_p_}{give_m_}</font><br>')
+                                message_data = f'message|{message}%'
+                                log_textbox.append_html_text(message.replace('[font_size]', str(font_size)))
 
                                 all_property_information = f'all property|{player2.color}|'
                                 for property in player2.property:
@@ -891,7 +895,7 @@ def receive_data():
                                     f'<font face="BulBulPoly" pixel_size=[font_size] color="{player.color_value}">{player.name} </font>'
                                     f'<font face="BulBulPoly" pixel_size=[font_size] color="#000000">на поле {all_tiles[player.piece_position].name} и </font>'
                                     f'<font face="BulBulPoly" pixel_size=[font_size] color="{player.color_value}">{player.name} </font>'
-                                    f'<font face="BulBulPoly" pixel_size=[font_size] color="#000000">получает {pulled_card.value}</font><br>')
+                                    f'<font face="BulBulPoly" pixel_size=[font_size] color="#000000">получает {pulled_card.value}~</font><br>')
                                 message_data = f'message|{message}%'
                                 log_textbox.append_html_text(message.replace('[font_size]', str(font_size)))
                                 money_data = f'money|{player.color}|{player.money}%'

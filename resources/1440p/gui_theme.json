@@ -24,7 +24,7 @@
 			"size": "51",
 			"bold": "0",
 			"italic": "0",
-			"regular_path": "resources/fonts/bulbulpoly-3.ttf"
+			"regular_path": "resources/fonts/bulbulpoly-4.ttf"
 		},
 		"misc":
 		{
@@ -118,7 +118,7 @@
 			"size": "51",
 			"bold": "0",
 			"italic": "0",
-			"regular_path": "resources/fonts/bulbulpoly-3.ttf"
+			"regular_path": "resources/fonts/bulbulpoly-4.ttf"
 		}
 	},
 	"text_box":
@@ -141,6 +141,21 @@
 		{
 			"normal_border": "rgb(0, 0, 0)",
 			"dark_bg": "rgb(150, 150, 150)"
+		}
+	},
+	"panel":
+	{
+		"colours":
+		{
+			"normal_border": "rgb(0, 0, 0)",
+			"dark_bg": "rgb(255, 255, 255)"
+		},
+		"misc":
+		{
+			"shape": "rounded_rectangle",
+			"shape_corner_radius": "13",
+			"border_width": "2",
+			"shadow_width": "0"
 		}
 	}
 }

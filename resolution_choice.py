@@ -1,29 +1,47 @@
 import os
 import pygame as pg
 
+
 def resolution_definition(do_choose):
     if do_choose:
         if os.path.exists('settings.txt'):
             print('Выберите настройки. Вы можете поменять настройки позже, открыв файл settings.py')
             lines = open('settings.txt', 'r').readlines()
+
             resolution_index = lines[0][:-1]
+
             if '.' in lines[1]:
                 fps = float(lines[1])
             else:
                 fps = int(lines[1])
+
             if lines[2][:-1] == 'ultra optimization':
                 optimized = True
             else:
                 optimized = False
+
             if lines[3][:-1] == 'bdb':
                 debug_mode = True
             else:
                 debug_mode = False
+
             color_values = lines[4][:-1].split(',')
             color = []
             for value in color_values:
                 color.append(int(value))
             background_color = pg.Color(color)
+
+            fullscreen_data = lines[5][:-1].split(',')
+            if fullscreen_data[0] == 'True':
+                fullscreen = True
+                if fullscreen_data[1] == 'True':
+                    sharp_scale = True
+                else:
+                    sharp_scale = False
+            else:
+                fullscreen = False
+                sharp_scale = False
+
         else:
             is_resolution_selected = False
             while not is_resolution_selected:
@@ -61,17 +79,40 @@ def resolution_definition(do_choose):
             is_debug_selected = False
             while not is_debug_selected:
                 is_debug = input('debug?:\n'
-                                     '[y / +] - есть\n'
-                                     '[n / -] - нет\n')
+                                 '[y / +] - есть\n'
+                                 '[n / -] - нет\n')
                 if is_debug in 'y+':
                     debug_mode = True
                     is_debug_selected = True
                 elif is_debug in 'n-':
                     debug_mode = False
                     is_debug_selected = True
-            # debug_mode = False
+
             background_color = pg.Color(128, 128, 128)
 
+            is_fullscreen_selected = False
+            while not is_fullscreen_selected:
+                is_fullscreen = input('Установить полноэкранный режим?:\n'
+                                      '[y / +] - да\n'
+                                      '[n / -] - нет\n')
+                if is_fullscreen in 'y+':
+                    is_fullscreen_selected = True
+                    is_sharp_scale_selected = False
+                    fullscreen = True
+                    while not is_sharp_scale_selected:
+                        is_sharp_scale = input('Сглаживать изображение?:\n'
+                                                '[y / +] - да\n'
+                                                '[n / -] - нет\n')
+                        if is_sharp_scale in 'y+':
+                            sharp_scale = True
+                            is_sharp_scale_selected = True
+                        elif is_sharp_scale in 'n-':
+                            sharp_scale = False
+                            is_sharp_scale_selected = True
+                elif is_fullscreen in 'n-':
+                    is_fullscreen_selected = True
+                    fullscreen = False
+                    sharp_scale = False
 
             with open('settings.txt', 'w+') as settings_file:
                 if debug_mode:
@@ -83,7 +124,7 @@ def resolution_definition(do_choose):
                     optimization_text = 'ultra optimization'
                 else:
                     optimization_text = ''
-                settings_file.write(f'{resolution_index}\n{fps}\n{optimization_text}\n{debug_text}\n128,128,128,\n')
+                settings_file.write(f'{resolution_index}\n{fps}\n{optimization_text}\n{debug_text}\n128,128,128\n{fullscreen},{sharp_scale}\n')
                 print('Настройки сохранены')
 
     else:
@@ -92,8 +133,14 @@ def resolution_definition(do_choose):
         resolution_index = '1'
         fps = 30
         background_color = pg.Color(128, 128, 128)
+        fullscreen = False
+        sharp_scale = False
+
     if resolution_index == '1':
-        resolution = (1280, 650)
+        if fullscreen:
+            resolution = (1280, 720)
+        else:
+            resolution = (1280, 650)
         resolution_folder = '720p'
         fps_coordinates = (652, -5)
         font_size = 25
@@ -156,12 +203,16 @@ def resolution_definition(do_choose):
         egg_card_text_width = 342
         egg_card_title_center = (257, 362)
         egg_title_font_size = 25
+        tile_info_coordinates = (95,  95)
         speed = 0.003
         if do_choose:
             print(f'Выбрано разрешение 1280x720 и FPS равен {fps}. Вы можете поменять настройки, открыв файл settings.py\n')
 
     elif resolution_index == '2':
-        resolution = (1920, 1001)
+        if fullscreen:
+            resolution = (1920, 1080)
+        else:
+            resolution = (1920, 1001)
         resolution_folder = '1080p'
         fps_coordinates = (1006, 0)
         font_size = 25
@@ -224,12 +275,16 @@ def resolution_definition(do_choose):
         egg_card_text_width = 536
         egg_card_title_center = (393, 555)
         egg_title_font_size = 51
+        tile_info_coordinates = (138, 138)
         speed = 0.00182
 
         print(f'Выбрано разрешение 1920x1080 и FPS равен {fps}. Вы можете поменять настройки, открыв файл settings.py\n')
 
     elif resolution_index == '3':
-        resolution = (2560, 1360)
+        if fullscreen:
+            resolution = (2560, 1440)
+        else:
+            resolution = (2560, 1360)
         resolution_folder = '1440p'
         fps_coordinates = (1360, -10)
         font_size = 51
@@ -292,8 +347,9 @@ def resolution_definition(do_choose):
         egg_card_text_width = 714
         egg_card_title_center = (537, 758)
         egg_title_font_size = 51
+        tile_info_coordinates = (197, 197)
         speed = 0.0015
         if do_choose:
             print(f'Выбрано разрешение 2560x1440 и FPS равен {fps}. Вы можете поменять настройки, открыв файл settings.py\n')
 
-    return resolution, resolution_folder, btn_coordinates, profile_coordinates, start_btn_textboxes_coordinates, cubes_coordinates, speed, avatar_side_size, exchange_coordinates, fps, auction_coordinates, tile_size, margin, debug_mode, fps_coordinates, font_size, egg_card_coordinates, egg_card_text_center, egg_card_title_center, egg_title_font_size, egg_card_text_width, egg_btns_coordinates, optimized, background_color, log_textbox_coordinates
+    return resolution, resolution_folder, btn_coordinates, profile_coordinates, start_btn_textboxes_coordinates, cubes_coordinates, speed, avatar_side_size, exchange_coordinates, fps, auction_coordinates, tile_size, margin, debug_mode, fps_coordinates, font_size, egg_card_coordinates, egg_card_text_center, egg_card_title_center, egg_title_font_size, egg_card_text_width, egg_btns_coordinates, optimized, background_color, log_textbox_coordinates, tile_info_coordinates, fullscreen, sharp_scale
