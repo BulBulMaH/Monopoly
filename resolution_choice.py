@@ -128,7 +128,7 @@ def resolution_definition(do_choose):
                 print('Настройки сохранены')
 
     else:
-        debug_mode = False
+        debug_mode = True
         optimized = True
         resolution_index = '1'
         fps = 30

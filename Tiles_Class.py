@@ -15,6 +15,10 @@ class Tiles:
         self.color = information_list['color']
         self.angle = int(information_list['angle'])
         self.max_family_members = int(information_list['max_family_members'])
+        if information_list['special_price'] == 'True':
+            self.special_price = True
+        else:
+            self.special_price = False
         self.x_position = int(positions['tile position x'])
         self.y_position = int(positions['tile position y'])
         self.xText = int(positions['price text center x'])
@@ -37,6 +41,7 @@ class Tiles:
         self.mortgaged = False
         self.mortgaged_moves_count = 0
 
+
     def penis_income_calculation(self):
         if self.family_members == self.max_family_members and not self.mortgaged:
             self.full_family = True
@@ -45,24 +50,26 @@ class Tiles:
 
         if self.owned:
             if self.type == 'buildable':
-                if self.full_family:
+                if self.special_price:
+                    coef = 6.4
+                    coef2 = 2
+                else:
                     coef = 8
                     coef2 = 2
-
-                    self.income = self.price / coef
-                    self.income = math.ceil(self.income * (coef2 ** self.penises))
+                if self.full_family:
+                    self.income = math.ceil(self.price / coef * (coef2 ** self.penises))
                 else:
-                    self.income = math.ceil(self.price / 16)
+                    self.income = math.ceil(self.price / coef * (coef2 ** -1))
 
             elif self.type == 'train':
                 coef = 8
                 coef2 = 2
 
-                self.income = self.price / coef
-                self.income = math.ceil(self.income * (coef2 ** (self.family_members - 1)))
+                self.income = math.ceil(self.price / coef * (coef2 ** (self.family_members - 1)))
         else:
             self.income = self.price
         return self.income
+
 
     def text_defining(self, font):
         self.penis_income_calculation()

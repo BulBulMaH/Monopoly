@@ -50,7 +50,7 @@ if sharp_scale:
 screen = pg.display.set_mode(resolution, flags)
 manager = pygame_gui.UIManager(resolution, theme_path=f'resources/{resolution_folder}/gui_theme.json', enable_live_theme_updates=False, starting_language='ru')
 manager.add_font_paths('BulBulPoly', "resources/fonts/bulbulpoly-4.ttf")
-# manager.preload_fonts([{'name': 'BulBulPoly', 'point_size': font_size, 'style': 'regular', 'antialiased': 0}])
+manager.preload_fonts([{'name': 'BulBulPoly', 'point_size': f'{font_size}', 'style': 'regular', 'antialiased': '1'}]) # Оно не даёт мне убрать сглаживание. Хотя, его и так нет, так что...
 
 pg.display.set_caption(TITLE)
 clock = pg.time.Clock()
@@ -77,19 +77,16 @@ def load_assets():
         globals()[f'{penis + 1}_penises_image'] = pg.image.load(f'resources/{resolution_folder}/white penises/{penis + 1}.png').convert_alpha()
 
     global all_tiles, positions, all_players, players, exchange_value, exchange_color, state, sock, all_egg, all_eggs, update_list_static, update_list_dynamic, CLEAR_UPDATE_LIST, ideal_dt
-    property_family_count = {}
     all_tiles, positions, all_egg, all_eggs = all_tiles_get(resolution_folder, tile_size)
     for tile in all_tiles:
         tile.text_defining(font)
-        if tile.buyable:
-            property_family_count[tile.family] = 0
 
     board_image = pg.image.load(f'resources/temp/images/{resolution_folder}/board image.png').convert()
 
-    all_players = [Player('red',    (all_tiles[0].x_center, all_tiles[0].y_center), resolution_folder, property_family_count, '#ff0000'),
-                   Player('blue',   (all_tiles[0].x_center, all_tiles[0].y_center), resolution_folder, property_family_count, '#0000ff'),
-                   Player('yellow', (all_tiles[0].x_center, all_tiles[0].y_center), resolution_folder, property_family_count, '#ffff00'),
-                   Player('green',  (all_tiles[0].x_center, all_tiles[0].y_center), resolution_folder, property_family_count, '#0AA00A')]
+    all_players = [Player('red',    (all_tiles[0].x_center, all_tiles[0].y_center), resolution_folder, '#ff0000'),
+                   Player('blue',   (all_tiles[0].x_center, all_tiles[0].y_center), resolution_folder, '#0000ff'),
+                   Player('yellow', (all_tiles[0].x_center, all_tiles[0].y_center), resolution_folder, '#ffff00'),
+                   Player('green',  (all_tiles[0].x_center, all_tiles[0].y_center), resolution_folder, '#0AA00A')]
     players = []
     exchange_value = -100
     exchange_color = ''
@@ -103,8 +100,6 @@ def load_assets():
              'redeem_btn_active': False,
              'auction_btn_active': False,
              'exchange_btn_active': False,
-
-             'penis_remove_btn_used': False,
              'all_penises_build_btns_active': False,
              'all_penises_remove_btns_active': False,
              'mortgage_tile_btn_active': False,
@@ -188,7 +183,6 @@ def throw_cubes():
     exchange_screen_reset()
     for player in players:
         if player.on_move and state['is_game_started']:
-            print('Кнопка "Бросить кубы" нажата')
             for player2 in players:
                 if player2.main:
                     move_command = 'move%'
@@ -208,24 +202,21 @@ def throw_cubes():
 
 def buy():
     if state['is_game_started'] and state['buy_btn_active']:
-        print('Кнопка "Купить" нажата')
         for player in players:
             if player.main:
                 buy_command = f'buy|{player.piece_position}%'
                 sock.send(buy_command.encode())
                 information_sent('Команда отправлена', buy_command)
                 state['buy_btn_active'] = False
-                if state['double']:
-                    player_move_change(False)
-                else:
-                    player_move_change(True)
+                # if state['double']:
+                #     player_move_change(False)
+                # else:
+                #     player_move_change(True)
         mortgage_btn_check()
         active_buttons_check()
 
 
 def pay():
-    global state
-    print('Кнопка "Оплатить" нажата')
     if state['is_game_started']:
         if state['pay_btn_active'][0] == 'minus':
             for player in players:
@@ -233,10 +224,10 @@ def pay():
                     pay_command = f'pay|{player.piece_position}%'
                     sock.send(pay_command.encode())
                     information_sent('Команда отправлена', pay_command)
-                    if state['double']:
-                        player_move_change(False)
-                    else:
-                        player_move_change(True)
+                    # if state['double']:
+                    #     player_move_change(False)
+                    # else:
+                    #     player_move_change(True)
                     state['pay_btn_active'] = ['False']
 
         elif state['pay_btn_active'][0] == 'pay sum':
@@ -245,10 +236,10 @@ def pay():
                     pay_command = f'pay sum|{state['pay_btn_active'][1]}%'
                     sock.send(pay_command.encode())
                     information_sent('Команда отправлена', pay_command)
-                    if state['double']:
-                        player_move_change(False)
-                    else:
-                        player_move_change(True)
+                    # if state['double']:
+                    #     player_move_change(False)
+                    # else:
+                    #     player_move_change(True)
                     state['pay_btn_active'] = ['False']
 
         elif state['pay_btn_active'][0] == 'color':
@@ -257,22 +248,23 @@ def pay():
                     pay_command = f'payToColor|{player.piece_position}|{state['pay_btn_active'][1]}%'
                     sock.send(pay_command.encode())
                     information_sent('Команда отправлена', pay_command)
-                    if state['double']:
-                        player_move_change(False)
-                    else:
-                        player_move_change(True)
+                    # if state['double']:
+                    #     player_move_change(False)
+                    # else:
+                    #     player_move_change(True)
                     state['pay_btn_active'] = ['False']
 
         elif state['pay_btn_active'][0] == 'player':
             for player in players:
                 if player.main:
-                    pay_command = f'pay to player|{state['pay_btn_active'][1]}|{state['pay_btn_active'][2]}%' # 'pay to player|{color}|{sum}%'
-                    sock.send(pay_command.encode())
-                    information_sent('Команда отправлена', pay_command)
-                    if state['double']:
-                        player_move_change(False)
-                    else:
-                        player_move_change(True)
+                    if player.money >= state['pay_btn_active'][2]:
+                        pay_command = f'pay to player|{state['pay_btn_active'][1]}|{state['pay_btn_active'][2]}%' # 'pay to player|{color}|{sum}%'
+                        sock.send(pay_command.encode())
+                        information_sent('Команда отправлена', pay_command)
+                        # if state['double']:
+                        #     player_move_change(False)
+                        # else:
+                        #     player_move_change(True)
 
         elif state['pay_btn_active'][0] == 'players':
             for player in players:
@@ -281,10 +273,10 @@ def pay():
                         pay_command = f'pay to players|{state['pay_btn_active'][1]}%' # 'pay to players|{sum}%'
                         sock.send(pay_command.encode())
                         information_sent('Команда отправлена', pay_command)
-                        if state['double']:
-                            player_move_change(False)
-                        else:
-                            player_move_change(True)
+                        # if state['double']:
+                        #     player_move_change(False)
+                        # else:
+                        #     player_move_change(True)
                         state['pay_btn_active'] = ['False']
 
         elif state['pay_btn_active'][0] == 'prison':
@@ -293,7 +285,7 @@ def pay():
                     pay_command = f'pay for prison%'
                     sock.send(pay_command.encode())
                     information_sent('Команда отправлена', pay_command)
-                    player_move_change(False)
+                    # player_move_change(False)
                     state['pay_btn_active'] = ['False']
 
         mortgage_btn_check()
@@ -301,14 +293,10 @@ def pay():
 
 
 def debug_output():
-    global state
     state['tile_debug'] = not state['tile_debug']
-    print(f'\nPlayers: {players}')
     for player in players:
         print(f'       piece_position: {player.piece_position}\n'
               f'       name: {player.name}\n'
-              f'       property: {player.property}\n'
-              f'       property_family_count: {player.property_family_count}\n'
               f'       color: {player.color}\n'
               f'       money: {player.money}\n'
               f'       main: {player.main}\n'
@@ -347,16 +335,21 @@ def connect():
                 else:
                     print(f'{"\033[31m{}".format('Ваше имя не должно быть пустым')}{'\033[0m'}')
                     log_textbox.append_html_text(f'<font face="BulBulPoly" pixel_size={font_size} color="#D0392A">Ваше имя не должно быть пустым</font><br>')
+                    if log_textbox.scroll_bar:
+                        log_textbox.scroll_bar.set_scroll_from_start_percentage(1)
             else:
                 print(f'{"\033[31m{}".format('Ваше имя не должно содержать символов "|" и "%"')}{'\033[0m'}')
                 log_textbox.append_html_text(f'<font face="BulBulPoly" pixel_size={font_size} color="#D0392A">Ваше имя не должно содержать символов "|" и "%"</font><br>')
+                if log_textbox.scroll_bar:
+                    log_textbox.scroll_bar.set_scroll_from_start_percentage(1)
         except:
             print(f'{"\033[31m{}".format('Не удалось подключиться')}{'\033[0m'}')  # красный
             log_textbox.append_html_text(f'<font face="BulBulPoly" pixel_size={font_size} color="#D0392A">Не удалось подключиться</font><br>')
+            if log_textbox.scroll_bar:
+                log_textbox.scroll_bar.set_scroll_from_start_percentage(1)
 
 
 def tile_button(tile_position):
-    global state
     if state['tile_debug']:
         tile = all_tiles[tile_position]
         print(f'{tile.position = }\n'
@@ -398,19 +391,17 @@ def tile_button(tile_position):
                     penis_command = f'penis build|{tile_position}%'
                     sock.send(penis_command.encode())
                     information_sent('Информация отправлена', penis_command)
+                    active_buttons_check()
 
-    elif state['is_game_started'] and state['all_penises_remove_btns_active'] and not state['penis_remove_btn_used']:
+    elif state['is_game_started'] and state['all_penises_remove_btns_active']:
         for player in players:
             if player.main:
-                print(all_tiles[tile_position].full_family, all_tiles[tile_position].penises < 5,
-                      all_tiles[tile_position].type == 'buildable', all_tiles[tile_position].owner == player.color)
                 if (all_tiles[tile_position].full_family and
                         1 <= all_tiles[tile_position].penises <= 5 and
                         all_tiles[tile_position].type == 'buildable' and
                         all_tiles[tile_position].owner == player.color):
                     state['penis_remove_btn_active'] = False
                     state['all_penises_remove_btns_active'] = False
-                    state['penis_remove_btn_used'] = True
                     penis_command = f'penis remove|{tile_position}%'
                     sock.send(penis_command.encode())
                     information_sent('Информация отправлена', penis_command)
@@ -463,21 +454,29 @@ def tile_button(tile_position):
             message = [f'{tile.name}:',
                        f'Про это поле мне нечего сказать']
         elif tile.type == 'buildable':
+            if tile.special_price:
+                coef = 6.4
+                coef2 = 2
+            else:
+                coef = 8
+                coef2 = 2
             message = [f'{tile.name}:',
-                       f'Базовая стоимость: {math.ceil(tile.price / 16)}~',
-                       f'Стоимость при полной семье: {math.ceil(tile.price / 8)}~',
-                       f'Стоимость при 1 белом пЭнисе: {math.ceil(tile.price / 8 * 2)}~',
-                       f'Стоимость при 2 белых пЭнисах: {math.ceil(tile.price / 8 * 4)}~',
-                       f'Стоимость при 3 белых пЭнисах: {math.ceil(tile.price / 8 * 8)}~',
-                       f'Стоимость при 4 белых пЭнисах: {math.ceil(tile.price / 8 * 16)}~',
-                       f'Стоимость при 5 белых пЭнисах: {math.ceil(tile.price / 8 * 32)}~',
-                       f'Стоимость белого пЭниса: {tile.penis_price}~']
+                       f'Базовая стоимость: {            math.ceil(tile.price / coef * (coef2 ** -1))}~',
+                       f'Стоимость при полной семье: {   math.ceil(tile.price / coef * (coef2 ** 0))}~',
+                       f'Стоимость при 1 белом пЭнисе: { math.ceil(tile.price / coef * (coef2 ** 1))}~',
+                       f'Стоимость при 2 белых пЭнисах: {math.ceil(tile.price / coef * (coef2 ** 2))}~',
+                       f'Стоимость при 3 белых пЭнисах: {math.ceil(tile.price / coef * (coef2 ** 3))}~',
+                       f'Стоимость при 4 белых пЭнисах: {math.ceil(tile.price / coef * (coef2 ** 4))}~',
+                       f'Стоимость при 5 белых пЭнисах: {math.ceil(tile.price / coef * (coef2 ** 5))}~',
+                       f'Стоимость белого пЭниса: {      tile.penis_price}~']
         elif tile.type == 'train':
+            coef = 8
+            coef2 = 2
             message = [f'{tile.name}:',
-                       f'Стоимость при 1 поле: {math.ceil(tile.price / 8)}~',
-                       f'Стоимость при 2 полях: {math.ceil(tile.price / 8 * 2)}~',
-                       f'Стоимость при 3 полях: {math.ceil(tile.price / 8 * 4)}~',
-                       f'Стоимость при 4 полях: {math.ceil(tile.price / 8 * 8)}~']
+                       f'Стоимость при 1 поле: { math.ceil(tile.price / coef * (coef2 ** 0))}~',
+                       f'Стоимость при 2 полях: {math.ceil(tile.price / coef * (coef2 ** 1))}~',
+                       f'Стоимость при 3 полях: {math.ceil(tile.price / coef * (coef2 ** 2))}~',
+                       f'Стоимость при 4 полях: {math.ceil(tile.price / coef * (coef2 ** 3))}~']
         elif tile.type == 'infrastructure':
             message = [f'{tile.name}:',
                        f'Стоимость при 1 поле: сумма кубов * 4',
@@ -503,12 +502,11 @@ def tile_button(tile_position):
 
 
 def player_button(color):
-    global state, available_tiles_for_exchange, exchange_color, exchange_give, exchange_get
+    global available_tiles_for_exchange, exchange_color, exchange_give, exchange_get
     if state['is_game_started'] and state['exchange_player_btn_active']:
         for player2 in players:
             if player2.color == color:
                 if not player2.main:
-                    print(f'Нажат игрок: {color}')
                     available_tiles_for_exchange = []
                     for player in players:
                         if player.main:
@@ -557,7 +555,7 @@ def shove_penis_activation():
 
 def remove_penis_activation():
     exchange_screen_reset()
-    if state['is_game_started'] and state['penis_remove_btn_active'] and not state['penis_remove_btn_used']:
+    if state['is_game_started'] and state['penis_remove_btn_active']:
         for tile in all_tiles:
             if tile.full_family:
                 if 1 <= tile.penises <= 5:
@@ -574,11 +572,11 @@ def remove_penis_activation():
 
 def exchange():
     exchange_screen_reset()
-    global state
     if state['is_game_started'] and state['exchange_btn_active']:
         state['exchange_player_btn_active'] = True
         log_textbox.append_html_text(f'<font face="BulBulPoly" pixel_size={font_size} color="#000000">Нажмите на аватар человека, с которым хотите обменяться</font><br>')
-        print('Нажата кнопка обмена')
+        if log_textbox.scroll_bar:
+            log_textbox.scroll_bar.set_scroll_from_start_percentage(1)
         active_buttons_check()
 
 
@@ -688,7 +686,6 @@ def exchange_value_calculation():
         value_get += exchange_money_get_sum
 
         if value_give or value_get:
-            # print(value_give, value_get)
             exchange_value = round((value_get - value_give) * 100 / max(value_give, value_get))
         else:
             exchange_value = -100
@@ -707,7 +704,6 @@ def exchange_request_confirm():
             color = state['show_exchange_request_screen'][5]
 
             exchange_command = f'exchange|{give_money}_'
-            print(give_property, get_property)
             for give_tile in give_property:
                 try:
                     exchange_command += f'{all_tiles[int(give_tile)].position}-'
@@ -752,9 +748,7 @@ def exchange_request_reject():
 
 
 def choose_avatar():
-    global state, sendable_data
     if not state['avatar_chosen'] and state['is_game_started']:
-
         top = tkinter.Tk()
         top.withdraw()
         file_name = tkinter.filedialog.askopenfilename(parent=top, filetypes=[('Изображения',
@@ -771,37 +765,20 @@ def choose_avatar():
             image = Image.open(file_name)
 
             width, height = image.size
-            if width > 203:
-                image = image.resize([203, height])
-                width, height = image.size
-            if height > 203:
-                image = image.resize([width, 203])
+            if width <= height:
+                new_side_size = width
+            else:
+                new_side_size = height
+            image = image.crop(((width - new_side_size) // 2, (height - new_side_size) // 2, (width + new_side_size) // 2, (height + new_side_size) // 2))
+            image = image.resize([203, 203])
 
             image_bytes = io.BytesIO()
             image.save(image_bytes, format='PNG')
             image_bytes = image_bytes.getvalue()
 
-            for player in players:
-                if player.main:
-                    color = player.color
-
             image_bytes_encoded_bytes_base64 = base64.b64encode(image_bytes)
-            all_sendable_data = []
-            sendable_data = f'avatar|{color}|{len(all_sendable_data) + 1}|'.encode()
-            for i in image_bytes_encoded_bytes_base64:
-                if len(b''.join([sendable_data, int.to_bytes(i), '|1000'.encode()])) < 1024:
-                    sendable_data = b''.join([sendable_data, int.to_bytes(i)])
-                else:
-                    all_sendable_data.append(sendable_data)
-                    sendable_data = b''.join(
-                        [f'avatar|{color}|{len(all_sendable_data) + 1}|'.encode(), int.to_bytes(i)])
-            all_sendable_data.append(sendable_data)
-
-            for i in range(len(all_sendable_data)):
-                all_sendable_data[i] = b''.join([all_sendable_data[i], f'|{len(all_sendable_data)}%'.encode()])
-
-            for i in all_sendable_data:
-                sock.send(i)
+            sendable_data = b'avatar|' + image_bytes_encoded_bytes_base64 + b'%'
+            sock.send(sendable_data)
 
 
 def auction():
@@ -834,6 +811,8 @@ def auction_buy():
                     log_textbox.show()
                     log_entry_button.show()
                     log_entry_textbox.show()
+                    state['mortgage_btn_active'] = False
+                    state['redeem_btn_active'] = False
                     active_buttons_check()
 
 
@@ -848,6 +827,8 @@ def auction_reject():
         log_textbox.show()
         log_entry_button.show()
         log_entry_textbox.show()
+        state['mortgage_btn_active'] = False
+        state['redeem_btn_active'] = False
         active_buttons_check()
 
 
@@ -860,7 +841,9 @@ def mortgage():  # заложить
         state['all_penises_build_btns_active'] = False
         state['all_penises_remove_btns_active'] = False
         active_buttons_check()
-        log_textbox.append_html_text(f'<font face="BulBulPoly" pixel_size={font_size} color="#000000">Нажмите на поле, которое хотите заложить></font><br>')
+        log_textbox.append_html_text(f'<font face="BulBulPoly" pixel_size={font_size} color="#000000">Нажмите на поле, которое хотите заложить</font><br>')
+        if log_textbox.scroll_bar:
+            log_textbox.scroll_bar.set_scroll_from_start_percentage(1)
 
 
 def redeem():  # выкупить
@@ -873,6 +856,8 @@ def redeem():  # выкупить
         state['all_penises_remove_btns_active'] = False
         active_buttons_check()
         log_textbox.append_html_text(f'<font face="BulBulPoly" pixel_size={font_size} color="#000000">Нажмите на поле, которое хотите выкупить</font><br>')
+        if log_textbox.scroll_bar:
+            log_textbox.scroll_bar.set_scroll_from_start_percentage(1)
 
 
 def exit_prison_by_egg_s(egg_type):
@@ -895,11 +880,7 @@ def exit_prison_by_egg_s(egg_type):
 def egg_s_reset():
     state['egg_btn_active'] = False
     state['eggs_btn_active'] = False
-    # log_textbox.show()
-    # log_entry_button.show()
-    # log_entry_textbox.show()
     active_buttons_check()
-    print('Произведён сброс яиц')
 
 
 def exchange_screen_reset():
@@ -1169,27 +1150,17 @@ def move_by_cubes(cube1, cube2, color):  # Не спрашивайте, как �
 
             if player.main:
                 # print(player.color, player.main, state['double'])
-                if all_tiles[player.piece_position].family == 'Угловые':
-                    if not state['double']:
-                        player_move_change(True)  # TODO: поменять, когда будет функционал
-                    else:
-                        player_move_change(False)
-
-                if player.piece_position in player.property:
-                    if not state['double']:
-                        player_move_change(True)
-                    else:
-                        player_move_change(False)
-
-                # for tile in all_tiles:
-                #     if tile.full_family and tile.owner == player.color and tile.type == 'buildable':
-                #         if 1 <= tile.penises <= 5:
-                #             state['penis_remove_btn_active'] = True
+                # if all_tiles[player.piece_position].family == 'Угловые':
+                #     if not state['double']:
+                #         player_move_change(True)
+                #     else:
+                #         player_move_change(False)
                 #
-                # if len(players) > 1:
-                #     state['exchange_btn_active'] = True
-
-
+                # if all_tiles[player.piece_position].owner == player.color:
+                #     if not state['double']:
+                #         player_move_change(True)
+                #     else:
+                #         player_move_change(False)
 
                 if all_tiles[player.piece_position].family == 'Яйцо':
                     sock.send('pull card|Яйцо%'.encode())
@@ -1211,7 +1182,6 @@ def move(players_on_tile, end_positions, cube_sum):
     global players
     steps = []
 
-    # print(players_on_tile[0].piece_position, '\n')
     for i in range(len(players_on_tile)):
 
         start_position = (players_on_tile[i].x, players_on_tile[i].y)
@@ -1219,25 +1189,23 @@ def move(players_on_tile, end_positions, cube_sum):
         diff_y = end_positions[i][1] - start_position[1]
 
         if i == 0:
+            sign = cube_sum / abs(cube_sum)
             if not optimized:
-                step_amount = abs(round(math.sqrt(diff_x ** 2 + diff_y ** 2) * (7 / cube_sum) * 75 * speed))
-                # print((diff_x ** 2 + diff_y ** 2) ** 0.5 * (7 / (cube1 + cube2)) * 1 / dt)
+                step_amount = abs(round(math.sqrt(diff_x ** 2 + diff_y ** 2) * math.sqrt(abs(7 / cube_sum)) * sign * 75 * speed))
+                sleep_seconds = abs(math.sqrt(abs(7 / cube_sum))) * 3.3 * speed
             else:
-                step_amount = abs(round(math.sqrt(diff_x ** 2 + diff_y ** 2) * (7 / cube_sum) * 10 * speed))
+                step_amount = abs(round(math.sqrt(diff_x ** 2 + diff_y ** 2) * math.sqrt(abs(7 / cube_sum)) * sign * 10 * speed))
+                sleep_seconds = abs(math.sqrt(abs(7 / cube_sum))) * 25 * speed
         if step_amount != 0:
             steps.append((diff_x / step_amount, diff_y / step_amount))
         else:
             steps.append((0, 0))
-    # print(f'{diff_x = }, {diff_y = }, {step_amount = }, {steps = }, {start_position = }, {end_positions = }')
     for i in range(step_amount):
         for player in players_on_tile:
             for player2 in players:
                 if player == player2:
                     # print(f'{diff_x = :.2f}, {diff_y = :.2f}, {step_amount = }, {steps = }, {player2.x = :.2f}, {player2.y = :.2f}, {player.piece_position = }, {average_fps = :.2f}, {start_position = }, {end_positions = }')
-                    if not optimized:
-                        time.sleep(abs(7 / cube_sum) * 3.3 * speed) # 75 * 3.3 ~~ 250
-                    else:
-                        time.sleep(abs(7 / cube_sum) * 25 * speed) # 25 * 10 = 250
+                    time.sleep(sleep_seconds) # 75 * 3.3 ~~ 250
                     step_index = players_on_tile.index(player)
                     # print((steps[step_index][0] * average_fps, steps[step_index][1] * average_fps))
                     player2.x += steps[step_index][0] #* (1 / (10 * dt)) # 100
@@ -1246,8 +1214,23 @@ def move(players_on_tile, end_positions, cube_sum):
 
 
 def handle_connection():
-    global players, all_tiles, avatar, avatar_file, cube_1_picture, cube_2_picture
-    avatar = ''
+    global players, all_tiles, avatar_file, cube_1_picture, cube_2_picture
+
+
+    def price_update(tile):
+        tile_family_members = 0
+        for tile_ in all_tiles:
+            if tile_.family == tile.family:
+                if tile_.owner == tile.owner and not tile_.mortgaged:
+                    tile_family_members += 1
+
+        for tile_ in all_tiles:
+            if tile_.family == tile.family:
+                if tile_.owner == tile.owner and not tile_.mortgaged:
+                    tile_.family_members = tile_family_members
+                    tile_.text_defining(font)
+
+
     buffer = ''
     while running:
         time.sleep(ideal_dt)
@@ -1273,34 +1256,30 @@ def handle_connection():
 
                             elif data[0] == 'avatar':
                                 state['avatar_chosen'] = True
-                                avatar += data[3]
-                                if data[2] == data[4]:
-                                    image_bytes_ascii_decoded = avatar.encode("ascii")
-                                    image_bytes_decoded = base64.b64decode(image_bytes_ascii_decoded)
-                                    image_decoded = Image.open(io.BytesIO(image_bytes_decoded))
-                                    # image_decoded.save('avatar.png')
-                                    image_decoded = image_decoded.resize((avatar_side_size, avatar_side_size))
-                                    image_bytes = io.BytesIO()
-                                    image_decoded.save(image_bytes, format='PNG')
-                                    image_bytes.seek(0)
-                                    try:
-                                        for i, player in enumerate(players):
-                                            if player.color == data[1]:
-                                                player.avatar = pg.image.load(image_bytes).convert_alpha()
-                                                avatar = ''
-                                                state['avatar_chosen'] = False
-                                                update_list_dynamic.append(pg.Rect(profile_coordinates[i]['avatar'], (avatar_side_size, avatar_side_size)))
-                                                print('Аватар установлен')
-                                    except:
-                                        image_decoded.save('error.png')
-                                        print(f'{"\033[31m{}".format(traceback.format_exc())}{'\033[0m'}')
-                                        print('image saved')
+                                avatar = data[2]
+                                image_bytes_ascii_decoded = avatar.encode("ascii")
+                                image_bytes_decoded = base64.b64decode(image_bytes_ascii_decoded)
+                                image_decoded = Image.open(io.BytesIO(image_bytes_decoded))
+                                image_decoded = image_decoded.resize((avatar_side_size, avatar_side_size))
+                                image_bytes = io.BytesIO()
+                                image_decoded.save(image_bytes, format='PNG')
+                                image_bytes.seek(0)
+                                try:
+                                    for i, player in enumerate(players):
+                                        if player.color == data[1]:
+                                            player.avatar = pg.image.load(image_bytes).convert_alpha()
+                                            state['avatar_chosen'] = False
+                                            update_list_dynamic.append(pg.Rect(profile_coordinates[i]['avatar'], (avatar_side_size, avatar_side_size)))
+                                except:
+                                    image_decoded.save('error.png')
+                                    print(f'{"\033[31m{}".format(traceback.format_exc())}{'\033[0m'}')
+                                    print('an error has occurred. avatar image saved inside main folder')
 
                             elif data[0] == 'move':
                                 for player in players:
                                     if player.main and player.color == data[1]:
-                                        state['double'] = int(data[2]) == int(data[3])
-                                        print(f'Состояние double установлено на {state['double']}')
+                                        state['double'] = data[2] == data[3]
+                                        # print(f'Состояние double установлено на {state['double']}')
                                 move_by_cubes(int(data[2]), int(data[3]), data[1])
 
                                 mortgage_btn_check()
@@ -1321,9 +1300,6 @@ def handle_connection():
                                                                   all_tiles[player3.piece_position].y_center + margin[len(players_on_tile) - 1][players_on_tile.index(player3)][1]))
 
                                         move([player], end_positions, 10)
-
-                                        if all_tiles[player.piece_position].owner == player.color:
-                                            player_move_change(True)
 
                                         position_update()
                                         pay_btn_check()
@@ -1353,24 +1329,10 @@ def handle_connection():
                                 for player in players:
                                     if data[1] == player.color:
                                         tile_position = int(data[2])
-                                        player.property.append(tile_position)
-                                        player.property_family_count[all_tiles[tile_position].family] += 1
                                         all_tiles[tile_position].owner = data[1]
                                         all_tiles[tile_position].owned = True
                                         all_tiles[tile_position].family_members += 1
-
-                                        for i in range(len(all_tiles)):
-                                            if all_tiles[i].family == all_tiles[tile_position].family and all_tiles[
-                                                i].owner == all_tiles[tile_position].owner:
-                                                all_tiles[i].family_members = player.property_family_count[
-                                                    all_tiles[tile_position].family]
-                                                if all_tiles[i].family_members == all_tiles[i].max_family_members:
-                                                    all_tiles[i].full_family = True
-
-                                                all_tiles[i].text_defining(font)
-
-                                        print(f'У {player.color} есть {player.property}')
-
+                                        price_update(all_tiles[tile_position])
                                         buy_btn_check()
                                     if player.main:
                                         if int(data[2]) == player.piece_position:
@@ -1423,7 +1385,6 @@ def handle_connection():
                                                 state['exchange_btn_active'] = True
 
                                             state['throw_cubes_btn_active'] = True
-                                            state['penis_remove_btn_used'] = False
                                             mortgage_btn_check()
                                             redeem_btn_check()
 
@@ -1437,8 +1398,6 @@ def handle_connection():
                                                     if 1 <= tile.penises <= 5:
                                                         state['penis_remove_btn_active'] = True
 
-                                                if tile.mortgaged:
-                                                    tile.mortgaged_moves_count -= 1
                                         else:
                                             player.on_move = False
                                             state['throw_cubes_btn_active'] = False
@@ -1467,6 +1426,7 @@ def handle_connection():
                                         player.imprisoned = False
                                         update_list_dynamic.append(profile_picture.get_rect(topleft=profile_coordinates[i]['profile']))
                                 if len(data) > 2:
+                                    state['double'] = data[2] == data[3]
                                     move_by_cubes(int(data[2]), int(data[3]), data[1])
                                 mortgage_btn_check()
                                 redeem_btn_check()
@@ -1517,20 +1477,10 @@ def handle_connection():
                                 for player in players:
                                     if player.color == data[1]:
                                         new_property = data[2].split('_')
-                                        for i in player.property:
-                                            player.property_family_count[all_tiles[i].family] = 0
-                                        new_int_property = []
                                         for i in new_property:
-                                            new_int_property.append(int(i))
-                                            player.property_family_count[all_tiles[int(i)].family] += 1
-                                        player.property = new_int_property
-                                        for tile in new_int_property:
+                                            tile = int(i)
                                             all_tiles[tile].owner = data[1]
-                                            all_tiles[tile].family_members = player.property_family_count[
-                                                all_tiles[tile].family]
-                                            if all_tiles[tile].family_members == all_tiles[tile].max_family_members:
-                                                all_tiles[tile].full_family = True
-                                            all_tiles[tile].text_defining(font)
+                                            price_update(all_tiles[tile])
                                 mortgage_btn_check()
                                 redeem_btn_check()
 
@@ -1559,8 +1509,6 @@ def handle_connection():
                                     except:
                                         pass
                                 value_get += get_money
-
-                                # print(value_give, value_get)
                                 exchange_value = round((value_get - value_give) * 100 / max(value_give, value_get))
 
                                 state['show_exchange_request_screen'] = [True, give_money, give_property, get_money,
@@ -1628,13 +1576,7 @@ def handle_connection():
 
                                 mortgage_btn_check()
 
-                                if int(data[1]):
-                                    state['pay_btn_active'] = ['pay sum', int(data[1])]
-                                else:
-                                    if state['double']:
-                                        player_move_change(False)
-                                    else:
-                                        player_move_change(True)
+                                state['pay_btn_active'] = ['pay sum', int(data[1])]
 
                             elif data[0] == 'need to pay to player':
                                 global pulled_card_strings
@@ -1719,9 +1661,6 @@ def handle_connection():
                                     if egg_font.size(' '.join(text))[0] <= egg_card_text_width:
                                         pulled_card_strings.append(' '.join(text))
                                         text.clear()
-                                # log_textbox.hide()
-                                # log_entry_button.hide()
-                                # log_entry_textbox.hide()
 
                             elif data[0] == 'show cubes':
                                 show_cubes(data[1], data[2])
@@ -1739,6 +1678,11 @@ def handle_connection():
 
                             elif data[0] == 'message':
                                 log_textbox.append_html_text(data[1].replace('[font_size]', str(font_size)))
+                                if log_textbox.scroll_bar:
+                                    log_textbox.scroll_bar.set_scroll_from_start_percentage(1)
+
+                            elif data[0] == 'mortgaged_moves_count':
+                                all_tiles[int(data[1])].mortgaged_moves_count = int(data[2])
 
                             else:
                                 print(f'Ошибка: {"\033[31m{}".format(f'Незарегистрированная команда на стороне клиента: {data[0]}')}{'\033[0m'}')
@@ -1774,6 +1718,12 @@ def event_handler():
                     connect()
                 elif event.key == pg.K_d:
                     debug_output()
+            elif name_textbox.is_focused:
+                if event.key == pg.K_RETURN:
+                    connect()
+            elif log_entry_textbox.is_focused:
+                if event.key == pg.K_RETURN:
+                    send_message()
 
         elif event.type == pg.MOUSEBUTTONUP:
             if state['egg_btn_active']:
@@ -2093,7 +2043,7 @@ def forbidden_characters_check(text, forbidden_characters):
 
 def name_check():
     name = name_textbox.get_text()
-    name = forbidden_characters_check(name, ['|', '%', '[1foe_S]'])
+    name = forbidden_characters_check(name, ['|', '%', '[1foe_S]', '\n'])
     while font.size(name)[0] >= profile_picture.width - 10:
         name = name[:-1]
     if name_textbox.get_text() != name:
@@ -2102,7 +2052,7 @@ def name_check():
 
 def log_entry_check():
     log_text = log_entry_textbox.get_text()
-    log_text = forbidden_characters_check(log_text, ['|', '%', '[1foe_S]'])
+    log_text = forbidden_characters_check(log_text, ['|', '%', '[1foe_S]', '\n'])
     if log_entry_textbox.get_text() != log_text:
         log_entry_textbox.set_text(log_text)
 
@@ -2176,7 +2126,6 @@ def active_buttons_check():
 
 
 def pay_btn_check():
-    global state
     if state['is_game_started']:
         for player in players:
             if player.main:
@@ -2184,12 +2133,12 @@ def pay_btn_check():
                     state['pay_btn_active'] = ['prison']
                     mortgage_btn_check()
                 elif not state['paid']:
-                    if (player.piece_position == 4 or player.piece_position == 38) and player.money >= all_tiles[player.piece_position].income * -1:
+                    if (player.piece_position == 4 or player.piece_position == 38) and player.money >= -all_tiles[player.piece_position].income:
                         state['pay_btn_active'] = ['minus']
                         state['paid'] = True
                         mortgage_btn_check()
                     else:
-                        if all_tiles[player.piece_position].owner != player.color and all_tiles[player.piece_position].owned and not all_tiles[player.piece_position].mortgaged and player.money >= all_tiles[player.piece_position].penis_income_calculation():
+                        if all_tiles[player.piece_position].owner != player.color and all_tiles[player.piece_position].owned and not all_tiles[player.piece_position].mortgaged and player.money >= all_tiles[player.piece_position].penis_income_calculation() and all_tiles[player.piece_position].type != 'infrastructure':
                             state['pay_btn_active'] = ['color', all_tiles[player.piece_position].owner]
                             mortgage_btn_check()
                             state['paid'] = True
@@ -2198,10 +2147,15 @@ def pay_btn_check():
                                 state['pay_btn_active'] = ['False']
                                 mortgage_btn_check()
                 print(f'Состояние pay_btn_active установлено на {state['pay_btn_active']}')
+                if state['pay_btn_active'][0] not in ('False', 'prison') or player.on_move:
+                    if len(players) > 1:
+                        state['exchange_btn_active'] = True
+                else:
+                    state['exchange_btn_active'] = False
 
 
 def buy_btn_check():
-    global state, players
+    global players
     for player in players:
         if player.main:
             if all_tiles[player.piece_position].buyable:
@@ -2217,45 +2171,49 @@ def buy_btn_check():
                         state['auction_btn_active'] = False
                         state['buy_btn_active'] = False
 
+    # if state['buy_btn_active']:
+    #     if len(players) > 1:
+    #         state['exchange_btn_active'] = True
+    # else:
+    #     state['exchange_btn_active'] = False
+
 
 def mortgage_btn_check():  # заложить
-    global state
     if state['is_game_started']: # and (state['buy_btn_active'] or state['pay_btn_active'][0] != 'False' or state['throw_cubes_btn_active']):
         for player in players:
             if player.main:
-                if player.on_move or state['buy_btn_active'] or state['pay_btn_active'][0] != 'False' or state['show_auction_screen'][0]:
-                    for tile_position in player.property:
-                        if all_tiles[tile_position].penises <= 0 and not all_tiles[tile_position].mortgaged:
-                            state['mortgage_btn_active'] = True
-                        else:
-                            state['mortgage_btn_active'] = False
+                if player.on_move or state['buy_btn_active'] or state['pay_btn_active'][0] != 'False' or state['show_auction_screen'][0] or (all_tiles[player.piece_position].owner != player.color and all_tiles[player.piece_position].owned):
+                    state['mortgage_btn_active'] = False
+                    for tile in all_tiles:
+                        if tile.owner == player.color:
+                            if tile.penises <= 0 and not tile.mortgaged:
+                                state['mortgage_btn_active'] = True
 
-                elif all_tiles[player.piece_position].buyable: # если нельзя купить, то можно заложить
-                    if not all_tiles[player.piece_position].owned:
+                elif all_tiles[player.piece_position].buyable and not state['refused_to_buy']: # если нельзя купить, то можно заложить
+                    if not all_tiles[player.piece_position].owned:                             # Я честно не понимаю, что я имел в виду
                         state['mortgage_btn_active'] = True
                     else:
                         state['mortgage_btn_active'] = False
 
                 else:
                     state['mortgage_btn_active'] = False
+    redeem_btn_check()
                 # print(f'Состояние mortgage_btn_active установлено на {state['mortgage_btn_active']}')
 
 
 def redeem_btn_check():  # выкупить
-    global state
-    if state['is_game_started'] and state['throw_cubes_btn_active']:
+    state['redeem_btn_active'] = False
+    if state['is_game_started']:
 
         for tile in all_tiles:
             if tile.mortgaged:
 
                 for player in players:
                     if player.main:
-
-                        if player.color == tile.owner:
-                            if player.money >= tile.price / 2 * 1.1:
-                                state['redeem_btn_active'] = True
-                        else:
-                            state['redeem_btn_active'] = False
+                        if player.on_move:
+                            if player.color == tile.owner:
+                                if player.money >= tile.price / 2 * 1.1:
+                                    state['redeem_btn_active'] = True
 
 
 running = True
