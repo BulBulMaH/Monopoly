@@ -1,142 +1,41 @@
 import os
+import json
 import pygame as pg
 
 
-def resolution_definition(do_choose):
-    if do_choose:
-        if os.path.exists('settings.txt'):
-            print('Выберите настройки. Вы можете поменять настройки позже, открыв файл settings.py')
-            lines = open('settings.txt', 'r').readlines()
-
-            resolution_index = lines[0][:-1]
-
-            if '.' in lines[1]:
-                fps = float(lines[1])
-            else:
-                fps = int(lines[1])
-
-            if lines[2][:-1] == 'ultra optimization':
-                optimized = True
-            else:
-                optimized = False
-
-            if lines[3][:-1] == 'bdb':
-                debug_mode = True
-            else:
-                debug_mode = False
-
-            color_values = lines[4][:-1].split(',')
-            color = []
-            for value in color_values:
-                color.append(int(value))
-            background_color = pg.Color(color)
-
-            fullscreen_data = lines[5][:-1].split(',')
-            if fullscreen_data[0] == 'True':
-                fullscreen = True
-                if fullscreen_data[1] == 'True':
-                    sharp_scale = True
-                else:
-                    sharp_scale = False
-            else:
-                fullscreen = False
-                sharp_scale = False
-
-        else:
-            is_resolution_selected = False
-            while not is_resolution_selected:
-                resolution_index = input('Выберите разрешение экрана:\n'
-                                         '1 - 1280x720\n'
-                                         '2 - 1920x1080\n'
-                                         '3 - 2560x1440\n')
-                if resolution_index in '123':
-                    is_resolution_selected = True
-
-            is_fps_selected = False
-            while not is_fps_selected:
-                fps = input('Введите максимальный FPS:\n')
-                try:
-                    if '.' in fps:
-                        fps = float(fps)
-                    else:
-                        fps = int(fps)
-                    is_fps_selected = True
-                except:
-                    pass
-
-            is_optimization_selected = False
-            while not is_optimization_selected:
-                is_optimized = input('Выберите наличие оптимизации движения:\n'
-                                     '[y / +] - есть\n'
-                                     '[n / -] - нет\n')
-                if is_optimized in 'y+':
-                    optimized = True
-                    is_optimization_selected = True
-                elif is_optimized in 'n-':
-                    optimized = False
-                    is_optimization_selected = True
-
-            is_debug_selected = False
-            while not is_debug_selected:
-                is_debug = input('debug?:\n'
-                                 '[y / +] - есть\n'
-                                 '[n / -] - нет\n')
-                if is_debug in 'y+':
-                    debug_mode = True
-                    is_debug_selected = True
-                elif is_debug in 'n-':
-                    debug_mode = False
-                    is_debug_selected = True
-
-            background_color = pg.Color(128, 128, 128)
-
-            is_fullscreen_selected = False
-            while not is_fullscreen_selected:
-                is_fullscreen = input('Установить полноэкранный режим?:\n'
-                                      '[y / +] - да\n'
-                                      '[n / -] - нет\n')
-                if is_fullscreen in 'y+':
-                    is_fullscreen_selected = True
-                    is_sharp_scale_selected = False
-                    fullscreen = True
-                    while not is_sharp_scale_selected:
-                        is_sharp_scale = input('Сглаживать изображение?:\n'
-                                                '[y / +] - да\n'
-                                                '[n / -] - нет\n')
-                        if is_sharp_scale in 'y+':
-                            sharp_scale = True
-                            is_sharp_scale_selected = True
-                        elif is_sharp_scale in 'n-':
-                            sharp_scale = False
-                            is_sharp_scale_selected = True
-                elif is_fullscreen in 'n-':
-                    is_fullscreen_selected = True
-                    fullscreen = False
-                    sharp_scale = False
-
-            with open('settings.txt', 'w+') as settings_file:
-                if debug_mode:
-                    debug_text = 'bdb'
-                else:
-                    debug_text = ''
-
-                if optimized:
-                    optimization_text = 'ultra optimization'
-                else:
-                    optimization_text = ''
-                settings_file.write(f'{resolution_index}\n{fps}\n{optimization_text}\n{debug_text}\n128,128,128\n{fullscreen},{sharp_scale}\n')
-                print('Настройки сохранены')
+def resolution_definition():
+    if os.path.exists('settings.json'):
+        f = open('settings.json')
+        settings_data = json.load(f)
+        resolution_index = settings_data['resolution index']
+        fps = settings_data['fps']
+        optimized = settings_data['optimized movement']
+        debug_mode = settings_data['debug mode']
+        background_color = pg.Color(settings_data['background color'])
+        fullscreen = settings_data['fullscreen']
+        sharp_scale = settings_data['sharp fullscreen']
 
     else:
-        debug_mode = True
-        optimized = True
-        resolution_index = '1'
-        fps = 30
-        background_color = pg.Color(128, 128, 128)
-        fullscreen = False
-        sharp_scale = False
+        settings_data = {"resolution index": 1,
+                         "fps": 60,
+                         "optimized movement": False,
+                         "background color": [128, 128, 128, 255],
+                         "fullscreen": False,
+                         "sharp fullscreen": True,
+                         "debug mode": False}
 
-    if resolution_index == '1':
+        resolution_index = settings_data['resolution index']
+        fps = settings_data['fps']
+        optimized = settings_data['optimized movement']
+        debug_mode = settings_data['debug mode']
+        background_color = pg.Color(settings_data['background color'])
+        fullscreen = settings_data['fullscreen']
+        sharp_scale = settings_data['sharp fullscreen']
+
+        with open("settings.json", "w") as outfile:
+            json.dump(settings_data, outfile, indent=4)
+
+    if resolution_index == 1:
         if fullscreen:
             resolution = (1280, 720)
         else:
@@ -144,6 +43,7 @@ def resolution_definition(do_choose):
         resolution_folder = '720p'
         fps_coordinates = (652, -5)
         font_size = 25
+        settings_font_size = 25
 
         btn_coordinates = {'throw_cubes':   ((953,  20 ), (136, 38)),
                             'buy':          ((953,  78,), (136, 38)),
@@ -183,12 +83,31 @@ def resolution_definition(do_choose):
                                             'choose_avatar': ((1040, 592), (217, 38)),
                                             'debug':         ((1040, 384), (140, 38))}
 
-        log_textbox_coordinates = {'main_box':               (95,  95,  459, 426),
-                                   'user_input_box':         (95,  519, 350, 35),
-                                   'user_input_send_button': (443, 519, 111, 35)}
+        log_textbox_coordinates = {'main_box':                  (95,  95,  459, 426),
+                                   'user_input_box':            (95,  519, 350, 35),
+                                   'audio_send_button':         (411, 519, 38,  35),
+                                   'voice_message_send_button': (446, 519, 38,  35),
+                                   'image_send_button':         (481, 519, 38,  35),
+                                   'text_send_button':          (516, 519, 38,  35)}
 
         egg_btns_coordinates = {'egg':  ((953,  310), (52, 38)),
                                 'eggs': ((1037, 310), (52, 38))}
+
+        settings_buttons_coordinates = {'dropdown':              (10,  10,  230, 50),
+                                        'start_game_button':     (572, 602, 136, 38),
+                                        'fps_textbox':           (266, 70,  60,  30),
+                                        'optimization_checkbox': (226, 105, 25,  25),
+                                        'debug_checkbox':        (120, 137, 25,  25),
+                                        'fullscreen_checkbox':   (222, 169, 25,  25),
+                                        'sharp_scale_checkbox':  (252, 201, 25,  25),
+                                        'pick_color_button':     (10,  240, 180, 38),
+                                        'apply_button':          (10,  298, 180, 38),
+                                        'color_picker':          (60,  120, 390, 390),
+                                        'fps_text':              (10,  70),
+                                        'optimization_text':     (10,  102),
+                                        'debug_text':            (10,  134),
+                                        'fullscreen_text':       (10,  166),
+                                        'sharp_scale_text':      (10,  198)}
 
         margin = [[(0, 0)],
                   [(0,  -14), (0,  14)],
@@ -198,6 +117,7 @@ def resolution_definition(do_choose):
         cubes_coordinates = [(959, 489), (959, 565)]
         avatar_side_size = 100
         tile_size = (55, 55)
+        log_image_size = (128, 128)
         egg_card_coordinates = (85, 334)
         egg_card_text_center = (257, 464)
         egg_card_text_width = 342
@@ -205,10 +125,8 @@ def resolution_definition(do_choose):
         egg_title_font_size = 25
         tile_info_coordinates = (95,  95)
         speed = 0.003
-        if do_choose:
-            print(f'Выбрано разрешение 1280x720 и FPS равен {fps}. Вы можете поменять настройки, открыв файл settings.py\n')
 
-    elif resolution_index == '2':
+    elif resolution_index == 2:
         if fullscreen:
             resolution = (1920, 1080)
         else:
@@ -216,6 +134,7 @@ def resolution_definition(do_choose):
         resolution_folder = '1080p'
         fps_coordinates = (1006, 0)
         font_size = 25
+        settings_font_size = 51
 
         btn_coordinates = {'throw_cubes':   ((1455, 30 ), (204, 57)),
                             'buy':          ((1455, 117), (204, 57)),
@@ -255,12 +174,31 @@ def resolution_definition(do_choose):
                                             'choose_avatar': ((1683, 914), (208, 57)),
                                             'debug':         ((1683, 660), (208, 57))}
 
-        log_textbox_coordinates = {'main_box':               (138, 138, 721, 688),
-                                   'user_input_box':         (138, 819, 640, 40),
-                                   'user_input_send_button': (748, 819, 111, 40)}
+        log_textbox_coordinates = {'main_box':                  (138, 138, 721, 688),
+                                   'user_input_box':            (138, 819, 640, 40),
+                                   'audio_send_button':         (696, 819, 43, 40),
+                                   'voice_message_send_button': (736, 819, 43, 40),
+                                   'image_send_button':         (776, 819, 43, 40),
+                                   'text_send_button':          (816, 819, 43, 40)}
 
         egg_btns_coordinates = {'egg':  ((1455, 465), (78, 57)),
                                 'eggs': ((1581, 465), (78, 57))}
+
+        settings_buttons_coordinates = {'dropdown':              (20,  20,  230, 50),
+                                        'start_game_button':     (835, 934, 250, 57),
+                                        'fps_textbox':           (534, 81,  120, 55),
+                                        'optimization_checkbox': (451, 144, 45,  45),
+                                        'debug_checkbox':        (238, 198, 45,  45),
+                                        'fullscreen_checkbox':   (443, 252, 45,  45),
+                                        'sharp_scale_checkbox':  (507, 306, 45,  45),
+                                        'pick_color_button':     (20,  370, 250, 57),
+                                        'apply_button':          (20,  457, 250, 57),
+                                        'color_picker':          (60,  120, 390, 390),
+                                        'fps_text':              (20,  80),
+                                        'optimization_text':     (20,  134),
+                                        'debug_text':            (20,  188),
+                                        'fullscreen_text':       (20,  242),
+                                        'sharp_scale_text':      (20,  296)}
 
         margin = [[[0, 0]],
                   [[0, -21], [0, 21]],
@@ -270,6 +208,7 @@ def resolution_definition(do_choose):
         cubes_coordinates = [(1499, 906), (1594, 906)]
         avatar_side_size = 150
         tile_size = (85, 85)
+        log_image_size = (192, 192)
         egg_card_coordinates = (123, 514)
         egg_card_text_center = (393, 720)
         egg_card_text_width = 536
@@ -278,9 +217,7 @@ def resolution_definition(do_choose):
         tile_info_coordinates = (138, 138)
         speed = 0.00182
 
-        print(f'Выбрано разрешение 1920x1080 и FPS равен {fps}. Вы можете поменять настройки, открыв файл settings.py\n')
-
-    elif resolution_index == '3':
+    elif resolution_index == 3:
         if fullscreen:
             resolution = (2560, 1440)
         else:
@@ -288,6 +225,7 @@ def resolution_definition(do_choose):
         resolution_folder = '1440p'
         fps_coordinates = (1360, -10)
         font_size = 51
+        settings_font_size = 51
 
         btn_coordinates = {'throw_cubes':  ((1935, 40 ), (272, 76)),
                            'buy':          ((1935, 156), (272, 76)),
@@ -327,9 +265,28 @@ def resolution_definition(do_choose):
                                            'connect':       ((2127, 1127), (392, 76)),
                                            'choose_avatar': ((2127, 1243), (392, 76))}
 
-        log_textbox_coordinates = {'main_box':               (197, 197,  961, 911),
-                                   'user_input_box':         (197, 1098, 760, 60),
-                                   'user_input_send_button': (936, 1098, 222, 60)}
+        log_textbox_coordinates = {'main_box':                  (197, 197, 961, 911),
+                                   'user_input_box':            (197, 1098, 760, 60),
+                                   'audio_send_button':         (915, 1098, 63, 60),
+                                   'voice_message_send_button': (975, 1098, 63, 60),
+                                   'image_send_button':         (1035, 1098, 63, 60),
+                                   'text_send_button':          (1095, 1098, 63, 60)}
+
+        settings_buttons_coordinates = {'dropdown': (20, 20, 230, 50),
+                                        'start_game_button': (1155, 1273, 250, 57),
+                                        'fps_textbox': (534, 81, 120, 55),
+                                        'optimization_checkbox': (451, 144, 45, 45),
+                                        'debug_checkbox': (238, 198, 45, 45),
+                                        'fullscreen_checkbox': (443, 252, 45, 45),
+                                        'sharp_scale_checkbox': (507, 306, 45, 45),
+                                        'pick_color_button': (20, 370, 250, 57),
+                                        'apply_button': (20, 457, 250, 57),
+                                        'color_picker': (60, 120, 390, 390),
+                                        'fps_text': (20, 80),
+                                        'optimization_text': (20, 134),
+                                        'debug_text': (20, 188),
+                                        'fullscreen_text': (20, 242),
+                                        'sharp_scale_text': (20, 296)}
 
         egg_btns_coordinates = {'egg':  ((1935, 620), (106, 76)),
                                 'eggs': ((2101, 620), (106, 76))}
@@ -342,6 +299,7 @@ def resolution_definition(do_choose):
         cubes_coordinates = [(1922, 1130), (2074, 1130)]
         avatar_side_size = 203
         tile_size = (115, 115)
+        log_image_size = (256, 256)
         egg_card_coordinates = (177, 698)
         egg_card_text_center = (537, 973)
         egg_card_text_width = 714
@@ -349,7 +307,5 @@ def resolution_definition(do_choose):
         egg_title_font_size = 51
         tile_info_coordinates = (197, 197)
         speed = 0.0015
-        if do_choose:
-            print(f'Выбрано разрешение 2560x1440 и FPS равен {fps}. Вы можете поменять настройки, открыв файл settings.py\n')
 
-    return resolution, resolution_folder, btn_coordinates, profile_coordinates, start_btn_textboxes_coordinates, cubes_coordinates, speed, avatar_side_size, exchange_coordinates, fps, auction_coordinates, tile_size, margin, debug_mode, fps_coordinates, font_size, egg_card_coordinates, egg_card_text_center, egg_card_title_center, egg_title_font_size, egg_card_text_width, egg_btns_coordinates, optimized, background_color, log_textbox_coordinates, tile_info_coordinates, fullscreen, sharp_scale
+    return resolution, resolution_folder, btn_coordinates, profile_coordinates, start_btn_textboxes_coordinates, cubes_coordinates, speed, avatar_side_size, exchange_coordinates, fps, auction_coordinates, tile_size, margin, debug_mode, fps_coordinates, font_size, egg_card_coordinates, egg_card_text_center, egg_card_title_center, egg_title_font_size, egg_card_text_width, egg_btns_coordinates, optimized, background_color, log_textbox_coordinates, tile_info_coordinates, fullscreen, sharp_scale, settings_buttons_coordinates, settings_font_size, log_image_size

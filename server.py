@@ -14,9 +14,14 @@ import io
 from PIL import Image
 import base64
 import pprint
+import zlib
+import magic
+import mimetypes
+import wave
+
+from Channel_Class import Channel
 
 from all_tiles_extraction import all_tiles_get
-from resolution_choice import resolution_definition
 from colored_output import thread_open, new_connection, information_received, information_sent_to
 
 class Player:
@@ -38,6 +43,7 @@ class Player:
         self.egg_prison_exit_card = False
         self.eggs_prison_exit_card = False
         self.double = False
+        self.connection_errors = 0
 
 
     def connect(self, colors):
@@ -65,7 +71,35 @@ class Player:
         self.on_move = False
 
 pg.init()
-resolution, resolution_folder, btn_coordinates, profile_coordinates, start_btn_textboxes_coordinates, cubes_coordinates, speed, avatar_side_size, exchange_coordinates, FPS, auction_coordinates, tile_size, margin, debug_mode, fps_coordinates, font_size, egg_card_coordinates, egg_card_offset, egg_card_title_center, egg_title_font_size, egg_card_text_width, egg_btns_coordinates, optimized, background_color, log_textbox_coordinates, tile_info_coordinates, fullscreen, sharp_scale = resolution_definition(False)
+pg.mixer.init(frequency=22050, size=16, channels=1)
+
+background_color = pg.Color(128, 128, 128)
+resolution = (1280, 650)
+resolution_folder = '720p'
+fps_coordinates = (652, -5)
+font_size = 25
+avatar_side_size = 100
+FPS = 30
+tile_size = (55, 55)
+log_image_size = (128, 128)
+debug_mode = True
+
+profile_coordinates = [{'profile': (669, 20 ),  'avatar': (830, 46 ),  'money': (674, 38 ), 'name': (674, 18 )},
+                       {'profile': (669, 169),  'avatar': (830, 195),  'money': (674, 187), 'name': (674, 167)},
+                       {'profile': (669, 318),  'avatar': (830, 344),  'money': (674, 336), 'name': (674, 316)},
+                       {'profile': (669, 467),  'avatar': (830, 493),  'money': (674, 485), 'name': (674, 465)}]
+start_btn_textboxes_coordinates = {'name':           ((1040, 442), (217, 35)),
+                                   'IP':            ((1040, 483), (150, 35)),
+                                   'port':          ((1196, 483), (65,  35)),
+                                   'connect':       ((1040, 534), (217, 38)),
+                                   'choose_avatar': ((1040, 592), (217, 38)),
+                                   'debug':         ((1040, 384), (140, 38))}
+log_textbox_coordinates = {'main_box':                  (95,  95,  459, 426),
+                           'user_input_box':            (95,  519, 350, 35),
+                           'audio_send_button':         (411, 519, 38,  35),
+                           'voice_message_send_button': (446, 519, 38,  35),
+                           'image_send_button':         (481, 519, 38,  35),
+                           'text_send_button':          (516, 519, 38,  35)}
 piece_color_coefficient = 28
 TITLE = 'Monopoly Server'
 screen = pg.display.set_mode(resolution)
@@ -76,12 +110,12 @@ pg.display.set_caption(TITLE)
 clock = pg.time.Clock()
 
 def load_assets():
-    global all_tiles, positions, all_egg, all_eggs
-    all_tiles, positions, all_egg, all_eggs = all_tiles_get(resolution_folder, tile_size)
+    global all_tiles, all_egg, all_eggs
+    all_tiles, all_egg, all_eggs = all_tiles_get(resolution_folder, tile_size)
     random.shuffle(all_egg)
     random.shuffle(all_eggs)
 
-    global board_image, profile_picture, bars, player_bars, avatar_file, mortgaged_tile, font, players, state
+    global board_image, profile_picture, bars, player_bars, avatar_file, mortgaged_tile, font, players, state, sound_messages, voice_messages, sound_messages_channel, voice_messages_channel, image_messages, receive_size
     board_image = pg.image.load(f'resources/temp/images/{resolution_folder}/board image.png').convert_alpha()
     profile_picture = pg.image.load(f'resources/{resolution_folder}/profile/profile.png').convert_alpha()
     bars = pg.image.load(f'resources/{resolution_folder}/bars.png').convert_alpha()
@@ -94,10 +128,16 @@ def load_assets():
     state = {'is_server_started': False,
              'is_game_started': False,
              'tile_debug': False}
+    sound_messages = {}
+    voice_messages = {}
+    sound_messages_channel = Channel(0)
+    voice_messages_channel = Channel(1)
+    image_messages = 0
+    receive_size = 1024
 
 
 def receive_data():
-    global auction_players, auction_players_who_are_wanting_to_buy, eggs_players_who_need_to_pay_to_one_player, all_egg, egg_exit_prison, all_eggs, eggs_exit_prison
+    global auction_players, auction_players_who_are_wanting_to_buy, eggs_players_who_need_to_pay_to_one_player, egg_exit_prison, eggs_exit_prison, receive_size, image_messages
     auction_players = []
     auction_players_who_are_wanting_to_buy = []
     eggs_players_who_need_to_pay_to_one_player = []
@@ -151,13 +191,13 @@ def receive_data():
         for player in players:
 
             try:
-                data_unsplit = player.conn.recv(1024).decode()
+                data_unsplit = player.conn.recv(receive_size).decode()
                 buffer += data_unsplit
                 while '%' in buffer:
                     single_command, buffer = buffer.split('%', 1)
                     data = single_command.split('|')
 
-                    if data[0] != '' or data[0] != 'avatar':
+                    if data[0] != '' and data[0] not in ['avatar', 'sound message', 'voice message']:
                         information_received(f'Информация получена от {player.color}', data)
 
                     if data[0] == 'name':
@@ -330,15 +370,13 @@ def receive_data():
                                     moving_player_changing(not player.double)
 
                         if all_tiles[player.piece_position].type == 'infrastructure' and all_tiles[player.piece_position].owned and all_tiles[player.piece_position].owner != player.color:
-                            print(f'{player.color} встал на Варю')
                             cube1 = random.randint(1, 6)
-                            cube2 = random.randint(1, 6)
-                            print(cube1, cube2)
+
                             if not all_tiles[player.piece_position].full_family:
                                 pay_sum = (cube1 + cube2) * 4
                             else:
                                 pay_sum = (cube1 + cube2) * 10
-                            print(pay_sum)
+
                             for player2 in players:
                                 if player2.color == all_tiles[player.piece_position].owner:
                                     message = (
@@ -710,7 +748,7 @@ def receive_data():
 
                     elif data[0] == 'penis build':
                         tile_position = int(data[1])
-                        print(all_tiles[tile_position].full_family, all_tiles[tile_position].penises < 5, player.money >= all_tiles[tile_position].penis_price, all_tiles[tile_position].type == 'buildable', all_tiles[tile_position].owner == player.color)
+                        # print(all_tiles[tile_position].full_family, all_tiles[tile_position].penises < 5, player.money >= all_tiles[tile_position].penis_price, all_tiles[tile_position].type == 'buildable', all_tiles[tile_position].owner == player.color)
                         if (all_tiles[tile_position].full_family and
                             all_tiles[tile_position].penises < 5 and
                             player.money >= all_tiles[tile_position].penis_price and
@@ -738,7 +776,7 @@ def receive_data():
 
                     elif data[0] == 'penis remove':
                         tile_position = int(data[1])
-                        print(all_tiles[tile_position].full_family, all_tiles[tile_position].penises, all_tiles[tile_position].type, all_tiles[tile_position].owner)
+                        # print(all_tiles[tile_position].full_family, all_tiles[tile_position].penises, all_tiles[tile_position].type, all_tiles[tile_position].owner)
                         if (all_tiles[tile_position].full_family and
                                 all_tiles[tile_position].penises < 5 and
                                 all_tiles[tile_position].type == 'buildable' and
@@ -982,10 +1020,20 @@ def receive_data():
                                 for player2 in players:
                                     player2.conn.send(message_data.encode())
                                     information_sent_to('Информация отправлена к', player.color, message_data)
-                                    if player2 != player:
-                                        eggs_players_who_need_to_pay_to_one_player.append(player2)
-                                        player2.conn.send(pay_command.encode())
-                                        information_sent_to('Информация отправлена к', player.color, pay_command)
+                                    if len(players) > 1:
+                                        if player2 != player:
+                                            eggs_players_who_need_to_pay_to_one_player.append(player2)
+                                            player2.conn.send(pay_command.encode())
+                                            information_sent_to('Информация отправлена к', player.color, pay_command)
+                                    else:
+                                        message = (
+                                            f'<font face="BulBulPoly" pixel_size=[font_size] color="#000000">Ни одного игрока не найдено</font><br>')
+                                        message_data = f'message|{message}%'
+                                        log_textbox.append_html_text(message.replace('[font_size]', str(font_size)))
+                                        if log_textbox.scroll_bar:
+                                            log_textbox.scroll_bar.set_scroll_from_start_percentage(1)
+                                        player2.conn.send(message_data.encode())
+                                        information_sent_to('Информация отправлена к', player.color, message_data)
 
                             case 'go to start':
                                 player.piece_position = 0
@@ -1241,6 +1289,92 @@ def receive_data():
                             player2.conn.send(message_data.encode())
                             information_sent_to('Информация отправлена к', player2.color, message_data)
 
+                    elif data[0] == 'sound message':
+                        audio_bytes_ascii_decoded = data[1]
+                        audio_bytes_decoded_base64 = base64.b64decode(audio_bytes_ascii_decoded)
+                        audio_bytes_decoded = zlib.decompress(audio_bytes_decoded_base64)
+
+                        sound_id = len(sound_messages)
+                        sound_messages[f'{sound_id}'] = audio_bytes_decoded
+                        message = (f'<a href="sound:{sound_id}"><font face="BulBulPoly" pixel_size=[font_size] color="#4FC3F7">Аудио файл</font></a>'
+                                   f'<font face="BulBulPoly" pixel_size=[font_size] color="#000000"> от </font>'
+                                   f'<font face="BulBulPoly" pixel_size=[font_size] color="{player.color_value}">{player.name}. </font>'
+                                   f'<a href="save sound:{sound_id}"><font face="BulBulPoly" pixel_size=[font_size] color="#4FC3F7">Сохранить</font></a><br>')
+                        message_data = f'message|{message}%'
+                        log_textbox.append_html_text(message.replace('[font_size]', str(font_size)))
+                        if log_textbox.scroll_bar:
+                            log_textbox.scroll_bar.set_scroll_from_start_percentage(1)
+
+                        sendable_data = f'sound message|{sound_id}|{data[1]}%'
+                        size_information = f'receive size|{len(sendable_data)}%'
+
+                        for player2 in players:
+                            player2.conn.send(size_information.encode())
+                            player2.conn.send(sendable_data.encode())
+                            player2.conn.send(message_data.encode())
+                            information_sent_to('Информация отправлена к', player2.color, size_information)
+                            information_sent_to('Информация отправлена к', player2.color, message_data)
+                        receive_size = 1024
+
+                    elif data[0] == 'voice message':
+                        audio_bytes_ascii_decoded = data[1]
+                        audio_bytes_decoded_base64 = base64.b64decode(audio_bytes_ascii_decoded)
+                        audio_bytes_decoded = zlib.decompress(audio_bytes_decoded_base64)
+
+                        voice_id = len(voice_messages)
+                        voice_messages[f'{voice_id}'] = audio_bytes_decoded
+                        message = (
+                            f'<a href="voice:{voice_id}"><font face="BulBulPoly" pixel_size=[font_size] color="#4FC3F7">Голосовое сообщение</font></a>'
+                            f'<font face="BulBulPoly" pixel_size=[font_size] color="#000000"> от </font>'
+                            f'<font face="BulBulPoly" pixel_size=[font_size] color="{player.color_value}">{player.name}. </font>'
+                            f'<a href="save voice:{voice_id}"><font face="BulBulPoly" pixel_size=[font_size] color="#4FC3F7">Сохранить</font></a><br>')
+                        message_data = f'message|{message}%'
+                        log_textbox.append_html_text(message.replace('[font_size]', str(font_size)))
+                        if log_textbox.scroll_bar:
+                            log_textbox.scroll_bar.set_scroll_from_start_percentage(1)
+
+                        sendable_data = f'voice message|{voice_id}|{data[1]}%'
+                        size_information = f'receive size|{len(sendable_data)}%'
+
+                        for player2 in players:
+                            player2.conn.send(size_information.encode())
+                            player2.conn.send(sendable_data.encode())
+                            player2.conn.send(message_data.encode())
+                            information_sent_to('Информация отправлена к', player2.color, size_information)
+                            information_sent_to('Информация отправлена к', player2.color, message_data)
+                        receive_size = 1024
+
+                    elif data[0] == 'image message':
+                        if not os.path.exists(f'resources/temp/images/server image messages'):
+                            if not os.path.exists('resources/temp/images'):
+                                if not os.path.exists('resources/temp'):
+                                    os.mkdir('resources/temp')
+                                os.mkdir('resources/temp/images')
+                            os.mkdir(f'resources/temp/images/server image messages')
+
+                        image_bytes_decoded = base64.b64decode(data[1])
+                        image_decoded = Image.open(io.BytesIO(image_bytes_decoded))
+
+                        # image_decoded = Image.open(image_bytes_decoded)
+                        image_decoded = image_decoded.resize(log_image_size)
+                        image_decoded.save(f'resources/temp/images/server image messages/{image_messages}.png')
+
+
+                        message_data = f'message|<font face="BulBulPoly" pixel_size=[font_size] color="{player.color_value}">{player.name}: </font><img src="resources/temp/images/client image messages/{image_messages}.png" width="100" height="100"><br>%'
+                        log_textbox.append_html_text(
+                            f'<font face="BulBulPoly" pixel_size={font_size} color="{player.color_value}">{player.name}: </font>'
+                            f'<img src="resources/temp/images/server image messages/{image_messages}.png" width="100" height="100"><br>')
+                        if log_textbox.scroll_bar:
+                            log_textbox.scroll_bar.set_scroll_from_start_percentage(1)
+                        for player2 in players:
+                            player2.conn.send(f'image message|{image_messages}|{data[1]}%'.encode())
+                            player2.conn.send(message_data.encode())
+                            information_sent_to('Информация отправлена к', player2.color, message_data)
+                        image_messages += 1
+
+                    elif data[0] == 'receive size':
+                        receive_size = int(data[1])
+
                     else:
                         player.conn.send(f'error|Незарегистрированная команда: {data[0]}%'.encode())
                         information_sent_to('Информация отправлена к', player.color, f'error|Незарегистрированная команда: {data[0]}%')
@@ -1324,27 +1458,29 @@ def disconnect_check():
         for player in players:
             try:
                 player.conn.send('[1foe_S]'.encode())
+                player.connection_errors = 0
             except:
-                colors.append(player.color)
-                deleted_color = player.color
-                message = (
-                    f'<font face="BulBulPoly" pixel_size=[font_size] color="{player.color_value}">{player.name} </font>'
-                    f'<font face="BulBulPoly" pixel_size=[font_size] color="#000000">отключился</font><br>')
-                log_textbox.append_html_text(message.replace('[font_size]', str(font_size)))
-                if log_textbox.scroll_bar:
-                    log_textbox.scroll_bar.set_scroll_from_start_percentage(1)
-                print(f'Игрок {player.color} отключился.\nЦвет {player.color} возвращён')
-                player.clear()
-                players.remove(player)
-                players_send()
-                message_data = f'message|{message}%'
-                deletion_player_data = f'playerDeleted|{deleted_color}%'
-                for player2 in players:
-                    player2.conn.send(deletion_player_data.encode())
-                    player2.conn.send(message_data.encode())
-                    information_sent_to('Информация отправлена к', player2.color, deletion_player_data)
-                    information_sent_to('Информация отправлена к', player2.color, message_data)
-            time.sleep(1)
+                player.connection_errors += 1
+                if player.connection_errors >= 5:
+                    colors.append(player.color)
+                    deleted_color = player.color
+                    message = (
+                        f'<font face="BulBulPoly" pixel_size=[font_size] color="{player.color_value}">{player.name} </font>'
+                        f'<font face="BulBulPoly" pixel_size=[font_size] color="#000000">отключился</font><br>')
+                    log_textbox.append_html_text(message.replace('[font_size]', str(font_size)))
+                    if log_textbox.scroll_bar:
+                        log_textbox.scroll_bar.set_scroll_from_start_percentage(1)
+                    print(f'Игрок {player.color} отключился.\nЦвет {player.color} возвращён')
+                    player.clear()
+                    players.remove(player)
+                    players_send()
+                    message_data = f'message|{message}%'
+                    deletion_player_data = f'playerDeleted|{deleted_color}%'
+                    for player2 in players:
+                        player2.conn.send(deletion_player_data.encode())
+                        player2.conn.send(message_data.encode())
+                        information_sent_to('Информация отправлена к', player2.color, deletion_player_data)
+                        information_sent_to('Информация отправлена к', player2.color, message_data)
 
 
 def start_server():
@@ -1369,15 +1505,15 @@ def start_server():
             state['is_server_started'] = True
             log_entry_button.enable()
 
-            connection_handler = threading.Thread(target=connection, name='connection_handler')
+            connection_handler = threading.Thread(target=connection, name='connection_handler', daemon=True)
             connection_handler.start()
             thread_open('Поток открыт', connection_handler.name)
 
-            receive_handler = threading.Thread(target=receive_data, name='receive_handler')
+            receive_handler = threading.Thread(target=receive_data, name='receive_handler', daemon=True)
             receive_handler.start()
             thread_open('Поток открыт', receive_handler.name)
 
-            disconnect_handler = threading.Thread(target=disconnect_check, name='disconnect_handler')
+            disconnect_handler = threading.Thread(target=disconnect_check, name='disconnect_handler', daemon=True)
             disconnect_handler.start()
             thread_open('Поток открыт', disconnect_handler.name)
 
@@ -1449,17 +1585,17 @@ def position_update(color):
     for player in players:
         if player.color == color:
             if color == 'red':
-                player.x = positions[player.piece_position][0]
-                player.y = positions[player.piece_position][1]
+                player.x = all_tiles[player.piece_position].x_position
+                player.y = all_tiles[player.piece_position].y_position
             elif color == 'green':
-                player.x = positions[player.piece_position][0] + piece_color_coefficient
-                player.y = positions[player.piece_position][1]
+                player.x = all_tiles[player.piece_position].x_position + piece_color_coefficient
+                player.y = all_tiles[player.piece_position].y_position
             elif color == 'yellow':
-                player.x = positions[player.piece_position][0]
-                player.y = positions[player.piece_position][1] + piece_color_coefficient
+                player.x = all_tiles[player.piece_position].x_position
+                player.y = all_tiles[player.piece_position].y_position + piece_color_coefficient
             elif color == 'blue':
-                player.x = positions[player.piece_position][0] + piece_color_coefficient
-                player.y = positions[player.piece_position][1] + piece_color_coefficient
+                player.x = all_tiles[player.piece_position].x_position + piece_color_coefficient
+                player.y = all_tiles[player.piece_position].y_position + piece_color_coefficient
             screen.blit(pg.image.load(f'resources/{resolution_folder}/pieces/{player.color}_piece.png'), (player.x, player.y))
 
 
@@ -1479,35 +1615,38 @@ def blit_items():
         if 1 <= tile.penises <= 5:
             screen.blit(pg.image.load(f'resources/{resolution_folder}/white penises/{tile.penises}.png'), (tile.x_position, tile.y_position))
 
-    for player in players:
-        position_update(player.color)
+    try:
+        for player in players:
+            position_update(player.color)
 
-        player_index = players.index(player)
+            player_index = players.index(player)
 
-        screen.blit(profile_picture,
-                    (profile_coordinates[player_index]['profile'][0],
-                     profile_coordinates[player_index]['profile'][1]))
+            screen.blit(profile_picture,
+                        (profile_coordinates[player_index]['profile'][0],
+                         profile_coordinates[player_index]['profile'][1]))
 
-        screen.blit(player.avatar_image, (profile_coordinates[player_index]['avatar'][0],
-                                    profile_coordinates[player_index]['avatar'][1]))
+            screen.blit(player.avatar_image, (profile_coordinates[player_index]['avatar'][0],
+                                        profile_coordinates[player_index]['avatar'][1]))
 
-        if player.imprisoned:
-            screen.blit(player_bars, (profile_coordinates[player_index]['avatar'][0],
-                                      profile_coordinates[player_index]['avatar'][1]))
-
-
-
-        screen.blit(globals()[f'{player.color}_profile'], profile_coordinates[player_index]['avatar'])
+            if player.imprisoned:
+                screen.blit(player_bars, (profile_coordinates[player_index]['avatar'][0],
+                                          profile_coordinates[player_index]['avatar'][1]))
 
 
 
-        screen.blit(font.render(f'{player.money}~', False, 'black'),
-                    (profile_coordinates[player_index]['money'][0],
-                     profile_coordinates[player_index]['money'][1]))
+            screen.blit(globals()[f'{player.color}_profile'], profile_coordinates[player_index]['avatar'])
 
-        screen.blit(font.render(player.name, False, 'black'),
-                    (profile_coordinates[player_index]['name'][0],
-                     profile_coordinates[player_index]['name'][1]))
+
+
+            screen.blit(font.render(f'{player.money}~', False, 'black'),
+                        (profile_coordinates[player_index]['money'][0],
+                         profile_coordinates[player_index]['money'][1]))
+
+            screen.blit(font.render(player.name, False, 'black'),
+                        (profile_coordinates[player_index]['name'][0],
+                         profile_coordinates[player_index]['name'][1]))
+    except ValueError:
+        pass
 
     screen.blit(bars, (all_tiles[10].x_position, all_tiles[10].y_position))
 
@@ -1545,6 +1684,61 @@ def event_handler():
                         if event_type == globals()[f'tile_{i}_button']:
                             tile_button(i)
 
+            case pygame_gui.UI_TEXT_BOX_LINK_CLICKED:
+                try:
+                    if event.link_target.startswith('sound:'):
+                        audio_id = event.link_target.split(':')[1]
+                        sound = pg.mixer.Sound(io.BytesIO(sound_messages[audio_id]))
+
+                        if sound_messages_channel.get_busy() and sound_messages_channel.audio_id == audio_id and sound_messages_channel.is_paused:
+                            sound_messages_channel.unpause()
+                        else:
+                            if sound_messages_channel.audio_id != audio_id:
+                                sound_messages_channel.play(sound, audio_id)
+                            else:
+                                sound_messages_channel.pause()
+
+                    elif event.link_target.startswith('voice:'):
+                        audio_id = event.link_target.split(':')[1]
+                        sound = pg.mixer.Sound(voice_messages[audio_id])
+
+                        if voice_messages_channel.get_busy() and voice_messages_channel.audio_id == audio_id and voice_messages_channel.is_paused:
+                            voice_messages_channel.unpause()
+                        else:
+                            if voice_messages_channel.audio_id != audio_id or not voice_messages_channel.get_busy():
+                                voice_messages_channel.play(sound, audio_id)
+                            else:
+                                voice_messages_channel.pause()
+
+                    elif event.link_target.startswith('save sound:'):
+                        audio_id = event.link_target.split(':')[1]
+                        mimetype = magic.from_buffer(sound_messages[audio_id], mime=True)
+                        extension = mimetypes.guess_extension(mimetype)#[0]
+
+                        with open(f'sound_message_{audio_id}{extension}', 'wb') as audio_file:
+                            audio_file.write(sound_messages[audio_id])
+
+                        log_textbox.append_html_text(f'<font face="BulBulPoly" pixel_size={font_size} color="#000000">Файл сохранён: sound_message_{audio_id}{extension}</font><br>')
+                        if log_textbox.scroll_bar:
+                            log_textbox.scroll_bar.set_scroll_from_start_percentage(1)
+
+                    elif event.link_target.startswith('save voice:'):
+                        audio_id = event.link_target.split(':')[1]
+                        extension = '.wav'
+                        with wave.open(f'voice_message_{audio_id}{extension}', 'wb') as audio_file:
+                            audio_file.setnchannels(1)
+                            audio_file.setsampwidth(2)
+                            audio_file.setframerate(44100)
+                            audio_file.writeframes(voice_messages[audio_id])
+
+                        log_textbox.append_html_text(f'<font face="BulBulPoly" pixel_size={font_size} color="#000000">Файл сохранён: voice_message_{audio_id}{extension}</font><br>')
+                        if log_textbox.scroll_bar:
+                            log_textbox.scroll_bar.set_scroll_from_start_percentage(1)
+
+
+                except:
+                    print(f'{"\033[31m{}".format(traceback.format_exc())}{'\033[0m'}')
+
 
 def buttons():
     global start_button, ip_textbox, port_textbox, start_server_button, log_textbox, log_entry_textbox, log_entry_button, debug_button
@@ -1580,7 +1774,7 @@ def buttons():
         manager=manager)
 
     log_entry_button = pygame_gui.elements.UIButton(
-        relative_rect=pg.Rect(log_textbox_coordinates['user_input_send_button']),
+        relative_rect=pg.Rect(443, 519, 111, 35),
         text='Отправить',
         manager=manager)
     log_entry_button.disable()
@@ -1594,7 +1788,7 @@ def buttons():
 
     for i in range(40):
         globals()[f'tile_{i}_button'] = pygame_gui.elements.UIButton(
-            relative_rect=pg.Rect(positions[i], tile_size),
+            relative_rect=pg.Rect((all_tiles[i].x_position, all_tiles[i].y_position), tile_size),
             text='',
             manager=manager,
             object_id=pygame_gui.core.ObjectID(class_id='@transparent_buttons', object_id='#tile_button'))
@@ -1695,6 +1889,10 @@ while running:
         screen.blit(average_fps_text, fps_coordinates)
 
     pg.display.update()
+
+if os.path.exists(f'resources/temp/images/server image messages'):
+    for file in os.listdir('resources/temp/images/server image messages'):
+        os.remove(f'resources/temp/images/server image messages/{file}')
 
 print('Сервер закрыт')
 if debug_mode:

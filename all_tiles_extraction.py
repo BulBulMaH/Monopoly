@@ -47,7 +47,7 @@ def all_tiles_get(resolution_folder, tile_size):
             image_main = Image.new('RGB', Image.open(f'resources/{resolution_folder}/board grid.png').size, (255, 255, 255))
 
             image_main.paste(Image.open(f'resources/{resolution_folder}/board grid.png').convert('RGB'))
-            image_main.save(f'test.png')
+
         for i in range(40):
             all_tiles.append(Tiles(kletki_list[i], tile_position_list[i]))
             if i not in (0, 10, 20, 30):
@@ -64,8 +64,4 @@ def all_tiles_get(resolution_folder, tile_size):
         for i in range(len(eggs_list)):
             all_eggs.append(Eggs(eggs_list[i]))
 
-    positions = []
-    for tile in all_tiles:
-        positions.append((tile.x_position, tile.y_position))
-
-    return all_tiles, positions, all_egg, all_eggs
+    return all_tiles, all_egg, all_eggs

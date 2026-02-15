@@ -18,4 +18,6 @@ if exist requirements.txt (
 ) else (
     echo requirements.txt not found
 )
+replace lib\init_for_magic\__init__.py .venv\Lib\site-packages\magic\
+echo Setup is completed
 pause

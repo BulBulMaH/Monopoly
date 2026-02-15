@@ -90,6 +90,129 @@
 			}
 		}
 	},
+	"#settings_button":
+	{
+		"colours":
+		{
+			"normal_border": "black",
+			"hovered_border": "rgb(105, 105, 105)",
+			"active_border": "rgb(105, 105, 105)",
+			"disabled_border": "rgb(99, 99, 99)",
+
+			"normal_bg": "rgb(255, 255, 255)",
+			"hovered_bg": "rgb(255, 255, 255)",
+			"active_bg": "rgb(191, 191, 191)",
+			"disabled_bg": "rgb(150, 150, 150)",
+
+			"normal_text": "rgb(0, 0, 0)",
+			"hovered_text": "rgb(0, 0, 0)",
+			"active_text": "rgb(0, 0, 0)",
+			"disabled_text": "rgb(0, 0, 0)"
+		},
+		"font":
+		{
+			"name": "btn_font",
+			"size": "25",
+			"bold": "0",
+			"italic": "0",
+			"regular_path": "resources/fonts/bulbulpoly-4.ttf"
+		},
+		"misc":
+		{
+			"shadow_width": "0",
+			"shape": "rounded_rectangle",
+			"shape_corner_radius": "2",
+			"border_width": "3"
+		}
+	},
+	"#audio_send_button":
+	{
+		"images":
+		{
+			"normal_image": 
+			{
+				"path": "resources/720p/log_buttons/audio_send_btn_normal.png"
+			},
+			"hovered_image": 
+			{
+				"path": "resources/720p/log_buttons/audio_send_btn_hovered.png"
+			},
+			"selected_image": 
+			{
+				"path": "resources/720p/log_buttons/audio_send_btn_selected.png"
+			},
+			"disabled_image": 
+			{
+				"path": "resources/720p/log_buttons/audio_send_btn_disabled.png"
+			}
+		}
+	},
+	"#voice_message_send_button":
+	{
+		"images":
+		{
+			"normal_image": 
+			{
+				"path": "resources/720p/log_buttons/voice_message_send_btn_normal.png"
+			},
+			"hovered_image": 
+			{
+				"path": "resources/720p/log_buttons/voice_message_send_btn_hovered.png"
+			},
+			"selected_image": 
+			{
+				"path": "resources/720p/log_buttons/voice_message_send_btn_selected.png"
+			},
+			"disabled_image": 
+			{
+				"path": "resources/720p/log_buttons/voice_message_send_btn_disabled.png"
+			}
+		}
+	},
+	"#image_send_button":
+	{
+		"images":
+		{
+			"normal_image": 
+			{
+				"path": "resources/720p/log_buttons/image_send_btn_normal.png"
+			},
+			"hovered_image": 
+			{
+				"path": "resources/720p/log_buttons/image_send_btn_hovered.png"
+			},
+			"selected_image": 
+			{
+				"path": "resources/720p/log_buttons/image_send_btn_selected.png"
+			},
+			"disabled_image": 
+			{
+				"path": "resources/720p/log_buttons/image_send_btn_disabled.png"
+			}
+		}
+	},
+	"#text_send_button":
+	{
+		"images":
+		{
+			"normal_image": 
+			{
+				"path": "resources/720p/log_buttons/text_send_btn_normal.png"
+			},
+			"hovered_image": 
+			{
+				"path": "resources/720p/log_buttons/text_send_btn_hovered.png"
+			},
+			"selected_image": 
+			{
+				"path": "resources/720p/log_buttons/text_send_btn_selected.png"
+			},
+			"disabled_image": 
+			{
+				"path": "resources/720p/log_buttons/text_send_btn_disabled.png"
+			}
+		}
+	},
 	"text_entry_box": 
 	{
 		"colours": 
@@ -152,6 +275,14 @@
 			"indeterminate_symbol": "−",
 			"text_offset": "8",
 			"tool_tip_delay": "1.5"
+		},
+		"font": 
+		{
+			"name": "textbox_font",
+			"size": "25",
+			"bold": "0",
+			"italic": "0",
+			"regular_path": "resources/fonts/bulbulpoly-4.ttf"
 		}
 	},
 	"drop_down_menu":
