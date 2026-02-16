@@ -83,6 +83,7 @@ FPS = 30
 tile_size = (55, 55)
 log_image_size = (128, 128)
 debug_mode = True
+ip = sck.gethostbyname(sck.gethostname())
 
 profile_coordinates = [{'profile': (669, 20 ),  'avatar': (830, 46 ),  'money': (674, 38 ), 'name': (674, 18 )},
                        {'profile': (669, 169),  'avatar': (830, 195),  'money': (674, 187), 'name': (674, 167)},
@@ -1093,7 +1094,7 @@ def receive_data():
                                     player2.conn.send(message_data.encode())
                                     information_sent_to('Информация отправлена к', player2.color, message_data)
 
-                                pay_command = f'need to pay to players|{pulled_card.value * (len(players) - 1)}%'
+                                pay_command = f'need to pay to players|{pulled_card.value}%'
                                 player.conn.send(pay_command.encode())
                                 information_sent_to('Информация отправлена к', player.color, pay_command)
 
@@ -1487,17 +1488,13 @@ def start_server():
     global colors, main_sck
     if not state['is_server_started']:
         try:
-            ip = ip_textbox.get_text()
+            ip_ = ip_textbox.get_text()
             port = port_textbox.get_text()
-            if ip == '':
-                ip = '26.190.64.4'
-            if port == '':
-                port = 1247
-            else:
-                port = int(port)
+            port = int(port)
+
             main_sck = sck.socket(sck.AF_INET, sck.SOCK_STREAM)
             main_sck.setsockopt(sck.IPPROTO_TCP, sck.TCP_NODELAY, 1)
-            main_sck.bind((ip, port))
+            main_sck.bind((ip_, port))
             main_sck.setblocking(False)
             main_sck.listen(4)  # количество доступных подключений
             colors = ['red', 'blue', 'yellow', 'green']
@@ -1745,11 +1742,13 @@ def buttons():
     ip_textbox = pygame_gui.elements.UITextEntryBox(
         relative_rect=pg.Rect((start_btn_textboxes_coordinates['IP'][0], start_btn_textboxes_coordinates['IP'][1])),
         placeholder_text='IP адрес',
+        initial_text=ip,
         manager=manager)
 
     port_textbox = pygame_gui.elements.UITextEntryBox(
         relative_rect=pg.Rect((start_btn_textboxes_coordinates['port'][0], start_btn_textboxes_coordinates['port'][1])),
         placeholder_text='Порт',
+        initial_text='1247',
         manager=manager)
 
     start_server_button = pygame_gui.elements.UIButton(

@@ -14,15 +14,21 @@ def resolution_definition():
         background_color = pg.Color(settings_data['background color'])
         fullscreen = settings_data['fullscreen']
         sharp_scale = settings_data['sharp fullscreen']
+        name = settings_data['name']
+        address = settings_data['address']
+        port = settings_data['port']
 
     else:
-        settings_data = {"resolution index": 1,
-                         "fps": 60,
-                         "optimized movement": False,
-                         "background color": [128, 128, 128, 255],
-                         "fullscreen": False,
-                         "sharp fullscreen": True,
-                         "debug mode": False}
+        settings_data = {'resolution index': 1,
+                         'fps': 60,
+                         'optimized movement': False,
+                         'background color': [128, 128, 128, 255],
+                         'fullscreen': False,
+                         'sharp fullscreen': True,
+                         'debug mode': False,
+                         'name': '',
+                         'address': '',
+                         'port': ''}
 
         resolution_index = settings_data['resolution index']
         fps = settings_data['fps']
@@ -31,6 +37,9 @@ def resolution_definition():
         background_color = pg.Color(settings_data['background color'])
         fullscreen = settings_data['fullscreen']
         sharp_scale = settings_data['sharp fullscreen']
+        name = settings_data['name']
+        address = settings_data['address']
+        port = settings_data['port']
 
         with open("settings.json", "w") as outfile:
             json.dump(settings_data, outfile, indent=4)
@@ -308,4 +317,4 @@ def resolution_definition():
         tile_info_coordinates = (197, 197)
         speed = 0.0015
 
-    return resolution, resolution_folder, btn_coordinates, profile_coordinates, start_btn_textboxes_coordinates, cubes_coordinates, speed, avatar_side_size, exchange_coordinates, fps, auction_coordinates, tile_size, margin, debug_mode, fps_coordinates, font_size, egg_card_coordinates, egg_card_text_center, egg_card_title_center, egg_title_font_size, egg_card_text_width, egg_btns_coordinates, optimized, background_color, log_textbox_coordinates, tile_info_coordinates, fullscreen, sharp_scale, settings_buttons_coordinates, settings_font_size, log_image_size
+    return resolution, resolution_folder, btn_coordinates, profile_coordinates, start_btn_textboxes_coordinates, cubes_coordinates, speed, avatar_side_size, exchange_coordinates, fps, auction_coordinates, tile_size, margin, debug_mode, fps_coordinates, font_size, egg_card_coordinates, egg_card_text_center, egg_card_title_center, egg_title_font_size, egg_card_text_width, egg_btns_coordinates, optimized, background_color, log_textbox_coordinates, tile_info_coordinates, fullscreen, sharp_scale, settings_buttons_coordinates, settings_font_size, log_image_size, name, address, port

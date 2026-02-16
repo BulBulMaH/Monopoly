@@ -161,8 +161,8 @@ def monopoly_init():
     global screen, clock, settings_data
 
     if os.path.exists('settings.json'):
-        global resolution, resolution_folder, btn_coordinates, profile_coordinates, start_btn_textboxes_coordinates, cubes_coordinates, speed, avatar_side_size, exchange_coordinates, FPS, auction_coordinates, tile_size, margin, debug_mode, fps_coordinates, font_size, egg_card_coordinates, egg_card_text_center, egg_card_title_center, egg_font_size, egg_card_text_width, egg_btns_coordinates, optimized, background_color, log_textbox_coordinates, tile_info_coordinates, fullscreen, sharp_scale, settings_buttons_coordinates, settings_font_size, log_image_size
-        resolution, resolution_folder, btn_coordinates, profile_coordinates, start_btn_textboxes_coordinates, cubes_coordinates, speed, avatar_side_size, exchange_coordinates, FPS, auction_coordinates, tile_size, margin, debug_mode, fps_coordinates, font_size, egg_card_coordinates, egg_card_text_center, egg_card_title_center, egg_font_size, egg_card_text_width, egg_btns_coordinates, optimized, background_color, log_textbox_coordinates, tile_info_coordinates, fullscreen, sharp_scale, settings_buttons_coordinates, settings_font_size, log_image_size = resolution_definition()
+        global resolution, resolution_folder, btn_coordinates, profile_coordinates, start_btn_textboxes_coordinates, cubes_coordinates, speed, avatar_side_size, exchange_coordinates, FPS, auction_coordinates, tile_size, margin, debug_mode, fps_coordinates, font_size, egg_card_coordinates, egg_card_text_center, egg_card_title_center, egg_font_size, egg_card_text_width, egg_btns_coordinates, optimized, background_color, log_textbox_coordinates, tile_info_coordinates, fullscreen, sharp_scale, settings_buttons_coordinates, settings_font_size, log_image_size, name, address, port
+        resolution, resolution_folder, btn_coordinates, profile_coordinates, start_btn_textboxes_coordinates, cubes_coordinates, speed, avatar_side_size, exchange_coordinates, FPS, auction_coordinates, tile_size, margin, debug_mode, fps_coordinates, font_size, egg_card_coordinates, egg_card_text_center, egg_card_title_center, egg_font_size, egg_card_text_width, egg_btns_coordinates, optimized, background_color, log_textbox_coordinates, tile_info_coordinates, fullscreen, sharp_scale, settings_buttons_coordinates, settings_font_size, log_image_size, name, address, port = resolution_definition()
         f = open('settings.json')
         settings_data = json.load(f)
         if settings_data['resolution index'] == 1:
@@ -190,7 +190,8 @@ def monopoly_init():
                          'fullscreen': False,
                          'sharp fullscreen': False,
                          'debug mode': False,
-                         'background color converted': pg.Color([128, 128, 128])}
+                         'background color converted': pg.Color([128, 128, 128]),
+                         'name': ''}
 
         settings_buttons_coordinates = {'dropdown': (10, 10, 230, 50),
                                         'start_game_button': (572, 602, 136, 38),
@@ -242,15 +243,18 @@ def save_settings():
                          'background color': settings_data['background color'],
                          'fullscreen': fullscreen_checkbox.get_state(),
                          'sharp fullscreen': sharp_scale_checkbox.get_state(),
-                         'debug mode': debug_checkbox.get_state()}
+                         'debug mode': debug_checkbox.get_state(),
+                         'name': name,
+                         'address': address,
+                         'port': port}
 
     with open("settings.json", "w+") as outfile:
-        json.dump(settings_data_new, outfile, indent=4)
+        json.dump(settings_data_new, outfile, indent=4, ensure_ascii=False)
 
 
 def load_assets():
-    global resolution, resolution_folder, btn_coordinates, profile_coordinates, start_btn_textboxes_coordinates, cubes_coordinates, speed, avatar_side_size, exchange_coordinates, FPS, auction_coordinates, tile_size, margin, debug_mode, fps_coordinates, font_size, egg_card_coordinates, egg_card_text_center, egg_card_title_center, egg_font_size, egg_card_text_width, egg_btns_coordinates, optimized, background_color, log_textbox_coordinates, tile_info_coordinates, fullscreen, sharp_scale, settings_buttons_coordinates, settings_font_size, log_image_size
-    resolution, resolution_folder, btn_coordinates, profile_coordinates, start_btn_textboxes_coordinates, cubes_coordinates, speed, avatar_side_size, exchange_coordinates, FPS, auction_coordinates, tile_size, margin, debug_mode, fps_coordinates, font_size, egg_card_coordinates, egg_card_text_center, egg_card_title_center, egg_font_size, egg_card_text_width, egg_btns_coordinates, optimized, background_color, log_textbox_coordinates, tile_info_coordinates, fullscreen, sharp_scale, settings_buttons_coordinates, settings_font_size, log_image_size = resolution_definition()
+    global resolution, resolution_folder, btn_coordinates, profile_coordinates, start_btn_textboxes_coordinates, cubes_coordinates, speed, avatar_side_size, exchange_coordinates, FPS, auction_coordinates, tile_size, margin, debug_mode, fps_coordinates, font_size, egg_card_coordinates, egg_card_text_center, egg_card_title_center, egg_font_size, egg_card_text_width, egg_btns_coordinates, optimized, background_color, log_textbox_coordinates, tile_info_coordinates, fullscreen, sharp_scale, settings_buttons_coordinates, settings_font_size, log_image_size, name, address, port
+    resolution, resolution_folder, btn_coordinates, profile_coordinates, start_btn_textboxes_coordinates, cubes_coordinates, speed, avatar_side_size, exchange_coordinates, FPS, auction_coordinates, tile_size, margin, debug_mode, fps_coordinates, font_size, egg_card_coordinates, egg_card_text_center, egg_card_title_center, egg_font_size, egg_card_text_width, egg_btns_coordinates, optimized, background_color, log_textbox_coordinates, tile_info_coordinates, fullscreen, sharp_scale, settings_buttons_coordinates, settings_font_size, log_image_size, name, address, port = resolution_definition()
 
     global exchange_screen, auction_screen, darkening_full, darkening_tile, profile_picture, bars, player_bars, avatar_file, mortgaged_tile, font, eggs_card_uncovered, egg_font, board_image, settings_font
     exchange_screen = pg.image.load(f'resources/{resolution_folder}/exchange.png').convert_alpha()
@@ -499,20 +503,24 @@ def debug_output():
 def connect():
     if not state['is_game_started'] and not state['connected']:
         try:
-            ip = ip_textbox.get_text()
-            port = port_textbox.get_text()
-            if ip == '':
-                ip = '26.190.64.4'
-            if port == '':
-                port = 1247
-            else:
-                port = int(port)
-            name = name_textbox.get_text()
-            if '%' not in name and '|' not in name:
-                if name:
-                    sock.connect((ip, port))
-                    sock.send(f'name|{name}%'.encode())
+            ip_ = ip_textbox.get_text()
+            port_ = port_textbox.get_text()
+            port_ = int(port_)
+            name_ = name_textbox.get_text()
+            if '%' not in name_ and '|' not in name_:
+                if name_:
+                    sock.connect((ip_, port_))
+                    sock.send(f'name|{name_}%'.encode())
                     state['connected'] = True
+
+                    with open("settings.json", "r") as read_file:
+                        settings = json.load(read_file)
+                        settings['name'] = name_
+                        settings['address'] = ip_
+                        settings['port'] = str(port_)
+
+                    with open("settings.json", "r+") as file:
+                        json.dump(settings, file, indent=4, ensure_ascii=False)
 
                     log_text_send_button.enable()
                     log_audio_send_button.enable()
@@ -522,7 +530,7 @@ def connect():
                     connection_handler.start()
                     thread_open('Поток открыт', connection_handler.name)
 
-                    new_connection('Подключено к', f'{ip}:{port}')
+                    new_connection('Подключено к', f'{ip_}:{port_}')
                 else:
                     print(f'{"\033[31m{}".format('Ваше имя не должно быть пустым')}{'\033[0m'}')
                     log_textbox.append_html_text(f'<font face="BulBulPoly" pixel_size={font_size} color="#D0392A">Ваше имя не должно быть пустым</font><br>')
@@ -534,6 +542,7 @@ def connect():
                 if log_textbox.scroll_bar:
                     log_textbox.scroll_bar.set_scroll_from_start_percentage(1)
         except:
+            print(f'{"\033[31m{}".format(traceback.format_exc())}{'\033[0m'}')
             print(f'{"\033[31m{}".format('Не удалось подключиться')}{'\033[0m'}')  # красный
             log_textbox.append_html_text(f'<font face="BulBulPoly" pixel_size={font_size} color="#D0392A">Не удалось подключиться</font><br>')
             if log_textbox.scroll_bar:
@@ -1470,7 +1479,7 @@ def move(players_on_tile, end_positions, cube_sum):
     while True:
         elapsed = time.time() - start_time
         if elapsed >= total_time:
-            for i, player in enumerate(players):
+            for i, player in enumerate(players_on_tile):
                 player.x = end_positions[i][0]
                 player.y = end_positions[i][1]
                 player.player_piece_rect = player.player_piece.get_rect(center=(player.x, player.y))
@@ -1481,7 +1490,7 @@ def move(players_on_tile, end_positions, cube_sum):
         else:
             t = 1
 
-        for i, player in enumerate(players):
+        for i, player in enumerate(players_on_tile):
             sx, sy = start_positions[i]
             ex, ey = end_positions[i]
             player.x = sx + (ex - sx) * t
@@ -2297,20 +2306,23 @@ def buttons():
         text='Выкупить',
         manager=manager)
 
-
+    print(name)
     name_textbox = pygame_gui.elements.UITextEntryBox(
         relative_rect=pg.Rect(start_btn_textboxes_coordinates['name']),
         placeholder_text='Введите имя',
+        initial_text=name,
         manager=manager)
 
     ip_textbox = pygame_gui.elements.UITextEntryBox(
         relative_rect=pg.Rect(start_btn_textboxes_coordinates['IP']),
         placeholder_text='IP адрес',
+        initial_text=address,
         manager=manager)
 
     port_textbox = pygame_gui.elements.UITextEntryBox(
         relative_rect=pg.Rect(start_btn_textboxes_coordinates['port']),
         placeholder_text='Порт',
+        initial_text=port,
         manager=manager)
 
     avatar_choose_button = pygame_gui.elements.UIButton(
