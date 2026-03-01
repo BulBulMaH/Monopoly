@@ -54,15 +54,15 @@ def resolution_definition():
         font_size = 25
         settings_font_size = 25
 
-        btn_coordinates = {'throw_cubes':   ((953,  20 ), (136, 38)),
-                            'buy':          ((953,  78,), (136, 38)),
-                            'pay':          ((953,  136), (136, 38)),
-                            'shove_penis':  ((953,  194), (136, 38)),
-                            'remove_penis': ((953,  252), (136, 38)),
-                            'exchange':     ((1109, 20 ), (136, 38)),
-                            'auction':      ((1109, 78 ), (136, 38)),
-                            'mortgage':     ((1109, 136), (136, 38)),
-                            'redeem':       ((1109, 194), (136, 38))}
+        btn_coordinates = {'throw_cubes':   (953,  20 , 136, 38),
+                            'buy':          (953,  78,  136, 38),
+                            'pay':          (953,  136, 136, 38),
+                            'shove_penis':  (953,  194, 136, 38),
+                            'remove_penis': (953,  252, 136, 38),
+                            'exchange':     (1109, 20 , 136, 38),
+                            'auction':      (1109, 78 , 136, 38),
+                            'mortgage':     (1109, 136, 136, 38),
+                            'redeem':       (1109, 194, 136, 38)}
 
         profile_coordinates = [{'profile': (669, 20 ),  'avatar': (830, 46 ),  'money': (674, 38 ), 'name': (674, 18 )},
                                {'profile': (669, 169),  'avatar': (830, 195),  'money': (674, 187), 'name': (674, 167)},
@@ -74,23 +74,23 @@ def resolution_definition():
                                 'textbox_get':      (345, 160, 183, 30),
                                 'text_give':        (120, 196),
                                 'text_get':         (345, 196),
-                                'button':          ((256, 492), (136, 38)),
+                                'button':           (256, 492, 136, 38),
                                 'value':            (324, 173),
-                                'confirm':         ((144, 492), (136, 38)),
-                                'reject':          ((369, 492), (136, 38))}
+                                'confirm':          (144, 492, 136, 38),
+                                'reject':           (369, 492, 136, 38)}
 
         auction_coordinates = {'auction_screen':  (75,  75),
                                'price_text':      (144, 465),
-                               'confirm':        ((144, 492), (136, 38)),
-                               'reject':         ((369, 492), (136, 38)),
+                               'confirm':         (144, 492, 136, 38),
+                               'reject':          (369, 492, 136, 38),
                                'company_text':    (120, 160)}
 
-        start_btn_textboxes_coordinates = {'name':           ((1040, 442), (217, 35)),
-                                            'IP':            ((1040, 483), (150, 35)),
-                                            'port':          ((1196, 483), (65,  35)),
-                                            'connect':       ((1040, 534), (217, 38)),
-                                            'choose_avatar': ((1040, 592), (217, 38)),
-                                            'debug':         ((1040, 384), (140, 38))}
+        start_btn_textboxes_coordinates = {'name':           (1040, 442, 217, 35),
+                                            'IP':            (1040, 483, 150, 35),
+                                            'port':          (1196, 483, 65,  35),
+                                            'connect':       (1040, 534, 217, 38),
+                                            'choose_avatar': (1040, 592, 217, 38),
+                                            'debug':         (1040, 384, 140, 38)}
 
         log_textbox_coordinates = {'main_box':                  (95,  95,  459, 426),
                                    'user_input_box':            (95,  519, 350, 35),
@@ -99,8 +99,9 @@ def resolution_definition():
                                    'image_send_button':         (481, 519, 38,  35),
                                    'text_send_button':          (516, 519, 38,  35)}
 
-        egg_btns_coordinates = {'egg':  ((953,  310), (52, 38)),
-                                'eggs': ((1037, 310), (52, 38))}
+        egg_btns_coordinates = ((953,  310, 52, 38),
+                                (1037, 310, 52, 38),
+                                (1121, 310, 52, 38))
 
         settings_buttons_coordinates = {'dropdown':              (10,  10,  230, 50),
                                         'start_game_button':     (572, 602, 136, 38),
@@ -118,10 +119,15 @@ def resolution_definition():
                                         'fullscreen_text':       (10,  166),
                                         'sharp_scale_text':      (10,  198)}
 
-        margin = [[(0, 0)],
-                  [(0,  -14), (0,  14)],
-                  [(14,  0), (-14, 14), (-14, -14)],
-                  [(14, -14), (14, 14), (-14,  14), (-14, -14)]]
+        offset_horizontal = [[(0, 0)],
+                            [(0,  -14), (0,  14)],
+                            [(14,  0), (-14, 14), (-14, -14)],
+                            [(14, -14), (14, 14), (-14,  14), (-14, -14)]]
+
+        offset_vertical = [[(0, 0)],
+                          [(-14, 0), (14, 0)],
+                          [(0, 14), (14, -14), (-14, -14)],
+                          [(-14, 14), (14, 14), (14, -14), (-14, -14)]]
 
         cubes_coordinates = [(959, 489), (959, 565)]
         avatar_side_size = 100
@@ -145,15 +151,15 @@ def resolution_definition():
         font_size = 25
         settings_font_size = 51
 
-        btn_coordinates = {'throw_cubes':   ((1455, 30 ), (204, 57)),
-                            'buy':          ((1455, 117), (204, 57)),
-                            'pay':          ((1455, 204), (204, 57)),
-                            'shove_penis':  ((1455, 291), (204, 57)),
-                            'remove_penis': ((1455, 378), (204, 57)),
-                            'exchange':     ((1689, 30 ), (204, 57)),
-                            'auction':      ((1689, 117), (204, 57)),
-                            'mortgage':     ((1689, 204), (204, 57)),
-                            'redeem':       ((1689, 291), (204, 57))}
+        btn_coordinates = {'throw_cubes':   (1455, 30 , 204, 57),
+                            'buy':          (1455, 117, 204, 57),
+                            'pay':          (1455, 204, 204, 57),
+                            'shove_penis':  (1455, 291, 204, 57),
+                            'remove_penis': (1455, 378, 204, 57),
+                            'exchange':     (1689, 30 , 204, 57),
+                            'auction':      (1689, 117, 204, 57),
+                            'mortgage':     (1689, 204, 204, 57),
+                            'redeem':       (1689, 291, 204, 57)}
 
         profile_coordinates = [{'profile': [1028, 30],  'avatar': [1262, 66],  'money': [1034, 62],  'name': [1034, 34]},
                                {'profile': [1028, 249], 'avatar': [1262, 285], 'money': [1034, 281], 'name': [1034, 253]},
@@ -165,23 +171,23 @@ def resolution_definition():
                                 'textbox_get':      (530, 240, 290, 30),
                                 'text_give':        (177, 290),
                                 'text_get':         (530, 290),
-                                'button':          ((398, 765), (201, 57)),
+                                'button':           (398, 765, 201, 57),
                                 'value':            (498, 254),
-                                'confirm':         ((221, 765), (201, 57)),
-                                'reject':          ((576, 765), (201, 57))}
+                                'confirm':          (221, 765, 201, 57),
+                                'reject':           (576, 765, 201, 57)}
 
         auction_coordinates = {'auction_screen':  (108, 108),
                                'price_text':      (221, 738),
-                               'confirm':        ((221, 765), (201, 57)),
-                               'reject':         ((576, 765), (201, 57)),
+                               'confirm':         (221, 765, 201, 57),
+                               'reject':          (576, 765, 201, 57),
                                'company_text':    (177, 240)}
 
-        start_btn_textboxes_coordinates = {'name':           ((1683, 733), (208, 40)),
-                                            'IP':            ((1683, 787), (134, 40)),
-                                            'port':          ((1820, 787), (65,  40)),
-                                            'connect':       ((1683, 842), (208, 57)),
-                                            'choose_avatar': ((1683, 914), (208, 57)),
-                                            'debug':         ((1683, 660), (208, 57))}
+        start_btn_textboxes_coordinates = {'name':           (1683, 733, 208, 40),
+                                            'IP':            (1683, 787, 134, 40),
+                                            'port':          (1820, 787, 65,  40),
+                                            'connect':       (1683, 842, 208, 57),
+                                            'choose_avatar': (1683, 914, 208, 57),
+                                            'debug':         (1683, 660, 208, 57)}
 
         log_textbox_coordinates = {'main_box':                  (138, 138, 721, 688),
                                    'user_input_box':            (138, 819, 640, 40),
@@ -190,8 +196,9 @@ def resolution_definition():
                                    'image_send_button':         (776, 819, 43, 40),
                                    'text_send_button':          (816, 819, 43, 40)}
 
-        egg_btns_coordinates = {'egg':  ((1455, 465), (78, 57)),
-                                'eggs': ((1581, 465), (78, 57))}
+        egg_btns_coordinates = ((1455, 465, 78, 57),
+                                (1581, 465, 78, 57),
+                                (1707, 465, 78, 57))
 
         settings_buttons_coordinates = {'dropdown':              (20,  20,  230, 50),
                                         'start_game_button':     (835, 934, 250, 57),
@@ -209,10 +216,15 @@ def resolution_definition():
                                         'fullscreen_text':       (20,  242),
                                         'sharp_scale_text':      (20,  296)}
 
-        margin = [[[0, 0]],
-                  [[0, -21], [0, 21]],
-                  [[21, 0], [-21, 21], [-21, -21]],
-                  [[21, -21], [21, 21], [-21, 21], [-21, -21]]]
+        offset_horizontal = [[[0, 0]],
+                             [[0, -21], [0, 21]],
+                             [[21, 0], [-21, 21], [-21, -21]],
+                             [[21, -21], [21, 21], [-21, 21], [-21, -21]]]
+
+        offset_vertical = [[(0, 0)],
+                           [(-21, 0), (21, 0)],
+                           [(0, 21), (21, -21), (-21, -21)],
+                           [(-21, 21), (21, 21), (21, -21), (-21, -21)]]
 
         cubes_coordinates = [(1499, 906), (1594, 906)]
         avatar_side_size = 150
@@ -236,15 +248,15 @@ def resolution_definition():
         font_size = 51
         settings_font_size = 51
 
-        btn_coordinates = {'throw_cubes':  ((1935, 40 ), (272, 76)),
-                           'buy':          ((1935, 156), (272, 76)),
-                           'pay':          ((1935, 272), (272, 76)),
-                           'shove_penis':  ((1935, 388), (272, 76)),
-                           'remove_penis': ((1935, 504), (272, 76)),
-                           'exchange':     ((2247, 40 ), (272, 76)),
-                           'auction':      ((2247, 156), (272, 76)),
-                           'mortgage':     ((2247, 272), (272, 76)),
-                           'redeem':       ((2247, 388), (272, 76))}
+        btn_coordinates = {'throw_cubes':  (1935, 40 , 272, 76),
+                           'buy':          (1935, 156, 272, 76),
+                           'pay':          (1935, 272, 272, 76),
+                           'shove_penis':  (1935, 388, 272, 76),
+                           'remove_penis': (1935, 504, 272, 76),
+                           'exchange':     (2247, 40 , 272, 76),
+                           'auction':      (2247, 156, 272, 76),
+                           'mortgage':     (2247, 272, 272, 76),
+                           'redeem':       (2247, 388, 272, 76)}
 
         profile_coordinates = [{'profile': [1381, 40],  'avatar': [1703, 92],  'money': [1391, 76],  'name': [1391, 36]},
                                {'profile': [1381, 338], 'avatar': [1703, 390], 'money': [1391, 374], 'name': [1391, 334]},
@@ -256,10 +268,10 @@ def resolution_definition():
                                 'textbox_get':      (690, 320, 366, 30),
                                 'text_give':        (240, 392),
                                 'text_get':         (690, 392),
-                                'button':          ((512, 984), (272, 76)),
+                                'button':           (512, 984, 272, 76),
                                 'value':            (648, 346),
-                                'confirm':         ((288, 984), (272, 76)),
-                                'reject':          ((738, 984), (272, 76))}
+                                'confirm':          (288, 984, 272, 76),
+                                'reject':           (738, 984, 272, 76)}
 
         auction_coordinates = {'auction_screen':  (150, 150),
                                'price_text':      (288, 930),
@@ -267,12 +279,12 @@ def resolution_definition():
                                'reject':         ((738, 984), (272, 76)),
                                'company_text':    (240, 320)}
 
-        start_btn_textboxes_coordinates = {'debug':         ((2127, 827 ), (392, 76)),
-                                           'name':          ((2127, 943 ), (392, 60)),
-                                           'IP':            ((2127, 1035), (265, 60)),
-                                           'port':          ((2401, 1035), (118, 60)),
-                                           'connect':       ((2127, 1127), (392, 76)),
-                                           'choose_avatar': ((2127, 1243), (392, 76))}
+        start_btn_textboxes_coordinates = {'debug':         (2127, 827 , 392, 76),
+                                           'name':          (2127, 943 , 392, 60),
+                                           'IP':            (2127, 1035, 265, 60),
+                                           'port':          (2401, 1035, 118, 60),
+                                           'connect':       (2127, 1127, 392, 76),
+                                           'choose_avatar': (2127, 1243, 392, 76)}
 
         log_textbox_coordinates = {'main_box':                  (197, 197, 961, 911),
                                    'user_input_box':            (197, 1098, 760, 60),
@@ -297,13 +309,19 @@ def resolution_definition():
                                         'fullscreen_text': (20, 242),
                                         'sharp_scale_text': (20, 296)}
 
-        egg_btns_coordinates = {'egg':  ((1935, 620), (106, 76)),
-                                'eggs': ((2101, 620), (106, 76))}
+        egg_btns_coordinates = ((1935, 620, 106, 76),
+                                (2101, 620, 106, 76),
+                                (2267, 620, 106, 76))
 
-        margin = [[(0, 0)],
-                  [(0,  -28), (0,  28)],
-                  [(28,  0), (-28, 28), (-28, -28)],
-                  [(28, -28), (28, 28), (-28,  28), (-28, -28)]]
+        offset_horizontal = [[(0, 0)],
+                             [(0,  -28), (0,  28)],
+                             [(28,  0), (-28, 28), (-28, -28)],
+                             [(28, -28), (28, 28), (-28,  28), (-28, -28)]]
+
+        offset_vertical = [[(0, 0)],
+                           [(-28, 0), (28, 0)],
+                           [(0, 28), (28, -28), (-28, -28)],
+                           [(-28, 28), (28, 28), (28, -28), (-28, -28)]]
 
         cubes_coordinates = [(1922, 1130), (2074, 1130)]
         avatar_side_size = 203
@@ -317,4 +335,4 @@ def resolution_definition():
         tile_info_coordinates = (197, 197)
         speed = 0.0015
 
-    return resolution, resolution_folder, btn_coordinates, profile_coordinates, start_btn_textboxes_coordinates, cubes_coordinates, speed, avatar_side_size, exchange_coordinates, fps, auction_coordinates, tile_size, margin, debug_mode, fps_coordinates, font_size, egg_card_coordinates, egg_card_text_center, egg_card_title_center, egg_title_font_size, egg_card_text_width, egg_btns_coordinates, optimized, background_color, log_textbox_coordinates, tile_info_coordinates, fullscreen, sharp_scale, settings_buttons_coordinates, settings_font_size, log_image_size, name, address, port
+    return resolution, resolution_folder, btn_coordinates, profile_coordinates, start_btn_textboxes_coordinates, cubes_coordinates, speed, avatar_side_size, exchange_coordinates, fps, auction_coordinates, tile_size, offset_horizontal, offset_vertical, debug_mode, fps_coordinates, font_size, egg_card_coordinates, egg_card_text_center, egg_card_title_center, egg_title_font_size, egg_card_text_width, egg_btns_coordinates, optimized, background_color, log_textbox_coordinates, tile_info_coordinates, fullscreen, sharp_scale, settings_buttons_coordinates, settings_font_size, log_image_size, name, address, port

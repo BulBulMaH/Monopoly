@@ -90,6 +90,24 @@
 			}
 		}
 	},
+	"#dn_button":
+	{
+		"images":
+		{
+			"normal_image": 
+			{
+				"path": "resources/1080p/double or nothing buttons/dn_normal.png"
+			},
+			"hovered_image": 
+			{
+				"path": "resources/1080p/double or nothing buttons/dn_hovered.png"
+			},
+			"selected_image": 
+			{
+				"path": "resources/1080p/double or nothing buttons/dn_selected.png"
+			}
+		}
+	},
 	"#settings_font":
 	{
 		"font":

@@ -27,11 +27,15 @@ class Tiles:
         self.y_center = int(positions['tile center y'])
         self.family_members = 0
         if self.type == 'buildable':
-            self.penis_price = round(int(self.price) * 0.63 / 50) * 50
+            if self.special_price:
+                self.penis_price = round(int(self.price) * 0.55 / 50) * 50
+            else:
+                self.penis_price = round(int(self.price) * 0.63 / 50) * 50
         else:
             self.penis_price = 0
         self.penises = 0
         self.penised_family = False # запЭнисованная семья, если семья имеет хотя бы один пЭнис
+        self.recently_built = False
         self.income = 0
         self.owned = False
         self.owner = ''
