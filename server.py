@@ -604,6 +604,7 @@ def receive_data():
                                 player.money += pay_sum
 
                                 buy_btn_check(player.color)
+                                penises_check(player.color)
                                 mortgage_btn_check(player.color)
                                 redeem_btn_check(player.color)
                                 send_player_state(player.color)
@@ -1311,6 +1312,7 @@ def receive_data():
                         player.state['paid'] = True
                         player.state['pay_btn_active'] = [False, None]
                         buy_btn_check(player.color)
+                        penises_check(player.color)
                         mortgage_btn_check(player.color)
                         redeem_btn_check(player.color)
                         send_player_state(player.color)
@@ -1619,9 +1621,9 @@ def receive_data():
                             player.money >= tile.penis_price and
                             tile.penises < 5):
 
-                            for tile in all_tiles:
-                                if tile.family == tile.family:
-                                    tile.recently_built = True
+                            for tile_ in all_tiles:
+                                if tile_.family == tile.family:
+                                    tile_.recently_built = True
                             player.money -= tile.penis_price
                             tile.penises += 1
 
@@ -1842,9 +1844,9 @@ def receive_data():
                                 pay_btn_check(player.color)
                                 mortgage_btn_check(player.color)
                                 redeem_btn_check(player.color)
-                                penises_check(player.color)
                                 price_update(tile)
                                 buy_btn_check(player.color)
+                                penises_check(player.color)
                                 exchange_check(player.color)
                                 send_player_state(player.color)
                             except:
@@ -2603,11 +2605,11 @@ def mortgage_btn_check(color):  # заложить
 
 def redeem_btn_check(color):  # выкупить
     if state['is_game_started']:
+        temp_state = False
         for tile in all_tiles:
             if tile.mortgaged:
                 for player in players:
                     if player.color == color:
-                        temp_state = False
                         if player.state['on_move']:
                             if player.color == tile.owner:
                                 if player.money >= tile.price:
@@ -2626,7 +2628,7 @@ def penises_check(color):
                 if tile.full_family and tile.owner == player.color and tile.type == 'buildable':
                     if player.state['on_move'] and not player.imprisoned and not tile.recently_built and player.money >= tile.penis_price and tile.penises < 5:
                         temp_state_build = True
-                    if 1 <= tile.penises <= 5 and (player.state['on_move'] or player.state['pay_btn_active'][1]):
+                    if 1 <= tile.penises <= 5 and (player.state['on_move'] or player.state['pay_btn_active'][1] or player.state['buy_btn_active'][1]):
                         temp_state_remove = True
 
             player.state['penis_build_btn_active'] = temp_state_build
