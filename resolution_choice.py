@@ -17,6 +17,7 @@ def resolution_definition():
         name = settings_data['name']
         address = settings_data['address']
         port = settings_data['port']
+        clear_overflowed_chat = settings_data['clear overflowed chat']
 
     else:
         settings_data = {'resolution index': 1,
@@ -28,7 +29,8 @@ def resolution_definition():
                          'debug mode': False,
                          'name': '',
                          'address': '',
-                         'port': ''}
+                         'port': '',
+                         'clear overflowed chat': True}
 
         resolution_index = settings_data['resolution index']
         fps = settings_data['fps']
@@ -40,6 +42,7 @@ def resolution_definition():
         name = settings_data['name']
         address = settings_data['address']
         port = settings_data['port']
+        clear_overflowed_chat = settings_data['clear overflowed chat']
 
         with open("settings.json", "w") as outfile:
             json.dump(settings_data, outfile, indent=4)
@@ -103,21 +106,23 @@ def resolution_definition():
                                 (1037, 310, 52, 38),
                                 (1121, 310, 52, 38))
 
-        settings_buttons_coordinates = {'dropdown':              (10,  10,  230, 50),
-                                        'start_game_button':     (572, 602, 136, 38),
-                                        'fps_textbox':           (266, 70,  60,  30),
-                                        'optimization_checkbox': (226, 105, 25,  25),
-                                        'debug_checkbox':        (120, 137, 25,  25),
-                                        'fullscreen_checkbox':   (222, 169, 25,  25),
-                                        'sharp_scale_checkbox':  (252, 201, 25,  25),
-                                        'pick_color_button':     (10,  240, 180, 38),
-                                        'apply_button':          (10,  298, 180, 38),
-                                        'color_picker':          (60,  120, 390, 390),
-                                        'fps_text':              (10,  70),
-                                        'optimization_text':     (10,  102),
-                                        'debug_text':            (10,  134),
-                                        'fullscreen_text':       (10,  166),
-                                        'sharp_scale_text':      (10,  198)}
+        settings_buttons_coordinates = {'dropdown':                       (10,  10,  230, 50),
+                                        'start_game_button':              (572, 602, 136, 38),
+                                        'fps_textbox':                    (266, 70,  60,  30),
+                                        'optimization_checkbox':          (226, 105, 25,  25),
+                                        'debug_checkbox':                 (120, 137, 25,  25),
+                                        'fullscreen_checkbox':            (222, 169, 25,  25),
+                                        'sharp_scale_checkbox':           (252, 201, 25,  25),
+                                        'clear_overflowed_chat_checkbox': (296, 233, 25, 25),
+                                        'pick_color_button':              (10,  272, 180, 38),
+                                        'apply_button':                   (10,  330, 180, 38),
+                                        'color_picker':                   (60,  120, 390, 390),
+                                        'fps_text':                       (10,  70),
+                                        'optimization_text':              (10,  102),
+                                        'debug_text':                     (10,  134),
+                                        'fullscreen_text':                (10,  166),
+                                        'sharp_scale_text':               (10,  198),
+                                        'clear_overflowed_chat_text':     (10,  230)}
 
         offset_horizontal = [[(0, 0)],
                             [(0,  -14), (0,  14)],
@@ -207,14 +212,16 @@ def resolution_definition():
                                         'debug_checkbox':        (238, 198, 45,  45),
                                         'fullscreen_checkbox':   (443, 252, 45,  45),
                                         'sharp_scale_checkbox':  (507, 306, 45,  45),
-                                        'pick_color_button':     (20,  370, 250, 57),
-                                        'apply_button':          (20,  457, 250, 57),
+                                        'clear_overflowed_chat_checkbox': (),
+                                        'pick_color_button':     (20,  424, 250, 57),
+                                        'apply_button':          (20,  511, 250, 57),
                                         'color_picker':          (60,  120, 390, 390),
                                         'fps_text':              (20,  80),
                                         'optimization_text':     (20,  134),
                                         'debug_text':            (20,  188),
                                         'fullscreen_text':       (20,  242),
-                                        'sharp_scale_text':      (20,  296)}
+                                        'sharp_scale_text':      (20,  296),
+                                        'clear_overflowed_chat_text': (20,  350)}
 
         offset_horizontal = [[[0, 0]],
                              [[0, -21], [0, 21]],
@@ -293,21 +300,22 @@ def resolution_definition():
                                    'image_send_button':         (1035, 1098, 63, 60),
                                    'text_send_button':          (1095, 1098, 63, 60)}
 
-        settings_buttons_coordinates = {'dropdown': (20, 20, 230, 50),
-                                        'start_game_button': (1155, 1273, 250, 57),
-                                        'fps_textbox': (534, 81, 120, 55),
+        settings_buttons_coordinates = {'dropdown':              (20, 20, 230, 50),
+                                        'start_game_button':     (1155, 1273, 250, 57),
+                                        'fps_textbox':           (534, 81, 120, 55),
                                         'optimization_checkbox': (451, 144, 45, 45),
-                                        'debug_checkbox': (238, 198, 45, 45),
-                                        'fullscreen_checkbox': (443, 252, 45, 45),
-                                        'sharp_scale_checkbox': (507, 306, 45, 45),
-                                        'pick_color_button': (20, 370, 250, 57),
-                                        'apply_button': (20, 457, 250, 57),
-                                        'color_picker': (60, 120, 390, 390),
-                                        'fps_text': (20, 80),
-                                        'optimization_text': (20, 134),
-                                        'debug_text': (20, 188),
-                                        'fullscreen_text': (20, 242),
-                                        'sharp_scale_text': (20, 296)}
+                                        'debug_checkbox':        (238, 198, 45, 45),
+                                        'fullscreen_checkbox':   (443, 252, 45, 45),
+                                        'sharp_scale_checkbox':  (507, 306, 45, 45),
+                                        'pick_color_button':     (20, 424, 250, 57),
+                                        'apply_button':          (20, 511, 250, 57),
+                                        'color_picker':          (60, 120, 390, 390),
+                                        'fps_text':              (20, 80),
+                                        'optimization_text':     (20, 134),
+                                        'debug_text':            (20, 188),
+                                        'fullscreen_text':       (20, 242),
+                                        'sharp_scale_text':      (20, 296),
+                                        'clear_overflowed_chat_text': (20, 350)}
 
         egg_btns_coordinates = ((1935, 620, 106, 76),
                                 (2101, 620, 106, 76),
@@ -335,4 +343,4 @@ def resolution_definition():
         tile_info_coordinates = (197, 197)
         speed = 0.0015
 
-    return resolution, resolution_folder, btn_coordinates, profile_coordinates, start_btn_textboxes_coordinates, cubes_coordinates, speed, avatar_side_size, exchange_coordinates, fps, auction_coordinates, tile_size, offset_horizontal, offset_vertical, debug_mode, fps_coordinates, font_size, egg_card_coordinates, egg_card_text_center, egg_card_title_center, egg_title_font_size, egg_card_text_width, egg_btns_coordinates, optimized, background_color, log_textbox_coordinates, tile_info_coordinates, fullscreen, sharp_scale, settings_buttons_coordinates, settings_font_size, log_image_size, name, address, port
+    return resolution, resolution_folder, btn_coordinates, profile_coordinates, start_btn_textboxes_coordinates, cubes_coordinates, speed, avatar_side_size, exchange_coordinates, fps, auction_coordinates, tile_size, offset_horizontal, offset_vertical, debug_mode, fps_coordinates, font_size, egg_card_coordinates, egg_card_text_center, egg_card_title_center, egg_title_font_size, egg_card_text_width, egg_btns_coordinates, optimized, background_color, log_textbox_coordinates, tile_info_coordinates, fullscreen, sharp_scale, settings_buttons_coordinates, settings_font_size, log_image_size, name, address, port, clear_overflowed_chat

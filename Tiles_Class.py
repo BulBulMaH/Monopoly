@@ -40,8 +40,8 @@ class Tiles:
         self.owned = False
         self.owner = ''
         self.full_family = False
-        self.prerendered_text = ''
-        self.text_rect = ''
+        self.prerendered_text = None
+        self.text_rect = None
         self.mortgaged = False
         self.mortgaged_moves_count = 0
 
@@ -81,7 +81,7 @@ class Tiles:
             if not self.mortgaged:
                 text = f'{self.income}~'
             else:
-                text = ''
+                text = f'{self.income // 2}~'
 
         elif self.type == 'infrastructure':
             if self.owned:

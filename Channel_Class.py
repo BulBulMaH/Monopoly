@@ -3,7 +3,6 @@ import pygame as pg
 
 class Channel:
     def __init__(self, id):
-
         self.channel = pg.mixer.Channel(id)
         self.is_paused = False
         self.audio_id = None

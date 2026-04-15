@@ -2515,13 +2515,7 @@ def debug_output():
               f'       prison_break_attempts: {player.prison_break_attempts}\n'
               f'       egg_prison_exit_card: {player.egg_prison_exit_card}\n'
               f'       eggs_prison_exit_card: {player.eggs_prison_exit_card}\n')
-        if player.state['on_move']:
-            player.dn_card = True
-            dn_card_data = f'd/n card|{player.color}%'
-            for player2 in players:
-                player2.conn.send(dn_card_data.encode())
-                information_sent_to('Информация отправлена к', player2.color, dn_card_data)
-            moving_player_changing(not player.state['double'])
+
     pprint.pp(state)
 
 
@@ -2695,6 +2689,10 @@ while running:
 if os.path.exists(f'resources/temp/images/server image messages'):
     for file in os.listdir('resources/temp/images/server image messages'):
         os.remove(f'resources/temp/images/server image messages/{file}')
+
+if os.path.exists(f'resources/temp/audios'):
+    for file in os.listdir('resources/temp/audios'):
+        os.remove(f'resources/temp/audios/{file}')
 
 print('Сервер закрыт')
 if debug_mode:
