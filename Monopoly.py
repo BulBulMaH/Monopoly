@@ -37,7 +37,6 @@ import pygame_gui
 # классы
 from Players_Class_Client_side import Player
 from Recorder_Class import AudioRecorder
-from Textbox_Class import Textbox
 
 # функции
 from all_tiles_extraction import all_tiles_get
@@ -345,6 +344,8 @@ def load_assets():
 
 
 def load_game():
+    from Textbox_Class import Textbox
+    
     global sock, CLEAR_UPDATE_LIST, log_textbox_
     start_game_button.kill()
     dropdown.kill()
@@ -486,10 +487,6 @@ def connect():
                     connection_handler = threading.Thread(target=handle_connection, name='connection_handler', daemon=True)
                     connection_handler.start()
                     thread_open('Поток открыт', connection_handler.name)
-
-                    file_handler = threading.Thread(target=file_handle, name='file_handler', daemon=True)
-                    file_handler.start()
-                    thread_open('Поток открыт', file_handler.name)
 
                     new_connection('Подключено к', f'{ip_}:{port_}')
                     active_buttons_check()
