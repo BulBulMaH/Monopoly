@@ -9,8 +9,9 @@ import datetime
 
 import cProfile
 import pstats
+
 pr = cProfile.Profile()
-pr.enable()  # Начинаем запись
+pr.enable()
 
 os.environ['SDL_VIDEO_WINDOW_POS'] = '%d,%d' % (0, 31) # (0, 31)
 os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = '1'
@@ -28,17 +29,15 @@ import base64
 import tkinter
 import tkinter.filedialog
 import zlib
-import magic
 import mimetypes
-import wave
 
 # для интерфейса
 import pygame_gui
 
 # классы
 from Players_Class_Client_side import Player
-from Channel_Class import Channel
 from Recorder_Class import AudioRecorder
+from Textbox_Class import Textbox
 
 # функции
 from all_tiles_extraction import all_tiles_get
@@ -87,12 +86,12 @@ def settings_buttons(previous_values):
     if not fullscreen_checkbox.get_state():
         sharp_scale_checkbox.disable()
 
-    clear_overflowed_chat_checkbox = pygame_gui.elements.UICheckBox(
-        relative_rect=pg.Rect(settings_buttons_coordinates['clear_overflowed_chat_checkbox']),
-        text='',
-        initial_state=previous_values['clear overflowed chat'],
-        manager=manager)
-    clear_overflowed_chat_checkbox.hide()
+    # clear_overflowed_chat_checkbox = pygame_gui.elements.UICheckBox(
+    #     relative_rect=pg.Rect(settings_buttons_coordinates['clear_overflowed_chat_checkbox']),
+    #     text='',
+    #     initial_state=previous_values['clear overflowed chat'],
+    #     manager=manager)
+    # clear_overflowed_chat_checkbox.hide()
 
     pick_color_button = pygame_gui.elements.UIButton(
         relative_rect=pg.Rect(settings_buttons_coordinates['pick_color_button']),
@@ -120,8 +119,16 @@ def settings_buttons(previous_values):
 
 
 def monopoly_init():
+    # замена файлов библиотек на модифицированные
+    if os.path.exists('lib/modified_library_files/magic/__init__.py'):
+        os.replace('lib/modified_library_files/magic/__init__.py', '.venv/Lib/site-packages/magic/__init__.py')
+    if os.path.exists('lib/modified_library_files/pygame-gui/html_parser.py'):
+        os.replace('lib/modified_library_files/pygame-gui/html_parser.py', '.venv/Lib/site-packages/pygame_gui/core/text/html_parser.py')
+    if os.path.exists('lib/modified_library_files/pygame-gui/ui_font_dictionary.py'):
+        os.replace('lib/modified_library_files/pygame-gui/ui_font_dictionary.py', '.venv/Lib/site-packages/pygame_gui/core/ui_font_dictionary.py')
+
     global name, address, port
-    global players, exchange_value, exchange_color, state, sound_messages, voice_messages, sound_messages_channel, voice_messages_channel, image_messages, receive_size, recorder
+    global players, exchange_value, exchange_color, state, receive_size, recorder, log_textbox_
 
     gc.enable()
     pg.init()
@@ -131,13 +138,9 @@ def monopoly_init():
     players = []
     exchange_value = -100
     exchange_color = ''
+    log_textbox_ = None
 
     recorder = AudioRecorder()
-    sound_messages = {}
-    voice_messages = {}
-    sound_messages_channel = Channel(0)
-    voice_messages_channel = Channel(1)
-    image_messages = 0
     receive_size = 1024
 
     state = {'throw_cubes_btn_active': False,
@@ -210,11 +213,13 @@ def monopoly_init():
     settings_font = pg.font.Font('resources/fonts/bulbulpoly-4.ttf', settings_font_size)
 
     manager = pygame_gui.UIManager(resolution, theme_path=f'resources/{resolution_folder}/gui_theme.json', enable_live_theme_updates=False, starting_language='ru')
+    # pygame_gui.core.UIFontDictionary
 
     settings_buttons(settings_data)
 
     theme = manager.create_new_theme(f'resources/{resolution_folder}/gui_theme.json')
     manager.set_ui_theme(theme)
+
     if debug_mode:
         global command_counter, unknown_commands
         command_counter = {}
@@ -243,7 +248,7 @@ def save_settings():
                          'name': name,
                          'address': address,
                          'port': port,
-                         'clear overflowed chat': clear_overflowed_chat_checkbox.get_state()}
+                         'clear overflowed chat': False}
 
     with open("settings.json", "w") as outfile:
         json.dump(settings_data_new, outfile, indent=4, ensure_ascii=False)
@@ -338,12 +343,9 @@ def load_assets():
     theme = manager.create_new_theme(f'resources/{resolution_folder}/gui_theme.json')
     manager.set_ui_theme(theme)
 
-    manager.add_font_paths('BulBulPoly', "resources/fonts/bulbulpoly-4.ttf")
-    manager.preload_fonts([{'name': 'BulBulPoly', 'point_size': f'{font_size}', 'style': 'regular', 'antialiased': '1'}])
-
 
 def load_game():
-    global sock, CLEAR_UPDATE_LIST
+    global sock, CLEAR_UPDATE_LIST, log_textbox_
     start_game_button.kill()
     dropdown.kill()
     fps_textbox.kill()
@@ -361,6 +363,7 @@ def load_game():
     sock.setblocking(True)
 
     buttons()
+    log_textbox_ = Textbox(log_textbox_coordinates['main_box'], 2, 6, 1, font, (0, 0, 0), (200, 200, 200), manager)
 
     theme = manager.create_new_theme(f'resources/{resolution_folder}/gui_theme.json')
     manager.set_ui_theme(theme)
@@ -463,6 +466,7 @@ def connect():
             if '%' not in name_ and '|' not in name_:
                 if name_:
                     sock.connect((ip_, port_))
+                    # connect_file_socket()
                     sock.send(f'name|{name_}%'.encode())
                     state['connected'] = True
 
@@ -483,23 +487,27 @@ def connect():
                     connection_handler.start()
                     thread_open('Поток открыт', connection_handler.name)
 
+                    file_handler = threading.Thread(target=file_handle, name='file_handler', daemon=True)
+                    file_handler.start()
+                    thread_open('Поток открыт', file_handler.name)
+
                     new_connection('Подключено к', f'{ip_}:{port_}')
                     active_buttons_check()
                 else:
                     print(f'{"\033[31m{}".format('Ваше имя не должно быть пустым')}{'\033[0m'}')
-                    log_textbox.append_html_text(f'<font face="BulBulPoly" pixel_size={font_size} color="#D0392A">Ваше имя не должно быть пустым</font><br>')
-                    if log_textbox.scroll_bar:
-                        log_textbox.scroll_bar.set_scroll_from_start_percentage(1)
+                    log_textbox_.append_messages({'type': 'text',
+                                                  'value': f'Ваше имя не должно быть пустым',
+                                                  'color': (208, 57, 42)})
             else:
                 print(f'{"\033[31m{}".format('Ваше имя не должно содержать символов "|" и "%"')}{'\033[0m'}')
-                log_textbox.append_html_text(f'<font face="BulBulPoly" pixel_size={font_size} color="#D0392A">Ваше имя не должно содержать символов "|" и "%"</font><br>')
-                if log_textbox.scroll_bar:
-                    log_textbox.scroll_bar.set_scroll_from_start_percentage(1)
+                log_textbox_.append_messages({'type': 'text',
+                                              'value': f'Ваше имя не должно содержать символов "|" и "%"',
+                                              'color': (208, 57, 42)})
         except:
+            log_textbox_.append_messages({'type': 'text',
+                                          'value': f'Не удалось подключиться',
+                                          'color': (208, 57, 42)})
             print(f'{"\033[31m{}".format('Не удалось подключиться')}{'\033[0m'}')  # красный
-            log_textbox.append_html_text(f'<font face="BulBulPoly" pixel_size={font_size} color="#D0392A">Не удалось подключиться</font><br>')
-            if log_textbox.scroll_bar:
-                log_textbox.scroll_bar.set_scroll_from_start_percentage(1)
 
 
 def tile_button(tile_position):
@@ -677,7 +685,7 @@ def player_button(color):
                     exchange_cancel_button.show()
                     exchange_give_textbox.show()
                     exchange_get_textbox.show()
-                    log_textbox.hide()
+                    log_textbox_.hide()# todo: dobavit
                     log_text_send_button.hide()
                     log_audio_send_button.hide()
                     log_voice_message_send_button.hide()
@@ -723,9 +731,9 @@ def exchange():
     exchange_screen_reset()
     if state['is_game_started'] and state['exchange_btn_active']:
         state['exchange_player_btn_active'] = True
-        log_textbox.append_html_text(f'<font face="BulBulPoly" pixel_size={font_size} color="#000000">Нажмите на аватар человека, с которым хотите обменяться</font><br>')
-        if log_textbox.scroll_bar:
-            log_textbox.scroll_bar.set_scroll_from_start_percentage(1)
+        log_textbox_.append_messages({'type': 'text',
+                                      'value': f'Нажмите на аватар человека, с которым хотите обменяться',
+                                      'color': (0, 0, 0)})
         active_buttons_check()
 
 
@@ -787,7 +795,7 @@ def exchange_commit():
             exchange_give_textbox.hide()
             exchange_get_textbox.set_text('')
             exchange_get_textbox.hide()
-            log_textbox.show()
+            log_textbox_.show()
             log_text_send_button.show()
             log_audio_send_button.show()
             log_voice_message_send_button.show()
@@ -879,7 +887,7 @@ def exchange_request_confirm():
             state['show_exchange_request_screen'] = [False]
             exchange_request_confirm_button.hide()
             exchange_request_reject_button.hide()
-            log_textbox.show()
+            log_textbox_.show()
             log_text_send_button.show()
             log_audio_send_button.show()
             log_voice_message_send_button.show()
@@ -896,7 +904,7 @@ def exchange_request_reject():
         state['show_exchange_request_screen'] = [False]
         exchange_request_confirm_button.hide()
         exchange_request_reject_button.hide()
-        log_textbox.show()
+        log_textbox_.show()
         log_text_send_button.show()
         log_audio_send_button.show()
         log_voice_message_send_button.show()
@@ -936,7 +944,7 @@ def choose_avatar():
 
             image_bytes_encoded_bytes_base64 = base64.b64encode(image_bytes)
             sendable_data = b'avatar|' + image_bytes_encoded_bytes_base64 + b'%'
-            sock.send(sendable_data)
+            file_sock.send(sendable_data)
 
 
 def auction():
@@ -960,7 +968,7 @@ def auction_buy():
                     state['show_auction_screen'] = [False]
                     auction_buy_button.hide()
                     auction_reject_button.hide()
-                    log_textbox.show()
+                    log_textbox_.show()
                     log_text_send_button.show()
                     log_audio_send_button.show()
                     log_voice_message_send_button.show()
@@ -976,7 +984,7 @@ def auction_reject():
         state['show_auction_screen'] = [False]
         auction_buy_button.hide()
         auction_reject_button.hide()
-        log_textbox.show()
+        log_textbox_.show()
         log_text_send_button.show()
         log_audio_send_button.show()
         log_voice_message_send_button.show()
@@ -993,9 +1001,9 @@ def mortgage():  # заложить
         state['all_penises_build_btns_active'] = False
         state['all_penises_remove_btns_active'] = False
         active_buttons_check()
-        log_textbox.append_html_text(f'<font face="BulBulPoly" pixel_size={font_size} color="#000000">Нажмите на поле, которое хотите заложить</font><br>')
-        if log_textbox.scroll_bar:
-            log_textbox.scroll_bar.set_scroll_from_start_percentage(1)
+        log_textbox_.append_messages({'type': 'text',
+                                      'value': f'Нажмите на поле, которое хотите заложить',
+                                      'color': (0, 0, 0)})
 
 
 def redeem():  # выкупить
@@ -1007,9 +1015,9 @@ def redeem():  # выкупить
         state['all_penises_build_btns_active'] = False
         state['all_penises_remove_btns_active'] = False
         active_buttons_check()
-        log_textbox.append_html_text(f'<font face="BulBulPoly" pixel_size={font_size} color="#000000">Нажмите на поле, которое хотите выкупить</font><br>')
-        if log_textbox.scroll_bar:
-            log_textbox.scroll_bar.set_scroll_from_start_percentage(1)
+        log_textbox_.append_messages({'type': 'text',
+                                      'value': f'Нажмите на поле, которое хотите выкупить',
+                                      'color': (0, 0, 0)})
 
 
 def exit_prison_by_egg_s(egg_type):
@@ -1057,7 +1065,7 @@ def exchange_screen_reset():
         exchange_cancel_button.hide()
         exchange_give_textbox.hide()
         exchange_get_textbox.hide()
-        log_textbox.show()
+        log_textbox_.show()
         log_text_send_button.show()
         log_audio_send_button.show()
         log_voice_message_send_button.show()
@@ -1095,20 +1103,18 @@ def send_audio():
             encoding = zlib.compress(audio_bytes, level=9)
             audio_bytes_encoded_base64 = base64.b64encode(encoding)
             sendable_data = b'sound message|' + audio_bytes_encoded_base64 + '%'.encode()
-            size_information = f'receive size|{len(sendable_data)}%'.encode()
 
-            sock.send(size_information)
-            sock.send(sendable_data)
+            file_sock.send(sendable_data)
+            information_sent('Информация отправлена', 'sound message')
 
 
 def send_voice_message():
     if state['connected']:
         state['audio_recording'] = not state['audio_recording']
         if state['audio_recording']:
-            log_textbox.append_html_text(
-                f'<font face="BulBulPoly" pixel_size={font_size} color="#000000">Началась запись голоса. Чтобы остановить и отправить запись, нажмите на кнопку ещё раз</font><br>')
-            if log_textbox.scroll_bar:
-                log_textbox.scroll_bar.set_scroll_from_start_percentage(1)
+            log_textbox_.append_messages({'type': 'text',
+                                          'value': f'Началась запись голоса. Чтобы остановить и отправить запись, нажмите на кнопку ещё раз',
+                                          'color': (0, 0, 0)})
             recorder.start_recording()
         else:
             audio_bytes = recorder.stop_recording()
@@ -1117,8 +1123,7 @@ def send_voice_message():
             sendable_data = b'voice message|' + audio_bytes_encoded_base64 + '%'.encode()
             size_information = f'receive size|{len(sendable_data)}%'.encode()
 
-            sock.send(size_information)
-            sock.send(sendable_data)
+            file_sock.send(sendable_data)
 
 
 def send_image():
@@ -1149,7 +1154,7 @@ def send_image():
         image_bytes_encoded_bytes_base64 = base64.b64encode(image_bytes)
 
         sendable_data = b'image message|' + image_bytes_encoded_bytes_base64 + b'%'
-        sock.send(sendable_data)
+        file_sock.send(sendable_data)
 
 
 # ^
@@ -1453,7 +1458,7 @@ def move(players_on_tile, end_positions, cube_sum):
 
 
 def handle_connection():
-    global players, all_tiles, avatar_file, cube_1_picture, cube_2_picture, receive_size, image_messages
+    global players, all_tiles, avatar_file, cube_1_picture, cube_2_picture, receive_size, list_for_file_handler
 
 
     def price_update(tile):
@@ -1476,7 +1481,7 @@ def handle_connection():
         if game_started:
             if state['connected']:
                 try:
-                    data_undecoded = sock.recv(receive_size)
+                    data_undecoded = sock.recv(1024)
                     data_unsplit = data_undecoded.decode().replace('[1foe_S]', '')
                     buffer += data_unsplit
 
@@ -1493,26 +1498,7 @@ def handle_connection():
                                 for allPlayer in all_players:
                                     if allPlayer.color == data[1]:
                                         allPlayer.main_color(data[1])
-
-                            elif data[0] == 'avatar':
-                                state['avatar_chosen'] = True
-                                avatar = data[2]
-                                image_bytes_ascii_decoded = avatar.encode("ascii")
-                                image_bytes_decoded = base64.b64decode(image_bytes_ascii_decoded)
-                                image_decoded = Image.open(io.BytesIO(image_bytes_decoded))
-                                image_decoded = image_decoded.resize((avatar_side_size, avatar_side_size))
-                                image_bytes = io.BytesIO()
-                                image_decoded.save(image_bytes, format='PNG')
-                                image_bytes.seek(0)
-                                try:
-                                    for i, player in enumerate(players):
-                                        if player.color == data[1]:
-                                            player.avatar = pg.image.load(image_bytes).convert_alpha()
-                                            state['avatar_chosen'] = False
-                                except:
-                                    image_decoded.save('error.png')
-                                    print(f'{"\033[31m{}".format(traceback.format_exc())}{'\033[0m'}')
-                                    print('an error has occurred. avatar image saved inside main folder')
+                                connect_file_socket(data[1])
 
                             elif data[0] == 'move':
                                 move_by_cubes(int(data[2]), int(data[3]), data[1])
@@ -1680,7 +1666,7 @@ def handle_connection():
                                 state['show_exchange_request_screen'] = [True, give_money, give_property, get_money,
                                                                          get_property, color]
                                 print(state['show_exchange_request_screen'])
-                                log_textbox.hide()
+                                log_textbox_.hide()
                                 log_text_send_button.hide()
                                 log_audio_send_button.hide()
                                 log_voice_message_send_button.hide()
@@ -1691,7 +1677,7 @@ def handle_connection():
 
                             elif data[0] == 'auction bid':
                                 state['show_auction_screen'] = [True, int(data[1]), int(data[2])]
-                                log_textbox.hide()
+                                log_textbox_.hide()
                                 log_text_send_button.hide()
                                 log_audio_send_button.hide()
                                 log_voice_message_send_button.hide()
@@ -1798,44 +1784,12 @@ def handle_connection():
                                         exit_prison_eggs_btn.show()
 
                             elif data[0] == 'message':
-                                log_textbox.append_html_text(data[1].replace('[font_size]', str(font_size)))
-                                if log_textbox.scroll_bar:
-                                    log_textbox.scroll_bar.set_scroll_from_start_percentage(1)
+                                log_textbox_.append_messages({'type': 'text',
+                                                              'value': data[1],
+                                                              'color': (0, 0, 0)})
 
                             elif data[0] == 'mortgaged_moves_count':
                                 all_tiles[int(data[1])].mortgaged_moves_count = int(data[2])
-
-                            elif data[0] == 'sound message':
-                                audio_bytes_ascii_decoded = data[2]
-                                audio_bytes_decoded_base64 = base64.b64decode(audio_bytes_ascii_decoded)
-                                audio_bytes_decoded = zlib.decompress(audio_bytes_decoded_base64)
-
-                                sound_id = data[1]
-                                sound_messages[f'{sound_id}'] = audio_bytes_decoded
-                                receive_size = 1024
-
-                            elif data[0] == 'voice message':
-                                audio_bytes_ascii_decoded = data[2]
-                                audio_bytes_decoded_base64 = base64.b64decode(audio_bytes_ascii_decoded)
-                                audio_bytes_decoded = zlib.decompress(audio_bytes_decoded_base64)
-
-                                sound_id = data[1]
-                                voice_messages[f'{sound_id}'] = audio_bytes_decoded
-                                receive_size = 1024
-
-                            elif data[0] == 'image message':
-                                if not os.path.exists(f'resources/temp/images/client image messages'):
-                                    if not os.path.exists('resources/temp/images'):
-                                        if not os.path.exists('resources/temp'):
-                                            os.mkdir('resources/temp')
-                                        os.mkdir('resources/temp/images')
-                                    os.mkdir(f'resources/temp/images/client image messages')
-
-                                image_bytes_decoded = base64.b64decode(data[2])
-                                image_decoded = Image.open(io.BytesIO(image_bytes_decoded))
-                                image_decoded = image_decoded.resize(log_image_size)
-                                image_decoded.save(f'resources/temp/images/client image messages/{image_messages}.png')
-                                image_messages += 1
 
                             elif data[0] == 'receive size':
                                 receive_size = int(data[1])
@@ -1878,6 +1832,136 @@ def handle_connection():
                     print(f'{"\033[31m{}".format(traceback.format_exc())}{'\033[0m'}')
 
 
+def connect_file_socket(color):
+    global file_sock
+    try:
+        ip_ = ip_textbox.get_text()
+        file_port = int(port) + 1
+        file_sock = sck.socket(sck.AF_INET, sck.SOCK_STREAM)
+        file_sock.connect((ip_, file_port))
+        # Отправляем привязку
+        bind_cmd = f"file_bind|{color}%".encode()
+        file_sock.send(bind_cmd)
+        # Запускаем поток для приёма файлов от сервера (если нужно)
+        threading.Thread(target=file_receiver, daemon=True).start()
+    except Exception as e:
+        print("Не удалось подключить файловый канал:", e)
+        print(f'{"\033[31m{}".format(traceback.format_exc())}{'\033[0m'}')
+
+
+def file_receiver():
+    """Принимает файлы от сервера через выделенный сокет."""
+    global running
+    buffer = ''
+    while running and file_sock:
+        try:
+            data = file_sock.recv(65536).decode()
+            if not data:
+                break  # соединение закрыто сервером
+            buffer += data
+            while '%' in buffer:
+                cmd, buffer = buffer.split('%', 1)
+                process_file_command(cmd)
+        except BlockingIOError:#, socket.timeout):
+            time.sleep(0.01)
+        except Exception as e:
+            print(f"Ошибка в file_receiver: {e}")
+            break
+    if file_sock:
+        file_sock.close()
+
+
+def process_file_command(cmd):
+    parts = cmd.split('|')
+    if parts[0] == 'avatar':
+        state['avatar_chosen'] = True
+        avatar = parts[2]
+        image_bytes_ascii_decoded = avatar.encode("ascii")
+        image_bytes_decoded = base64.b64decode(image_bytes_ascii_decoded)
+        image_decoded = Image.open(io.BytesIO(image_bytes_decoded))
+        image_decoded = image_decoded.resize((avatar_side_size, avatar_side_size))
+        image_bytes = io.BytesIO()
+        image_decoded.save(image_bytes, format='PNG')
+        image_bytes.seek(0)
+        try:
+            for i, player in enumerate(players):
+                if player.color == parts[1]:
+                    player.avatar = pg.image.load(image_bytes).convert_alpha()
+                    state['avatar_chosen'] = False
+        except:
+            image_decoded.save('error.png')
+            print(f'{"\033[31m{}".format(traceback.format_exc())}{'\033[0m'}')
+            print('an error has occurred. avatar image saved inside main folder')
+
+    if parts[0] == 'sound message':
+        audio_bytes_ascii_decoded = parts[1]
+        audio_bytes_decoded_base64 = base64.b64decode(audio_bytes_ascii_decoded)
+        audio_bytes_decoded = zlib.decompress(audio_bytes_decoded_base64)
+        log_textbox_.append_messages({'type': 'audio',
+                                      'value': audio_bytes_decoded,
+                                      'color': (0, 0, 0)})
+
+    elif parts[0] == 'voice message':
+        audio_bytes_ascii_decoded = parts[1]
+        audio_bytes_decoded_base64 = base64.b64decode(audio_bytes_ascii_decoded)
+        audio_bytes_decoded = zlib.decompress(audio_bytes_decoded_base64)
+        log_textbox_.append_messages({'type': 'audio',
+                                      'value': audio_bytes_decoded,
+                                      'color': (0, 0, 0)})
+
+    elif parts[0] == 'image message':
+        image_bytes_decoded = base64.b64decode(parts[1])
+        image_decoded = Image.open(io.BytesIO(image_bytes_decoded))
+        image_decoded = image_decoded.resize(log_image_size)
+        image_bytes = io.BytesIO()
+        image_decoded.save(image_bytes, format='PNG')
+        image_bytes.seek(0)
+        image = pg.image.load(image_bytes).convert_alpha()
+        message = {'type': 'image', 'value': image}
+        log_textbox_.append_messages(message)
+
+    elif parts[0] == 'message':
+        log_textbox_.append_messages({'type': 'text',
+                                      'value': parts[1],
+                                      'color': (0, 0, 0)})
+
+
+def file_handle():
+    global receive_size, list_for_file_handler
+    while running:
+        time.sleep(0.01)
+        if list_for_file_handler:
+            if list_for_file_handler[0] == 'sound message':
+                audio_bytes_ascii_decoded = list_for_file_handler[1]
+                audio_bytes_decoded_base64 = base64.b64decode(audio_bytes_ascii_decoded)
+                audio_bytes_decoded = zlib.decompress(audio_bytes_decoded_base64)
+                log_textbox_.append_messages({'type': 'audio',
+                                              'value': audio_bytes_decoded,
+                                              'color': (0, 0, 0)})
+                receive_size = 1024
+
+            elif list_for_file_handler[0] == 'voice message':
+                audio_bytes_ascii_decoded = list_for_file_handler[1]
+                audio_bytes_decoded_base64 = base64.b64decode(audio_bytes_ascii_decoded)
+                audio_bytes_decoded = zlib.decompress(audio_bytes_decoded_base64)
+                log_textbox_.append_messages({'type': 'audio',
+                                              'value': audio_bytes_decoded,
+                                              'color': (0, 0, 0)})
+                receive_size = 1024
+
+            elif list_for_file_handler[0] == 'image message':
+                image_bytes_decoded = base64.b64decode(list_for_file_handler[1])
+                image_decoded = Image.open(io.BytesIO(image_bytes_decoded))
+                image_decoded = image_decoded.resize(log_image_size)
+                image_bytes = io.BytesIO()
+                image_decoded.save(image_bytes, format='PNG')
+                image_bytes.seek(0)
+                image = pg.image.load(image_bytes).convert_alpha()
+                message = {'type': 'image', 'value': image}
+                log_textbox_.append_messages(message)
+            list_for_file_handler = None
+
+
 def delta_time(old_time):
     now = time.time()
     dt = now - old_time
@@ -1890,7 +1974,6 @@ def event_handler():
 
     events = pg.event.get()
     for event in events:
-        # print(event)
         if event.type == pg.QUIT:
             global running
             running = False
@@ -1923,6 +2006,7 @@ def event_handler():
                 print(f'{"\033[32m{}".format(f'Не беспокойтесь. Эта ошибка не вредит игре:\n{traceback.format_exc()}')}{'\033[0m'}')
 
         if game_started:
+            log_textbox_.process_events(event)
             match event.type:
                 case pygame_gui.UI_BUTTON_PRESSED:
                     event_type = event.ui_element
@@ -2004,60 +2088,6 @@ def event_handler():
                     elif event_type == exchange_give_textbox or event_type == exchange_get_textbox:
                         exchange_value_calculation()
     
-                case pygame_gui.UI_TEXT_BOX_LINK_CLICKED:
-                    try:
-                        if event.link_target.startswith('sound:'):
-                            audio_id = event.link_target.split(':')[1]
-                            sound = pg.mixer.Sound(io.BytesIO(sound_messages[audio_id]))
-    
-                            if sound_messages_channel.get_busy() and sound_messages_channel.audio_id == audio_id and sound_messages_channel.is_paused:
-                                sound_messages_channel.unpause()
-                            else:
-                                if sound_messages_channel.audio_id != audio_id:
-                                    sound_messages_channel.play(sound, audio_id)
-                                else:
-                                    sound_messages_channel.pause()
-    
-                        elif event.link_target.startswith('voice:'):
-                            audio_id = event.link_target.split(':')[1]
-                            sound = pg.mixer.Sound(voice_messages[audio_id])
-    
-                            if voice_messages_channel.get_busy() and voice_messages_channel.audio_id == audio_id and voice_messages_channel.is_paused:
-                                voice_messages_channel.unpause()
-                            else:
-                                if voice_messages_channel.audio_id != audio_id or not voice_messages_channel.get_busy():
-                                    voice_messages_channel.play(sound, audio_id)
-                                else:
-                                    voice_messages_channel.pause()
-    
-                        elif event.link_target.startswith('save sound:'):
-                            audio_id = event.link_target.split(':')[1]
-                            mimetype = magic.from_buffer(sound_messages[audio_id], mime=True)
-                            extension = mimetypes.guess_extension(mimetype)#[0]
-    
-                            with open(f'sound_message_{audio_id}{extension}', 'wb') as audio_file:
-                                audio_file.write(sound_messages[audio_id])
-    
-                            log_textbox.append_html_text(f'<font face="BulBulPoly" pixel_size={font_size} color="#000000">Файл сохранён: sound_message_{audio_id}{extension}</font><br>')
-                            if log_textbox.scroll_bar:
-                                log_textbox.scroll_bar.set_scroll_from_start_percentage(1)
-    
-                        elif event.link_target.startswith('save voice:'):
-                            audio_id = event.link_target.split(':')[1]
-                            extension = '.wav'
-                            with wave.open(f'voice_message_{audio_id}{extension}', 'wb') as audio_file:
-                                audio_file.setnchannels(1)
-                                audio_file.setsampwidth(2)
-                                audio_file.setframerate(44100)
-                                audio_file.writeframes(voice_messages[audio_id])
-    
-                            log_textbox.append_html_text(f'<font face="BulBulPoly" pixel_size={font_size} color="#000000">Файл сохранён: voice_message_{audio_id}{extension}</font><br>')
-                            if log_textbox.scroll_bar:
-                                log_textbox.scroll_bar.set_scroll_from_start_percentage(1)
-    
-                    except:
-                        print(f'{"\033[31m{}".format(traceback.format_exc())}{'\033[0m'}')
-
         else:
             match event.type:
                 case pygame_gui.UI_BUTTON_PRESSED:
@@ -2109,7 +2139,7 @@ def player_move_change(do_change):
 
 
 def buttons():
-    global cube_button, buy_button, pay_button, name_textbox, ip_textbox, port_textbox, connect_button, debug_button, avatar_choose_button, shove_penis_button, remove_penis_button, exchange_button, exchange_commit_button, exchange_cancel_button, exchange_give_textbox, exchange_get_textbox, exchange_request_confirm_button, exchange_request_reject_button, auction_button, auction_buy_button, auction_reject_button, mortgage_button, redeem_button, exit_prison_egg_btn, exit_prison_eggs_btn, log_textbox, log_entry_textbox, log_text_send_button, log_audio_send_button, log_voice_message_send_button, log_image_send_button, message_panel, dn_btn
+    global cube_button, buy_button, pay_button, name_textbox, ip_textbox, port_textbox, connect_button, debug_button, avatar_choose_button, shove_penis_button, remove_penis_button, exchange_button, exchange_commit_button, exchange_cancel_button, exchange_give_textbox, exchange_get_textbox, exchange_request_confirm_button, exchange_request_reject_button, auction_button, auction_buy_button, auction_reject_button, mortgage_button, redeem_button, exit_prison_egg_btn, exit_prison_eggs_btn, log_entry_textbox, log_text_send_button, log_audio_send_button, log_voice_message_send_button, log_image_send_button, message_panel, dn_btn
 
     cube_button = pygame_gui.elements.UIButton(
         relative_rect=pg.Rect(btn_coordinates['throw_cubes']),
@@ -2260,10 +2290,10 @@ def buttons():
         object_id=pygame_gui.core.ObjectID(class_id='@transparent_buttons', object_id='#dn_button'),
         manager=manager)
 
-    log_textbox = pygame_gui.elements.UITextBox(
-        relative_rect=pg.Rect(log_textbox_coordinates['main_box']),
-        html_text='',
-        manager=manager)
+    # log_textbox = pygame_gui.elements.UITextBox(
+    #     relative_rect=pg.Rect(log_textbox_coordinates['main_box']),
+    #     html_text='',
+    #     manager=manager)
 
     log_entry_textbox = pygame_gui.elements.UITextEntryBox(
         relative_rect=pg.Rect(log_textbox_coordinates['user_input_box']),
@@ -2324,30 +2354,6 @@ def show_cubes(cube1, cube2):
     state['cube_animation_playing'] = True
     time.sleep(1.5)
     state['cube_animation_playing'] = False
-
-
-def log_textbox_append(html_text):
-    # print(theme.font_dict.loaded_fonts)
-    # print()
-    # log_textbox.append_html_text(html_text)
-    # print()
-    # print(theme.font_dict.loaded_fonts)
-    # new_messages_count = html_text.count('<br>')
-    # state['messages_count'] += new_messages_count
-    # if state['messages_count'] > 5:
-    #     state['messages_count'] -= new_messages_count
-    #     log_text = log_textbox.html_text.split('<br>')[:-1] + log_textbox.appended_text.split('<br>')
-    #     log_text = log_text[new_messages_count:]
-    #     log_text = '<br>'.join(log_text)
-    #     # print(log_text)
-    #     log_textbox.appended_text = log_text
-    #     # log_textbox.set_text(log_text)
-
-    log_textbox.append_html_text(html_text)
-    # pygame_gui.elements.
-    if log_textbox.scroll_bar:
-        log_textbox.scroll_bar.set_scroll_from_start_percentage(1)
-        print(log_textbox.scroll_bar.button_height)
 
 
 # Проверки
@@ -2497,6 +2503,7 @@ while running:
     blit_board()
     price_printing()
     blit_board_above_prices()
+    log_textbox_.render(screen)
     try:
         manager.update(dt)
         manager.draw_ui(screen)
@@ -2515,23 +2522,26 @@ if os.path.exists(f'resources/temp/images/client image messages'):
     for file in os.listdir('resources/temp/images/client image messages'):
         os.remove(f'resources/temp/images/client image messages/{file}')
 
-if os.path.exists(f'resources/temp/audios'):
-    for file in os.listdir('resources/temp/audios'):
-        os.remove(f'resources/temp/audios/{file}')
+if log_textbox_:
+    del log_textbox_
+    if os.path.exists(f'resources/temp/audios'):
+        for file in os.listdir('resources/temp/audios'):
+            os.remove(f'resources/temp/audios/{file}')
 
 print('\nПрограмма завершена')
-if all_fps:
-    print(f'Средний FPS: {sum(all_fps) / len(all_fps)}')
 
+pr.disable()
 if debug_mode:
+    if all_fps:
+        print(f'Средний FPS: {sum(all_fps) / len(all_fps)}')
+
     is_commanded = False
     for i in command_counter:
         if command_counter[i] > 0:
             is_commanded = True
 
     if is_commanded:
-        if not os.path.exists('logs'):
-            os.mkdir('logs')
+        os.makedirs('logs', exist_ok=True)
         sorted_dict = dict(sorted(command_counter.items(), key=lambda item: item[1], reverse=True))
         sorted_dict['unknown_commands'] = unknown_commands
         time = datetime.datetime.now()
@@ -2539,11 +2549,8 @@ if debug_mode:
         with open(f'logs/commands_log_{formatted_date}.json', 'w') as file:
             json.dump(sorted_dict, file, indent=4, ensure_ascii=False)
 
-pr.disable()  # Останавливаем запись
-
-# Форматируем и выводим результаты
-s = io.StringIO()
-sort_by = 'cumulative' # Сортировка по общему времени в функции и ее вызовах
-ps = pstats.Stats(pr, stream=s).sort_stats(sort_by)
-ps.print_stats()
-print(s.getvalue())
+    s = io.StringIO()
+    sort_by = 'cumulative'
+    ps = pstats.Stats(pr, stream=s).sort_stats(sort_by)
+    ps.print_stats()
+    print(s.getvalue())

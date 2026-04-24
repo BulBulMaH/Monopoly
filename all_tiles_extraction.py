@@ -42,13 +42,7 @@ def all_tiles_get(resolution_folder, tile_size):
         for i in tile_position_reader:
             tile_position_list.append(i)
 
-    if not os.path.exists(f'resources/temp/images/{resolution_folder}'):
-        if not os.path.exists('resources/temp/images'):
-            if not os.path.exists('resources/temp'):
-                os.mkdir('resources/temp')
-            os.mkdir('resources/temp/images')
-        os.mkdir(f'resources/temp/images/{resolution_folder}')
-
+    os.makedirs(f'resources/temp/images/{resolution_folder}', exist_ok=True)
     first_launch = not os.path.exists(f'resources/temp/images/{resolution_folder}/board image.png')
 
     if first_launch:
