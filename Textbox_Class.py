@@ -55,85 +55,92 @@ class Textbox:
         self.selection_end = None
         self.selection_rects = []
 
-    def append_messages(self, message):
-        if 'color' in message:
-            color = pygame.Color(message['color'])
-        else:
-            color = None
-        self.messages.append({
-            'type': message['type'],
-            'value': message['value'],
-            'position': len(self.messages) + 1
-        })
-
-        if message['type'] == 'text':
-            text = message['value'].split(' ')
-            message_lines = 0
-            while text:
-                text_new = []
-                while text and self.font.size(' '.join(text_new) + f' {text[0]}')[0] <= self.visible_text_rect.width:
-                    text_new.append(text[0])
-                    text.pop(0)
-                line_text = ' '.join(text_new)
-                message_lines += 1
-                self.content.append({
-                    'type': 'text',
-                    'surface': self.font.render(line_text, antialias=False, color=color),
-                    'message_id': len(self.messages),
-                    'height': self.line_height,
-                    'text': line_text,
-                })
-
-                if text and self.font.size(' '.join(text))[0] <= self.visible_text_rect.width:
-                    line_text = ' '.join(text)
-                    message_lines += 1
-                    self.content.append({
-                        'type': 'text',
-                        'surface': self.font.render(line_text, antialias=False, color=color),
-                        'message_id': len(self.messages),
-                        'height': self.line_height,
-                        'text': line_text
-                    })
-                    text.clear()
-            self.total_height += message_lines * self.line_height
-
-        elif message['type'] == 'image':
-            img_surface = message['value']
-            height = img_surface.get_height()
-            self.content.append({
-                'type': 'image',
-                'surface': img_surface,
-                'height': height,
-                'message_id': len(self.messages)
-            })
-            self.total_height += height
-
-        elif message['type'] == 'audio':
-            player_width = self.visible_text_rect.width
-            player_height = 54
-            if self.content:
-                last_element = self.content[-1]
-                last_visible = self.visible_messages[-1]
-                dest_y = self.visible_text_rect.y + last_element['height'] + last_visible['y']
+    def append_messages(self, messages):
+        for message in messages:
+            if 'color' in message:
+                color = pygame.Color(message['color'])
             else:
-                dest_y = self.visible_text_rect.y
-
-            player_rect = (self.visible_text_rect.x, dest_y, player_width, player_height)
-            audio_player = AudioPlayer(player_rect, 2, self.border_color, self.background_color, self.font)
-            audio_data = message['value']
-            if isinstance(audio_data, str):
-                audio_player.load_audio(audio_path=audio_data)
-            elif isinstance(audio_data, bytes):
-                audio_player.load_audio(audio_bytes=audio_data)
-
-            self.audio_players.append(audio_player)
-            self.content.append({
-                'type': 'audio',
-                'player': audio_player,
-                'height': player_height,
-                'message_id': len(self.messages)
+                color = None
+            self.messages.append({
+                'type': message['type'],
+                'value': message['value'],
+                'position': len(self.messages) + 1
             })
-            self.total_height += player_height
+
+            if message['type'] == 'text':
+                # Подготовка токенов: список слов с цветами
+                if isinstance(message['value'], str):
+                    # Старый формат: строка + один цвет
+                    words = message['value'].split()
+                    tokens = [{'text': w, 'color': color} for w in words]
+                else:
+                    # Новый формат: список сегментов {'text': ..., 'color': ...}
+                    tokens = []
+                    for seg in message['value']:
+                        c = pygame.Color(seg['color']) if 'color' in seg else color
+                        # Разбиваем сегмент на слова (на случай, если в нём пробелы)
+                        for w in seg['text'].split():
+                            tokens.append({'text': w, 'color': c})
+
+                # Перенос строк по ширине с использованием токенов
+                line_tokens = []  # токены текущей строки
+                current_width = 0
+                for token in tokens:
+                    word = token['text']
+                    word_width = self.font.size(word)[0]
+                    space_width = self.font.size(' ')[0] if line_tokens else 0
+
+                    if current_width + space_width + word_width <= self.visible_text_rect.width:
+                        line_tokens.append(token)
+                        current_width += space_width + word_width
+                    else:
+                        # Строка заполнена, финализируем её
+                        self._add_text_line(line_tokens)
+                        # Начинаем новую строку с текущего слова
+                        line_tokens = [token]
+                        current_width = word_width
+
+                # Последняя строка
+                if line_tokens:
+                    self._add_text_line(line_tokens)
+
+            elif message['type'] == 'image':
+                img_surface = message['value']
+                height = img_surface.get_height()
+                self.content.append({
+                    'type': 'image',
+                    'surface': img_surface,
+                    'height': height,
+                    'message_id': len(self.messages)
+                })
+                self.total_height += height
+
+            elif message['type'] == 'audio':
+                player_width = self.visible_text_rect.width
+                player_height = 54
+                if self.content:
+                    last_element = self.content[-1]
+                    last_visible = self.visible_messages[-1]
+                    dest_y = self.visible_text_rect.y + last_element['height'] + last_visible['y']
+                else:
+                    dest_y = self.visible_text_rect.y
+
+                player_rect = (self.visible_text_rect.x, dest_y, player_width, player_height)
+                audio_player = AudioPlayer(player_rect, 2, self.border_color, self.background_color, self.font)
+                audio_data = message['value']
+                if isinstance(audio_data, str):
+                    audio_player.load_audio(audio_path=audio_data)
+                elif isinstance(audio_data, bytes):
+                    audio_player.load_audio(audio_bytes=audio_data)
+
+                self.audio_players.append(audio_player)
+                self.content.append({
+                    'type': 'audio',
+                    'player': audio_player,
+                    'height': player_height,
+                    'message_id': len(self.messages)
+                })
+                self.total_height += player_height
 
         self.scroll_y = max(0, self.total_height - self.visible_text_rect.height)
         self.update_visible_elements()
@@ -206,6 +213,31 @@ class Textbox:
                 rect = pygame.Rect(x_start, screen_y, x_end - x_start, element['height'])
                 self.selection_rects.append(rect)
 
+    def _add_text_line(self, line_tokens):
+        if not line_tokens:
+            return
+        full_text = ' '.join(t['text'] for t in line_tokens)
+        segments = []
+        x = 0
+        for token in line_tokens:
+            word_surf = self.font.render(token['text'], False, token['color'])
+            segments.append({
+                'surface': word_surf,
+                'x_offset': x,
+                'text': token['text']
+            })
+            x += word_surf.get_width() + self.font.size(' ')[0]
+
+        self.content.append({
+            'type': 'text',
+            'text': full_text,
+            'segments': segments,
+            'height': self.line_height,
+            'message_id': len(self.messages)
+        })
+        # ✅ Увеличиваем общую высоту на высоту одной строки
+        self.total_height += self.line_height
+
     def copy_selection(self):
         if not self.selection_start or not self.selection_end:
             return
@@ -240,8 +272,19 @@ class Textbox:
             for msg in self.visible_messages:
                 element = msg['element']
                 dest_y = self.visible_text_rect.y + msg['y']
-                if element['type'] in ('text', 'image'):
+
+                if element['type'] == 'text':
+                    if 'segments' in element:
+                        # Разноцветная строка
+                        for seg in element['segments']:
+                            screen.blit(seg['surface'], (self.visible_text_rect.x + seg['x_offset'], dest_y))
+                    else:
+                        # Одноцветная строка (старый формат)
+                        screen.blit(element['surface'], (self.visible_text_rect.x, dest_y))
+
+                elif element['type'] == 'image':
                     screen.blit(element['surface'], (self.visible_text_rect.x, dest_y))
+
                 elif element['type'] == 'audio':
                     player = element['player']
                     if self.visible_text_rect.colliderect(player.border_rect):

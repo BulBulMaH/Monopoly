@@ -1,16 +1,14 @@
 import pygame as pg
 
 class Player:
-    def __init__(self, color, positions, resolution_folder, color_value):
+    def __init__(self, color, positions, resolution_folder):
         self.piece_position = 0
         self.name = ''
         self.color = color
-        self.color_value = color_value
         self.money = 1500
         self.main = False
         self.x = positions[0]
         self.y = positions[1]
-        self.on_move = False
         self.imprisoned = False
         self.egg_prison_exit_card = False
         self.eggs_prison_exit_card = False
