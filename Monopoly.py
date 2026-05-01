@@ -45,7 +45,7 @@ from resolution_choice import resolution_definition
 
 
 def settings_buttons(previous_values):
-    global start_game_button, dropdown, fps_textbox, optimization_checkbox, debug_checkbox, pick_color_button, color_picker, fullscreen_checkbox, sharp_scale_checkbox, apply_button, clear_overflowed_chat_checkbox
+    global start_game_button, dropdown, fps_textbox, optimization_checkbox, debug_checkbox, pick_color_button, color_picker, fullscreen_checkbox, sharp_scale_checkbox, apply_button
     dropdown = pygame_gui.elements.UIDropDownMenu(
         relative_rect=pg.Rect(settings_buttons_coordinates['dropdown']),
         starting_option=previous_values['resolution'],
@@ -85,13 +85,6 @@ def settings_buttons(previous_values):
     if not fullscreen_checkbox.get_state():
         sharp_scale_checkbox.disable()
 
-    # clear_overflowed_chat_checkbox = pygame_gui.elements.UICheckBox(
-    #     relative_rect=pg.Rect(settings_buttons_coordinates['clear_overflowed_chat_checkbox']),
-    #     text='',
-    #     initial_state=previous_values['clear overflowed chat'],
-    #     manager=manager)
-    # clear_overflowed_chat_checkbox.hide()
-
     pick_color_button = pygame_gui.elements.UIButton(
         relative_rect=pg.Rect(settings_buttons_coordinates['pick_color_button']),
         text='Выбрать цвет фона',
@@ -127,7 +120,7 @@ def monopoly_init():
         os.replace('lib/modified_library_files/pygame-gui/ui_font_dictionary.py', '.venv/Lib/site-packages/pygame_gui/core/ui_font_dictionary.py')
 
     global name, address, port
-    global players, exchange_value, exchange_color, state, receive_size, recorder, log_textbox
+    global players, exchange_value, exchange_color, state, recorder, log_textbox
 
     gc.enable()
     pg.init()
@@ -140,7 +133,6 @@ def monopoly_init():
     log_textbox = None
 
     recorder = AudioRecorder()
-    receive_size = 1024
 
     state = {'throw_cubes_btn_active': False,
              'buy_btn_active': [False, None],
@@ -151,6 +143,7 @@ def monopoly_init():
              'redeem_btn_active': False,
              'auction_btn_active': False,
              'exchange_btn_active': False,
+             'surrender_btn_active': False,
 
              'bonus_buttons': [],
              'all_penises_build_btns_active': False,
@@ -178,8 +171,8 @@ def monopoly_init():
 
     global screen, clock, settings_data
 
-    global resolution, resolution_folder, btn_coordinates, profile_coordinates, start_btn_textboxes_coordinates, cubes_coordinates, speed, avatar_side_size, exchange_coordinates, FPS, auction_coordinates, tile_size, offset_horizontal, offset_vertical, debug_mode, fps_coordinates, font_size, egg_card_coordinates, egg_card_text_center, egg_card_title_center, egg_font_size, egg_card_text_width, egg_btns_coordinates, optimized, background_color, log_textbox_coordinates, tile_info_coordinates, fullscreen, sharp_scale, settings_buttons_coordinates, settings_font_size, log_image_size, name, address, port, clear_overflowed_chat
-    resolution, resolution_folder, btn_coordinates, profile_coordinates, start_btn_textboxes_coordinates, cubes_coordinates, speed, avatar_side_size, exchange_coordinates, FPS, auction_coordinates, tile_size, offset_horizontal, offset_vertical, debug_mode, fps_coordinates, font_size, egg_card_coordinates, egg_card_text_center, egg_card_title_center, egg_font_size, egg_card_text_width, egg_btns_coordinates, optimized, background_color, log_textbox_coordinates, tile_info_coordinates, fullscreen, sharp_scale, settings_buttons_coordinates, settings_font_size, log_image_size, name, address, port, clear_overflowed_chat = resolution_definition()
+    global resolution, resolution_folder, btn_coordinates, profile_coordinates, start_btn_textboxes_coordinates, cubes_coordinates, speed, avatar_side_size, exchange_coordinates, FPS, auction_coordinates, tile_size, offset_horizontal, offset_vertical, debug_mode, fps_coordinates, font_size, egg_card_coordinates, egg_card_text_center, egg_card_title_center, egg_font_size, egg_card_text_width, egg_btns_coordinates, optimized, background_color, log_textbox_coordinates, tile_info_coordinates, fullscreen, sharp_scale, settings_buttons_coordinates, settings_font_size, log_image_size, name, address, port
+    resolution, resolution_folder, btn_coordinates, profile_coordinates, start_btn_textboxes_coordinates, cubes_coordinates, speed, avatar_side_size, exchange_coordinates, FPS, auction_coordinates, tile_size, offset_horizontal, offset_vertical, debug_mode, fps_coordinates, font_size, egg_card_coordinates, egg_card_text_center, egg_card_title_center, egg_font_size, egg_card_text_width, egg_btns_coordinates, optimized, background_color, log_textbox_coordinates, tile_info_coordinates, fullscreen, sharp_scale, settings_buttons_coordinates, settings_font_size, log_image_size, name, address, port = resolution_definition()
     with open('settings.json') as f:
         settings_data = json.load(f)
     if settings_data['resolution index'] == 1:
@@ -201,7 +194,7 @@ def monopoly_init():
         flags = flags | pg.SCALED
     screen = pg.display.set_mode((2560, 1360))
     screen = pg.display.set_mode(resolution, flags)
-    TITLE = 'Monopoly v0.17'
+    TITLE = 'Monopoly v0.18'
     icon = pg.image.load(f'resources/icon.png')
     pg.display.set_icon(icon)
     pg.display.set_caption(TITLE)
@@ -210,12 +203,8 @@ def monopoly_init():
     global font, settings_font, manager, prev_time
     font = pg.font.Font('resources/fonts/bulbulpoly-4.ttf', font_size)
     settings_font = pg.font.Font('resources/fonts/bulbulpoly-4.ttf', settings_font_size)
-
     manager = pygame_gui.UIManager(resolution, theme_path=f'resources/{resolution_folder}/gui_theme.json', enable_live_theme_updates=False, starting_language='ru')
-    # pygame_gui.core.UIFontDictionary
-
     settings_buttons(settings_data)
-
     theme = manager.create_new_theme(f'resources/{resolution_folder}/gui_theme.json')
     manager.set_ui_theme(theme)
 
@@ -254,18 +243,18 @@ def save_settings():
 
 
 def load_assets():
-    global resolution, resolution_folder, btn_coordinates, profile_coordinates, start_btn_textboxes_coordinates, cubes_coordinates, speed, avatar_side_size, exchange_coordinates, FPS, auction_coordinates, tile_size, offset_horizontal, offset_vertical, debug_mode, fps_coordinates, font_size, egg_card_coordinates, egg_card_text_center, egg_card_title_center, egg_font_size, egg_card_text_width, egg_btns_coordinates, optimized, background_color, log_textbox_coordinates, tile_info_coordinates, fullscreen, sharp_scale, settings_buttons_coordinates, settings_font_size, log_image_size, name, address, port, clear_overflowed_chat
-    resolution, resolution_folder, btn_coordinates, profile_coordinates, start_btn_textboxes_coordinates, cubes_coordinates, speed, avatar_side_size, exchange_coordinates, FPS, auction_coordinates, tile_size, offset_horizontal, offset_vertical, debug_mode, fps_coordinates, font_size, egg_card_coordinates, egg_card_text_center, egg_card_title_center, egg_font_size, egg_card_text_width, egg_btns_coordinates, optimized, background_color, log_textbox_coordinates, tile_info_coordinates, fullscreen, sharp_scale, settings_buttons_coordinates, settings_font_size, log_image_size, name, address, port, clear_overflowed_chat = resolution_definition()
+    global resolution, resolution_folder, btn_coordinates, profile_coordinates, start_btn_textboxes_coordinates, cubes_coordinates, speed, avatar_side_size, exchange_coordinates, FPS, auction_coordinates, tile_size, offset_horizontal, offset_vertical, debug_mode, fps_coordinates, font_size, egg_card_coordinates, egg_card_text_center, egg_card_title_center, egg_font_size, egg_card_text_width, egg_btns_coordinates, optimized, background_color, log_textbox_coordinates, tile_info_coordinates, fullscreen, sharp_scale, settings_buttons_coordinates, settings_font_size, log_image_size, name, address, port
+    resolution, resolution_folder, btn_coordinates, profile_coordinates, start_btn_textboxes_coordinates, cubes_coordinates, speed, avatar_side_size, exchange_coordinates, FPS, auction_coordinates, tile_size, offset_horizontal, offset_vertical, debug_mode, fps_coordinates, font_size, egg_card_coordinates, egg_card_text_center, egg_card_title_center, egg_font_size, egg_card_text_width, egg_btns_coordinates, optimized, background_color, log_textbox_coordinates, tile_info_coordinates, fullscreen, sharp_scale, settings_buttons_coordinates, settings_font_size, log_image_size, name, address, port = resolution_definition()
 
-    global exchange_screen, auction_screen, darkening_full, darkening_tile, profile_picture, bars, player_bars, avatar_file, mortgaged_tile, font, eggs_card_uncovered, egg_font, board_image, settings_font
+    global exchange_screen, auction_screen, darkening_full, darkening_tile, profile_picture, bars, player_bars, mortgaged_tile, font, eggs_card_uncovered, egg_font, board_image, settings_font, bankrupt_picture
     exchange_screen = pg.image.load(f'resources/{resolution_folder}/exchange.png').convert_alpha()
     auction_screen = pg.image.load(f'resources/{resolution_folder}/auction.png').convert_alpha()
     darkening_full = pg.image.load(f'resources/{resolution_folder}/darkening all.png').convert_alpha()
     darkening_tile = pg.image.load(f'resources/{resolution_folder}/darkening tile.png').convert_alpha()
     profile_picture = pg.image.load(f'resources/{resolution_folder}/profile/profile.png').convert_alpha()
+    bankrupt_picture = pg.image.load(f'resources/{resolution_folder}/profile/bankrupt.png').convert_alpha()
     bars = pg.image.load(f'resources/{resolution_folder}/bars.png').convert_alpha()
     player_bars = pg.image.load(f'resources/{resolution_folder}/profile/profile_bars.png').convert_alpha()
-    avatar_file = pg.image.load(f'resources/{resolution_folder}/profile/avatar_placeholder.png').convert_alpha()
     mortgaged_tile = pg.image.load(f'resources/{resolution_folder}/mortgaged.png').convert_alpha()
     eggs_card_uncovered = pg.image.load(f'resources/{resolution_folder}/egg-s_card_uncovered.png').convert()
     font = pg.font.Font('resources/fonts/bulbulpoly-4.ttf', font_size)
@@ -1023,6 +1012,13 @@ def redeem():  # выкупить
                                       'color': (0, 0, 0)}])
 
 
+def surrender():
+    if state['is_game_started'] and state['surrender_btn_active']:
+        surrender_command = f'surrender%'
+        sock.send(surrender_command.encode())
+        information_sent('Команда отправлена', surrender_command)
+
+
 def exit_prison_by_egg_s(egg_type):
     prison_exit_information = ''
     for player in players:
@@ -1182,7 +1178,7 @@ def send_image():
 def render_multiline_text(text, x, y, font_, line_height, align):
     lines = text
     for i, line in enumerate(lines):
-        line_surface = font_.render(line, True, 'black').convert_alpha()
+        line_surface = font_.render(line, False, 'black').convert_alpha()
         if align == 'topleft':
             line_rect = line_surface.get_rect(topleft=(x, y + i * line_height))
         elif align == 'center':
@@ -1322,21 +1318,17 @@ def blit_board_above_interface():
     if state['connected']:
         for player in players:
             player_index = players.index(player)
-
             screen.blit(profile_picture, profile_coordinates[player_index]['profile'])
-
             screen.blit(player.avatar, profile_coordinates[player_index]['avatar'])
-
             if player.imprisoned:
                 screen.blit(player_bars, profile_coordinates[player_index]['avatar'])
-
             screen.blit(globals()[f'{player.color}_profile'], profile_coordinates[player_index]['avatar'])
-
             screen.blit(font.render(f'{player.money}~', False, 'black'), profile_coordinates[player_index]['money'])
-
+            screen.blit(font.render(f'{player.value}~', False, 'black'), profile_coordinates[player_index]['value'])
             screen.blit(font.render(player.name, False, 'black'), profile_coordinates[player_index]['name'])
-
             screen.blit(player.player_piece, player.player_piece_rect)
+            if player.bankrupt:
+                screen.blit(bankrupt_picture, profile_coordinates[player_index]['profile'])
 
     screen.blit(bars, (all_tiles[10].x_position, all_tiles[10].y_position))
 
@@ -1475,7 +1467,7 @@ def move(players_on_tile, end_positions, cube_sum):
 
 
 def handle_connection():
-    global players, all_tiles, avatar_file, cube_1_picture, cube_2_picture, receive_size, list_for_file_handler
+    global players, all_tiles, cube_1_picture, cube_2_picture, list_for_file_handler
 
 
     def price_update(tile):
@@ -1799,9 +1791,6 @@ def handle_connection():
                             elif data[0] == 'mortgaged_moves_count':
                                 all_tiles[int(data[1])].mortgaged_moves_count = int(data[2])
 
-                            elif data[0] == 'receive size':
-                                receive_size = int(data[1])
-
                             elif data[0] == 'player state':
                                 player_state = json.loads(data[1])
                                 for player_state_key in player_state:
@@ -1818,6 +1807,12 @@ def handle_connection():
                             elif data[0] == 'pay multiplier':
                                 player = player_dict[data[1]]
                                 player.pay_multiplier = float(data[2])
+
+                            elif data[0] == 'surrendered':
+                                player_dict[data[1]].bankrupt = True
+
+                            elif data[0] == 'value':
+                                player_dict[data[1]].value = int(data[2])
 
                             else:
                                 print(f'Ошибка: {"\033[31m{}".format(f'Незарегистрированная команда на стороне клиента: {data[0]}')}{'\033[0m'}')
@@ -2032,6 +2027,8 @@ def event_handler():
                         send_image()
                     elif event_type == dn_btn:
                         dn_activate()
+                    elif event_type == surrender_button:
+                        surrender()
                     else:
                         if state['is_game_started']:
                             for player in players:
@@ -2111,7 +2108,7 @@ def player_move_change(do_change):
 
 
 def buttons():
-    global cube_button, buy_button, pay_button, name_textbox, ip_textbox, port_textbox, connect_button, debug_button, avatar_choose_button, shove_penis_button, remove_penis_button, exchange_button, exchange_commit_button, exchange_cancel_button, exchange_give_textbox, exchange_get_textbox, exchange_request_confirm_button, exchange_request_reject_button, auction_button, auction_buy_button, auction_reject_button, mortgage_button, redeem_button, exit_prison_egg_btn, exit_prison_eggs_btn, log_entry_textbox, log_text_send_button, log_audio_send_button, log_voice_message_send_button, log_image_send_button, message_panel, dn_btn
+    global cube_button, buy_button, pay_button, name_textbox, ip_textbox, port_textbox, connect_button, debug_button, avatar_choose_button, shove_penis_button, remove_penis_button, exchange_button, exchange_commit_button, exchange_cancel_button, exchange_give_textbox, exchange_get_textbox, exchange_request_confirm_button, exchange_request_reject_button, auction_button, auction_buy_button, auction_reject_button, mortgage_button, redeem_button, surrender_button, exit_prison_egg_btn, exit_prison_eggs_btn, log_entry_textbox, log_text_send_button, log_audio_send_button, log_voice_message_send_button, log_image_send_button, message_panel, dn_btn
 
     cube_button = pygame_gui.elements.UIButton(
         relative_rect=pg.Rect(btn_coordinates['throw_cubes']),
@@ -2156,6 +2153,11 @@ def buttons():
     redeem_button = pygame_gui.elements.UIButton(
         relative_rect=pg.Rect(btn_coordinates['redeem']),
         text='Выкупить',
+        manager=manager)
+
+    surrender_button = pygame_gui.elements.UIButton(
+        relative_rect=pg.Rect(btn_coordinates['surrender']),
+        text='Сдаться',
         manager=manager)
 
 
@@ -2366,7 +2368,6 @@ def active_buttons_check():
         cube_button.disable()
     else:
         cube_button.enable()
-    # debug_output()
 
     # Купить
     if not state['is_game_started'] or not state['buy_btn_active'][0]:
@@ -2415,6 +2416,12 @@ def active_buttons_check():
         redeem_button.disable()
     else:
         redeem_button.enable()
+
+    # Сдаться
+    if not state['surrender_btn_active']:
+        surrender_button.disable()
+    else:
+        surrender_button.enable()
 
     # Подключиться
     if state['is_game_started'] or state['connected']:
@@ -2484,10 +2491,6 @@ while running:
     screen.blit(average_fps_text, fps_coordinates)
 
     pg.display.update()
-
-if os.path.exists(f'resources/temp/images/client image messages'):
-    for file in os.listdir('resources/temp/images/client image messages'):
-        os.remove(f'resources/temp/images/client image messages/{file}')
 
 if log_textbox:
     del log_textbox

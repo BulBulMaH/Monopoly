@@ -6,6 +6,7 @@ class Player:
         self.name = ''
         self.color = color
         self.money = 1500
+        self.value = self.money
         self.main = False
         self.x = positions[0]
         self.y = positions[1]
@@ -13,6 +14,7 @@ class Player:
         self.egg_prison_exit_card = False
         self.eggs_prison_exit_card = False
         self.dn_card = False
+        self.bankrupt = False
         self.pay_multiplier = 1
         self.avatar = pg.image.load(f'resources/{resolution_folder}/profile/avatar_placeholder.png').convert()
         self.player_piece = pg.image.load(f'resources/{resolution_folder}/pieces/{self.color}_piece.png').convert_alpha()

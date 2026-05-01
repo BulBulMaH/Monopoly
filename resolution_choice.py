@@ -17,7 +17,6 @@ def resolution_definition():
         name = settings_data['name']
         address = settings_data['address']
         port = settings_data['port']
-        clear_overflowed_chat = settings_data['clear overflowed chat']
 
     else:
         settings_data = {'resolution index': 1,
@@ -29,8 +28,7 @@ def resolution_definition():
                          'debug mode': False,
                          'name': '',
                          'address': '',
-                         'port': '',
-                         'clear overflowed chat': True}
+                         'port': ''}
 
         resolution_index = settings_data['resolution index']
         fps = settings_data['fps']
@@ -42,7 +40,6 @@ def resolution_definition():
         name = settings_data['name']
         address = settings_data['address']
         port = settings_data['port']
-        clear_overflowed_chat = settings_data['clear overflowed chat']
 
         with open("settings.json", "w") as outfile:
             json.dump(settings_data, outfile, indent=4)
@@ -65,12 +62,13 @@ def resolution_definition():
                             'exchange':     (1109, 20 , 136, 38),
                             'auction':      (1109, 78 , 136, 38),
                             'mortgage':     (1109, 136, 136, 38),
-                            'redeem':       (1109, 194, 136, 38)}
+                            'redeem':       (1109, 194, 136, 38),
+                            'surrender':    (1109, 252, 136, 38)}
 
-        profile_coordinates = [{'profile': (669, 20 ),  'avatar': (830, 46 ),  'money': (674, 38 ), 'name': (674, 18 )},
-                               {'profile': (669, 169),  'avatar': (830, 195),  'money': (674, 187), 'name': (674, 167)},
-                               {'profile': (669, 318),  'avatar': (830, 344),  'money': (674, 336), 'name': (674, 316)},
-                               {'profile': (669, 467),  'avatar': (830, 493),  'money': (674, 485), 'name': (674, 465)}]
+        profile_coordinates = [{'profile': (669, 20 ),  'avatar': (830, 46 ),  'money': (674, 38 ), 'value': (753, 38 ), 'name': (674, 18 )},
+                               {'profile': (669, 169),  'avatar': (830, 195),  'money': (674, 187), 'value': (753, 187), 'name': (674, 167)},
+                               {'profile': (669, 318),  'avatar': (830, 344),  'money': (674, 336), 'value': (753, 336), 'name': (674, 316)},
+                               {'profile': (669, 467),  'avatar': (830, 493),  'money': (674, 485), 'value': (753, 485), 'name': (674, 465)}]
 
         exchange_coordinates = {'exchange_screen':  (75,  75),
                                 'textbox_give':     (120, 160, 183, 30),
@@ -113,7 +111,6 @@ def resolution_definition():
                                         'debug_checkbox':                 (120, 137, 25,  25),
                                         'fullscreen_checkbox':            (222, 169, 25,  25),
                                         'sharp_scale_checkbox':           (252, 201, 25,  25),
-                                        'clear_overflowed_chat_checkbox': (296, 233, 25, 25),
                                         'pick_color_button':              (10,  272, 180, 38),
                                         'apply_button':                   (10,  330, 180, 38),
                                         'color_picker':                   (60,  120, 390, 390),
@@ -121,8 +118,7 @@ def resolution_definition():
                                         'optimization_text':              (10,  102),
                                         'debug_text':                     (10,  134),
                                         'fullscreen_text':                (10,  166),
-                                        'sharp_scale_text':               (10,  198),
-                                        'clear_overflowed_chat_text':     (10,  230)}
+                                        'sharp_scale_text':               (10,  198)}
 
         offset_horizontal = [[(0, 0)],
                             [(0,  -14), (0,  14)],
@@ -164,12 +160,13 @@ def resolution_definition():
                             'exchange':     (1689, 30 , 204, 57),
                             'auction':      (1689, 117, 204, 57),
                             'mortgage':     (1689, 204, 204, 57),
-                            'redeem':       (1689, 291, 204, 57)}
+                            'redeem':       (1689, 291, 204, 57),
+                            'surrender':    (1689, 378, 204, 57)}
 
-        profile_coordinates = [{'profile': [1028, 30],  'avatar': [1262, 66],  'money': [1034, 62],  'name': [1034, 34]},
-                               {'profile': [1028, 249], 'avatar': [1262, 285], 'money': [1034, 281], 'name': [1034, 253]},
-                               {'profile': [1028, 468], 'avatar': [1262, 504], 'money': [1034, 500], 'name': [1034, 472]},
-                               {'profile': [1028, 687], 'avatar': [1262, 723], 'money': [1034, 719], 'name': [1034, 691]}]
+        profile_coordinates = [{'profile': [1028, 30],  'avatar': [1262, 66],  'money': [1034, 62],  'value': [1149, 62],  'name': [1034, 34]},
+                               {'profile': [1028, 249], 'avatar': [1262, 285], 'money': [1034, 281], 'value': [1149, 281], 'name': [1034, 253]},
+                               {'profile': [1028, 468], 'avatar': [1262, 504], 'money': [1034, 500], 'value': [1149, 500], 'name': [1034, 472]},
+                               {'profile': [1028, 687], 'avatar': [1262, 723], 'money': [1034, 719], 'value': [1149, 719], 'name': [1034, 691]}]
 
         exchange_coordinates = {'exchange_screen':  (108, 108),
                                 'textbox_give':     (177, 240, 290, 30),
@@ -212,7 +209,6 @@ def resolution_definition():
                                         'debug_checkbox':        (238, 198, 45,  45),
                                         'fullscreen_checkbox':   (443, 252, 45,  45),
                                         'sharp_scale_checkbox':  (507, 306, 45,  45),
-                                        'clear_overflowed_chat_checkbox': (296, 233, 25, 25),
                                         'pick_color_button':     (20,  424, 250, 57),
                                         'apply_button':          (20,  511, 250, 57),
                                         'color_picker':          (60,  120, 390, 390),
@@ -220,8 +216,7 @@ def resolution_definition():
                                         'optimization_text':     (20,  134),
                                         'debug_text':            (20,  188),
                                         'fullscreen_text':       (20,  242),
-                                        'sharp_scale_text':      (20,  296),
-                                        'clear_overflowed_chat_text': (20,  350)}
+                                        'sharp_scale_text':      (20,  296)}
 
         offset_horizontal = [[[0, 0]],
                              [[0, -21], [0, 21]],
@@ -263,12 +258,13 @@ def resolution_definition():
                            'exchange':     (2247, 40 , 272, 76),
                            'auction':      (2247, 156, 272, 76),
                            'mortgage':     (2247, 272, 272, 76),
-                           'redeem':       (2247, 388, 272, 76)}
+                           'redeem':       (2247, 388, 272, 76),
+                           'surrender':    (2247, 504, 272, 76)}
 
-        profile_coordinates = [{'profile': [1381, 40],  'avatar': [1703, 92],  'money': [1391, 76],  'name': [1391, 36]},
-                               {'profile': [1381, 338], 'avatar': [1703, 390], 'money': [1391, 374], 'name': [1391, 334]},
-                               {'profile': [1381, 636], 'avatar': [1703, 688], 'money': [1391, 672], 'name': [1391, 632]},
-                               {'profile': [1381, 934], 'avatar': [1703, 986], 'money': [1391, 970], 'name': [1391, 930]}]
+        profile_coordinates = [{'profile': [1381, 40],  'avatar': [1703, 92],  'money': [1391, 76],  'value': [1552, 76],  'name': [1391, 36]},
+                               {'profile': [1381, 338], 'avatar': [1703, 390], 'money': [1391, 374], 'value': [1552, 374], 'name': [1391, 334]},
+                               {'profile': [1381, 636], 'avatar': [1703, 688], 'money': [1391, 672], 'value': [1552, 672], 'name': [1391, 632]},
+                               {'profile': [1381, 934], 'avatar': [1703, 986], 'money': [1391, 970], 'value': [1552, 970], 'name': [1391, 930]}]
 
         exchange_coordinates = {'exchange_screen':  (150, 150),
                                 'textbox_give':     (240, 320, 366, 60),
@@ -308,15 +304,13 @@ def resolution_definition():
                                         'fullscreen_checkbox':   (443, 252, 45, 45),
                                         'sharp_scale_checkbox':  (507, 306, 45, 45),
                                         'pick_color_button':     (20, 424, 250, 57),
-                                        'clear_overflowed_chat_checkbox': (296, 233, 25, 25),
                                         'apply_button':          (20, 511, 250, 57),
                                         'color_picker':          (60, 120, 390, 390),
                                         'fps_text':              (20, 80),
                                         'optimization_text':     (20, 134),
                                         'debug_text':            (20, 188),
                                         'fullscreen_text':       (20, 242),
-                                        'sharp_scale_text':      (20, 296),
-                                        'clear_overflowed_chat_text': (20, 350)}
+                                        'sharp_scale_text':      (20, 296)}
 
         egg_btns_coordinates = ((1935, 620, 106, 76),
                                 (2101, 620, 106, 76),
@@ -344,4 +338,4 @@ def resolution_definition():
         tile_info_coordinates = (197, 197)
         speed = 0.0015
 
-    return resolution, resolution_folder, btn_coordinates, profile_coordinates, start_btn_textboxes_coordinates, cubes_coordinates, speed, avatar_side_size, exchange_coordinates, fps, auction_coordinates, tile_size, offset_horizontal, offset_vertical, debug_mode, fps_coordinates, font_size, egg_card_coordinates, egg_card_text_center, egg_card_title_center, egg_title_font_size, egg_card_text_width, egg_btns_coordinates, optimized, background_color, log_textbox_coordinates, tile_info_coordinates, fullscreen, sharp_scale, settings_buttons_coordinates, settings_font_size, log_image_size, name, address, port, clear_overflowed_chat
+    return resolution, resolution_folder, btn_coordinates, profile_coordinates, start_btn_textboxes_coordinates, cubes_coordinates, speed, avatar_side_size, exchange_coordinates, fps, auction_coordinates, tile_size, offset_horizontal, offset_vertical, debug_mode, fps_coordinates, font_size, egg_card_coordinates, egg_card_text_center, egg_card_title_center, egg_title_font_size, egg_card_text_width, egg_btns_coordinates, optimized, background_color, log_textbox_coordinates, tile_info_coordinates, fullscreen, sharp_scale, settings_buttons_coordinates, settings_font_size, log_image_size, name, address, port

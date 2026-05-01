@@ -5,6 +5,7 @@ import threading
 import traceback
 import gc
 import os
+
 os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = '1'
 
 import pygame as pg
@@ -22,6 +23,7 @@ from Textbox_Class import Textbox
 from all_tiles_extraction import all_tiles_get
 from colored_output import thread_open, new_connection, information_received, information_sent_to
 
+
 class Player:
     def __init__(self, conn, address, color, color_value):
         self.conn = conn
@@ -33,7 +35,9 @@ class Player:
         self.imprisoned = False
         self.prison_break_attempts = 0
         self.money = 1500
-        self.avatar_image = pg.image.load(f'resources/{resolution_folder}/profile/avatar_placeholder.png').convert_alpha()
+        self.value = self.money
+        self.avatar_image = pg.image.load(
+            f'resources/{resolution_folder}/profile/avatar_placeholder.png').convert_alpha()
         self.x = 0
         self.y = 0
         self.egg_prison_exit_card = False
@@ -42,21 +46,22 @@ class Player:
         self.connection_errors = 0
         self.pay_multiplier = 1
         self.doubles_count = 0
+        self.bankrupt = False
         self.state = {'on_move': False,
                       'double': False,
                       'paid': False,
                       'refused_to_buy': False,
 
                       'throw_cubes_btn_active': False,
-                      'buy_btn_active': [False, None], # is_active, tile_position
-                      'pay_btn_active': [False, None], # is_active, command, ...
+                      'buy_btn_active': [False, None],  # is_active, tile_position
+                      'pay_btn_active': [False, None],  # is_active, command, ...
                       'penis_build_btn_active': False,
                       'penis_remove_btn_active': False,
                       'mortgage_btn_active': False,
                       'redeem_btn_active': False,
                       'auction_btn_active': False,
-                      'exchange_btn_active': False}
-
+                      'exchange_btn_active': False,
+                      'surrender_btn_active': False}
 
     def connect(self, colors):
         new_sck, address = main_sck.accept()
@@ -70,7 +75,6 @@ class Player:
         print('Игроку', self.address, 'назначен', self.color, 'цвет')
         information_sent_to('Информация отправлена к', self.color, color_data_main)
 
-
     def clear(self):
         self.conn = ''
         self.address = ''
@@ -80,13 +84,16 @@ class Player:
         self.imprisoned = False
         self.money = 1500
 
+
 # замена файлов библиотек на модифицированные
 if os.path.exists('lib/modified_library_files/magic/__init__.py'):
     os.replace('lib/modified_library_files/magic/__init__.py', '.venv/Lib/site-packages/magic/__init__.py')
 if os.path.exists('lib/modified_library_files/pygame-gui/html_parser.py'):
-    os.replace('lib/modified_library_files/pygame-gui/html_parser.py', '.venv/Lib/site-packages/pygame_gui/core/text/html_parser.py')
+    os.replace('lib/modified_library_files/pygame-gui/html_parser.py',
+               '.venv/Lib/site-packages/pygame_gui/core/text/html_parser.py')
 if os.path.exists('lib/modified_library_files/pygame-gui/ui_font_dictionary.py'):
-    os.replace('lib/modified_library_files/pygame-gui/ui_font_dictionary.py', '.venv/Lib/site-packages/pygame_gui/core/ui_font_dictionary.py')
+    os.replace('lib/modified_library_files/pygame-gui/ui_font_dictionary.py',
+               '.venv/Lib/site-packages/pygame_gui/core/ui_font_dictionary.py')
 
 pg.init()
 pg.mixer.init(frequency=22050, size=16, channels=1)
@@ -103,30 +110,32 @@ log_image_size = (128, 128)
 debug_mode = True
 ip = sck.gethostbyname(sck.gethostname())
 
-profile_coordinates = [{'profile': (669, 20 ),  'avatar': (830, 46 ),  'money': (674, 38 ), 'name': (674, 18 )},
-                       {'profile': (669, 169),  'avatar': (830, 195),  'money': (674, 187), 'name': (674, 167)},
-                       {'profile': (669, 318),  'avatar': (830, 344),  'money': (674, 336), 'name': (674, 316)},
-                       {'profile': (669, 467),  'avatar': (830, 493),  'money': (674, 485), 'name': (674, 465)}]
-start_btn_textboxes_coordinates = {'name':           ((1040, 442), (217, 35)),
-                                   'IP':            ((1040, 483), (150, 35)),
-                                   'port':          ((1196, 483), (65,  35)),
-                                   'connect':       ((1040, 534), (217, 38)),
+profile_coordinates = [{'profile': (669, 20 ),  'avatar': (830, 46 ),  'money': (674, 38 ), 'value': (753, 38 ), 'name': (674, 18 )},
+                       {'profile': (669, 169),  'avatar': (830, 195),  'money': (674, 187), 'value': (753, 187), 'name': (674, 167)},
+                       {'profile': (669, 318),  'avatar': (830, 344),  'money': (674, 336), 'value': (753, 336), 'name': (674, 316)},
+                       {'profile': (669, 467),  'avatar': (830, 493),  'money': (674, 485), 'value': (753, 485), 'name': (674, 465)}]
+start_btn_textboxes_coordinates = {'name': ((1040, 442), (217, 35)),
+                                   'IP': ((1040, 483), (150, 35)),
+                                   'port': ((1196, 483), (65, 35)),
+                                   'connect': ((1040, 534), (217, 38)),
                                    'choose_avatar': ((1040, 592), (217, 38)),
-                                   'debug':         ((1040, 384), (140, 38))}
-log_textbox_coordinates = {'main_box':                  (95,  95,  459, 426),
-                           'user_input_box':            (95,  519, 350, 35),
-                           'audio_send_button':         (411, 519, 38,  35),
-                           'voice_message_send_button': (446, 519, 38,  35),
-                           'image_send_button':         (481, 519, 38,  35),
-                           'text_send_button':          (516, 519, 38,  35)}
+                                   'debug': ((1040, 384), (140, 38))}
+log_textbox_coordinates = {'main_box': (95, 95, 459, 426),
+                           'user_input_box': (95, 519, 350, 35),
+                           'audio_send_button': (411, 519, 38, 35),
+                           'voice_message_send_button': (446, 519, 38, 35),
+                           'image_send_button': (481, 519, 38, 35),
+                           'text_send_button': (516, 519, 38, 35)}
 piece_color_coefficient = 28
 TITLE = 'Monopoly Server'
 screen = pg.display.set_mode(resolution)
-manager = pygame_gui.UIManager(resolution, theme_path=f'resources/{resolution_folder}/gui_theme.json', enable_live_theme_updates=False)
+manager = pygame_gui.UIManager(resolution, theme_path=f'resources/{resolution_folder}/gui_theme.json',
+                               enable_live_theme_updates=False)
 manager.add_font_paths('BulBulPoly', "resources/fonts/bulbulpoly-4.ttf")
 manager.preload_fonts([{'name': 'BulBulPoly', 'point_size': f'{font_size}', 'style': 'regular', 'antialiased': '1'}])
 pg.display.set_caption(TITLE)
 clock = pg.time.Clock()
+
 
 def load_assets():
     global all_tiles, all_egg, all_eggs, all_question, player_dict
@@ -142,30 +151,26 @@ def load_assets():
 
     player_dict = {}
 
-    global board_image, profile_picture, bars, player_bars, avatar_file, mortgaged_tile, font, players, state, sound_messages, voice_messages, receive_size
+    global board_image, profile_picture, bars, player_bars, mortgaged_tile, font, players, state, bankrupt_picture
     board_image = pg.image.load(f'resources/temp/images/{resolution_folder}/board image.png').convert_alpha()
     profile_picture = pg.image.load(f'resources/{resolution_folder}/profile/profile.png').convert_alpha()
+    bankrupt_picture = pg.image.load(f'resources/{resolution_folder}/profile/bankrupt.png').convert_alpha()
     bars = pg.image.load(f'resources/{resolution_folder}/bars.png').convert_alpha()
     player_bars = pg.image.load(f'resources/{resolution_folder}/profile/profile_bars.png').convert_alpha()
-    avatar_file = pg.image.load(f'resources/{resolution_folder}/profile/avatar_placeholder.png').convert_alpha()
     mortgaged_tile = pg.image.load(f'resources/{resolution_folder}/mortgaged.png').convert_alpha()
-    font = pg.font.Font('resources/fonts/bulbulpoly-4.ttf',25)
+    font = pg.font.Font('resources/fonts/bulbulpoly-4.ttf', 25)
 
     players = []
     state = {'is_server_started': False,
              'is_game_started': False,
              'tile_debug': False}
-    sound_messages = {}
-    voice_messages = {}
-    receive_size = 1024
 
 # cubes = [[4, 5], [5, 6]]
 def receive_data():
-    global auction_players, auction_players_who_are_wanting_to_buy, eggs_players_who_need_to_pay_to_one_player, egg_exit_prison, eggs_exit_prison, receive_size, list_for_file_handler, player_for_file_handler
+    global auction_players, auction_players_who_are_wanting_to_buy, eggs_players_who_need_to_pay_to_one_player, egg_exit_prison, eggs_exit_prison, list_for_file_handler, player_for_file_handler
     auction_players = []
     auction_players_who_are_wanting_to_buy = []
     eggs_players_who_need_to_pay_to_one_player = []
-
 
     def auction_win():
         for player in players:
@@ -192,12 +197,15 @@ def receive_data():
                 message = {'type': 'text',
                            'value': [
                                {'text': f'{player.name}', 'color': player.color_value},
-                               {'text': f'побеждает в аукционе и приобретает {all_tiles[tile_position].name} за {price}~', 'color': (0, 0, 0)}]}
+                               {
+                                   'text': f'побеждает в аукционе и приобретает {all_tiles[tile_position].name} за {price}~',
+                                   'color': (0, 0, 0)}]}
                 log_textbox_.append_messages(message)
 
                 message_data = f'message|{json.dumps(message)}%'
                 property_data = f'property|{player.color}|{tile_position}%'
                 money_data = f'money|{player.color}|{player.money}%'
+                player_value_calculation(player.color)
 
                 for player3 in players:
                     player3.conn.send(property_data.encode())
@@ -208,7 +216,6 @@ def receive_data():
                     information_sent_to('Информация отправлена к', player3.color, message_data)
                 print('Аукцион прошёл успешно!')
                 moving_player_changing(not players[0].state['double'])
-
 
     def price_update(tile):
         tile_family_members = 0
@@ -222,7 +229,6 @@ def receive_data():
                 if tile_.owner == tile.owner and not tile_.mortgaged:
                     tile_.family_members = tile_family_members
                     # print(tile_.family_members, tile_.name)
-
 
     def number_to_bf(number):
         digits = [6]
@@ -239,7 +245,6 @@ def receive_data():
             signs += '.'
             all_signs += signs
         return all_signs
-
 
     buffer = ''
     while running:
@@ -272,8 +277,8 @@ def receive_data():
                         player.state['paid'] = False
                         player.state['refused_to_buy'] = False
 
-                        cube1 = random.randint(1,6)
-                        cube2 = random.randint(1,6)
+                        cube1 = random.randint(1, 6)
+                        cube2 = random.randint(1, 6)
                         # cube1 = 3
                         # cube2 = 4
                         # global cubes
@@ -304,16 +309,17 @@ def receive_data():
                                     prison_data = f'unimprisoned|{player.color}|{cube1}|{cube2}%'
 
                                     message = [{'type': 'text',
-                                               'value': [
-                                                   {'text': f'{player.name}', 'color': player.color_value},
-                                                   {'text': f'выходит из тюрьмы',
-                                                    'color': (0, 0, 0)}]},
+                                                'value': [
+                                                    {'text': f'{player.name}', 'color': player.color_value},
+                                                    {'text': f'выходит из тюрьмы',
+                                                     'color': (0, 0, 0)}]},
 
                                                {'type': 'text',
                                                 'value': [
                                                     {'text': f'{player.name}', 'color': player.color_value},
-                                                    {'text': f'выбрасывает {cube1}:{cube2} и попадает на поле {all_tiles[player.piece_position].name}',
-                                                     'color': (0, 0, 0)}]}]
+                                                    {
+                                                        'text': f'выбрасывает {cube1}:{cube2} и попадает на поле {all_tiles[player.piece_position].name}',
+                                                        'color': (0, 0, 0)}]}]
                                     log_textbox_.append_messages(message)
 
                                     message_data = f'message|{json.dumps(message)}%'
@@ -342,7 +348,9 @@ def receive_data():
                                                 'value': [
                                                     {'text': 'У ', 'color': (0, 0, 0)},
                                                     {'text': player.name, 'color': player.color_value},
-                                                    {'text': f' осталось {3 - player.prison_break_attempts} {tries_text}, чтобы выйти из тюрьмы', 'color': (0, 0, 0)}
+                                                    {
+                                                        'text': f' осталось {3 - player.prison_break_attempts} {tries_text}, чтобы выйти из тюрьмы',
+                                                        'color': (0, 0, 0)}
                                                 ]}]
                                     message_data = f'message|{json.dumps(message)}%'
                                     log_textbox_.append_messages(message)
@@ -350,13 +358,16 @@ def receive_data():
                                     for player2 in players:
                                         player2.conn.send(imprisoned_double_failed_data.encode())
                                         player2.conn.send(message_data.encode())
-                                        information_sent_to('Информация отправлена к', player2.color, imprisoned_double_failed_data)
+                                        information_sent_to('Информация отправлена к', player2.color,
+                                                            imprisoned_double_failed_data)
                                         information_sent_to('Информация отправлена к', player2.color, message_data)
                                     if player.prison_break_attempts < 3:
                                         moving_player_changing(True)
 
                                 if player.prison_break_attempts >= 3:
-                                    player.state['pay_btn_active'] = [player.money >= (player.prison_break_attempts + 1) * 25 * player.pay_multiplier, 'prison', (player.prison_break_attempts + 1) * 25]
+                                    player.state['pay_btn_active'] = [
+                                        player.money >= (player.prison_break_attempts + 1) * 25 * player.pay_multiplier,
+                                        'prison', (player.prison_break_attempts + 1) * 25]
                                     mortgage_btn_check(player.color)
                                     redeem_btn_check(player.color)
                                     send_player_state(player.color)
@@ -364,7 +375,9 @@ def receive_data():
                                     message = [{'type': 'text',
                                                 'value': [
                                                     {'text': player.name, 'color': player.color_value},
-                                                    {'text': f' не смог выйти из тюрьмы и должен заплатить {(player.prison_break_attempts + 1) * 25}~', 'color': (0, 0, 0)}
+                                                    {
+                                                        'text': f' не смог выйти из тюрьмы и должен заплатить {(player.prison_break_attempts + 1) * 25}~',
+                                                        'color': (0, 0, 0)}
                                                 ]}]
                                     message_data = f'message|{json.dumps(message)}%'
                                     log_textbox_.append_messages(message)
@@ -387,7 +400,9 @@ def receive_data():
                                     message = [{'type': 'text',
                                                 'value': [
                                                     {'text': player.name, 'color': player.color_value},
-                                                    {'text': f' выбрасывает {cube1}:{cube2} и попадает на поле {all_tiles[player.piece_position].name}', 'color': (0, 0, 0)}
+                                                    {
+                                                        'text': f' выбрасывает {cube1}:{cube2} и попадает на поле {all_tiles[player.piece_position].name}',
+                                                        'color': (0, 0, 0)}
                                                 ]}]
                                     message_data = f'message|{json.dumps(message)}%'
                                     log_textbox_.append_messages(message)
@@ -401,7 +416,9 @@ def receive_data():
                                     message = [{'type': 'text',
                                                 'value': [
                                                     {'text': player.name, 'color': player.color_value},
-                                                    {'text': f' выбрасывает {cube1}:{cube2} и попадает на поле {all_tiles[player.piece_position].name}', 'color': (0, 0, 0)}
+                                                    {
+                                                        'text': f' выбрасывает {cube1}:{cube2} и попадает на поле {all_tiles[player.piece_position].name}',
+                                                        'color': (0, 0, 0)}
                                                 ]}]
                                     message_data = f'message|{json.dumps(message)}%'
                                     log_textbox_.append_messages(message)
@@ -414,7 +431,9 @@ def receive_data():
                                         message = [{'type': 'text',
                                                     'value': [
                                                         {'text': player.name, 'color': player.color_value},
-                                                        {'text': f' проходит через поле {all_tiles[0].name} и получает 200~', 'color': (0, 0, 0)}
+                                                        {
+                                                            'text': f' проходит через поле {all_tiles[0].name} и получает 200~',
+                                                            'color': (0, 0, 0)}
                                                     ]}]
                                         message_data = f'message|{json.dumps(message)}%'
                                         log_textbox_.append_messages(message)
@@ -441,12 +460,15 @@ def receive_data():
                                 {'type': 'text',
                                  'value': [
                                      {'text': player.name, 'color': player.color_value},
-                                     {'text': f' выбрасывает {cube1}:{cube2} и попадает на поле {all_tiles[player.piece_position].name}', 'color': (0, 0, 0)}
+                                     {
+                                         'text': f' выбрасывает {cube1}:{cube2} и попадает на поле {all_tiles[player.piece_position].name}',
+                                         'color': (0, 0, 0)}
                                  ]},
                                 {'type': 'text',
                                  'value': [
                                      {'text': player.name, 'color': player.color_value},
-                                     {'text': ' выбрасывает 3 дубля подряд и отправляется в тюрьму. Удачи!', 'color': (0, 0, 0)}
+                                     {'text': ' выбрасывает 3 дубля подряд и отправляется в тюрьму. Удачи!',
+                                      'color': (0, 0, 0)}
                                  ]}
                             ]
                             log_textbox_.append_messages(message)
@@ -485,11 +507,14 @@ def receive_data():
                                 message = [{'type': 'text',
                                             'value': [
                                                 {'text': player.name, 'color': player.color_value},
-                                                {'text': f' приобретает {all_tiles[player.piece_position].name} за {int(all_tiles[player.piece_position].price)}~', 'color': (0, 0, 0)}
+                                                {
+                                                    'text': f' приобретает {all_tiles[player.piece_position].name} за {int(all_tiles[player.piece_position].price)}~',
+                                                    'color': (0, 0, 0)}
                                             ]}]
                                 message_data = f'message|{json.dumps(message)}%'
                                 log_textbox_.append_messages(message)
                                 money_data = f'money|{player.color}|{player.money}%'
+                                player_value_calculation(player.color)
 
                                 for player2 in players:
                                     player2.conn.send(property_data.encode())
@@ -524,11 +549,13 @@ def receive_data():
                         if player.piece_position == 0:
                             player.money += 100
                             money_data = f'money|{player.color}|{player.money}%'
+                            player_value_calculation(player.color)
 
                             message = [{'type': 'text',
                                         'value': [
                                             {'text': player.name, 'color': player.color_value},
-                                            {'text': f' попадает на поле {all_tiles[0].name} и получает 300~', 'color': (0, 0, 0)}
+                                            {'text': f' попадает на поле {all_tiles[0].name} и получает 300~',
+                                             'color': (0, 0, 0)}
                                         ]}]
                             message_data = f'message|{json.dumps(message)}%'
                             log_textbox_.append_messages(message)
@@ -573,7 +600,9 @@ def receive_data():
                                 message = [{'type': 'text',
                                             'value': [
                                                 {'text': player.name, 'color': player.color_value},
-                                                {'text': f' переносится на поле {all_tiles[player.piece_position].name}', 'color': (0, 0, 0)}
+                                                {
+                                                    'text': f' переносится на поле {all_tiles[player.piece_position].name}',
+                                                    'color': (0, 0, 0)}
                                             ]}]
                                 message_data = f'message|{json.dumps(message)}%'
                                 log_textbox_.append_messages(message)
@@ -614,6 +643,8 @@ def receive_data():
                                 send_player_state(player.color)
 
                                 money_data = f'money|{player.color}|{player.money}%'
+                                player_value_calculation(player.color)
+
                                 for player2 in players:
                                     player2.conn.send(money_data.encode())
                                     information_sent_to('Информация отправлена к', player2.color, money_data)
@@ -626,7 +657,8 @@ def receive_data():
 
                                 description = description.replace('{bfvalue}', all_signs)
 
-                                player.state['pay_btn_active'] = [player.money >= pay_sum * player.pay_multiplier, 'pay sum', pay_sum]
+                                player.state['pay_btn_active'] = [player.money >= pay_sum * player.pay_multiplier,
+                                                                  'pay sum', pay_sum]
                                 mortgage_btn_check(player.color)
                                 penises_check(player.color)
                                 exchange_check(player.color)
@@ -658,7 +690,8 @@ def receive_data():
                                 for player2 in players:
                                     player2.conn.send(move_data.encode())
                                     information_sent_to('Информация отправлена к', player2.color, move_data)
-                                if all_tiles[player.piece_position].owner == player.color or all_tiles[player.piece_position].mortgaged:
+                                if all_tiles[player.piece_position].owner == player.color or all_tiles[
+                                    player.piece_position].mortgaged:
                                     moving_player_changing(not player.state['double'])
 
                             message = [{'type': 'text', 'value': [{'text': f'???: {description}', 'color': (0, 0, 0)}]}]
@@ -668,7 +701,8 @@ def receive_data():
                                 player2.conn.send(message_data.encode())
                                 information_sent_to('Информация отправлена к', player2.color, message_data)
 
-                        elif all_tiles[player.piece_position].type == 'infrastructure' and all_tiles[player.piece_position].owned and all_tiles[player.piece_position].owner != player.color:
+                        elif all_tiles[player.piece_position].type == 'infrastructure' and all_tiles[
+                            player.piece_position].owned and all_tiles[player.piece_position].owner != player.color:
                             cube1 = random.randint(1, 6)
                             cube2 = random.randint(1, 6)
 
@@ -681,12 +715,14 @@ def receive_data():
                             message = [{'type': 'text',
                                         'value': [
                                             {'text': player.name, 'color': player.color_value},
-                                            {'text': f' должен заплатить игроку {player2.name} {pay_sum}~', 'color': (0, 0, 0)}
+                                            {'text': f' должен заплатить игроку {player2.name} {pay_sum}~',
+                                             'color': (0, 0, 0)}
                                         ]}]
                             message_data = f'message|{json.dumps(message)}%'
                             log_textbox_.append_messages(message)
 
-                            player.state['pay_btn_active'] = [player.money >= pay_sum * player.pay_multiplier, 'player', all_tiles[player.piece_position].owner, pay_sum]
+                            player.state['pay_btn_active'] = [player.money >= pay_sum * player.pay_multiplier, 'player',
+                                                              all_tiles[player.piece_position].owner, pay_sum]
                             mortgage_btn_check(player.color)
                             penises_check(player.color)
                             exchange_check(player.color)
@@ -703,7 +739,8 @@ def receive_data():
                             information_sent_to('Информация отправлена к', player.color, pay_command)
                             send_player_state(player.color)
 
-                        elif all_tiles[player.piece_position].family == 'Яйцо' or all_tiles[player.piece_position].family == 'Яйца':
+                        elif all_tiles[player.piece_position].family == 'Яйцо' or all_tiles[
+                            player.piece_position].family == 'Яйца':
                             if all_tiles[player.piece_position].family == 'Яйцо':
                                 pulled_card = all_egg[0]
                                 if pulled_card.command != 'exit prison':
@@ -748,6 +785,8 @@ def receive_data():
                                     message_data = f'message|{json.dumps(message)}%'
                                     log_textbox_.append_messages(message)
                                     money_data = f'money|{player.color}|{player.money}%'
+                                    player_value_calculation(player.color)
+
                                     for player2 in players:
                                         player2.conn.send(money_data.encode())
                                         player2.conn.send(message_data.encode())
@@ -771,9 +810,10 @@ def receive_data():
                                         information_sent_to('Информация отправлена к', player.color, message_data)
                                         if len(players) > 1:
                                             if player2 != player:
-                                                player2.state['pay_btn_active'] = [player.money >= pulled_card.value * player.pay_multiplier,
-                                                                                   'player', player.color,
-                                                                                   pulled_card.value]
+                                                player2.state['pay_btn_active'] = [
+                                                    player.money >= pulled_card.value * player.pay_multiplier,
+                                                    'player', player.color,
+                                                    pulled_card.value]
                                                 mortgage_btn_check(player2.color)
                                                 penises_check(player2.color)
                                                 exchange_check(player2.color)
@@ -784,7 +824,8 @@ def receive_data():
                                                 information_sent_to('Информация отправлена к', player.color,
                                                                     pay_command)
                                         else:
-                                            message = [{'type': 'text', 'value': [{'text': 'Ни одного игрока не найдено', 'color': (0, 0, 0)}]}]
+                                            message = [{'type': 'text', 'value': [
+                                                {'text': 'Ни одного игрока не найдено', 'color': (0, 0, 0)}]}]
                                             message_data = f'message|{json.dumps(message)}%'
                                             log_textbox_.append_messages(message)
                                             player2.conn.send(message_data.encode())
@@ -808,13 +849,16 @@ def receive_data():
                                                 'value': [
                                                     {'text': f'{first_message_part} игрока ', 'color': (0, 0, 0)},
                                                     {'text': player.name, 'color': player.color_value},
-                                                    {'text': f' на поле {all_tiles[player.piece_position].name} и ', 'color': (0, 0, 0)},
+                                                    {'text': f' на поле {all_tiles[player.piece_position].name} и ',
+                                                     'color': (0, 0, 0)},
                                                     {'text': player.name, 'color': player.color_value},
                                                     {'text': f' получает {pulled_card.value}~', 'color': (0, 0, 0)}
                                                 ]}]
                                     message_data = f'message|{json.dumps(message)}%'
                                     log_textbox_.append_messages(message)
                                     money_data = f'money|{player.color}|{player.money}%'
+                                    player_value_calculation(player.color)
+
                                     for player2 in players:
                                         player2.conn.send(move_data.encode())
                                         player2.conn.send(money_data.encode())
@@ -826,7 +870,9 @@ def receive_data():
 
                                 case 'pay':
                                     if pulled_card.value:
-                                        player.state['pay_btn_active'] = [player.money >= pulled_card.value * player.pay_multiplier, 'pay sum', pulled_card.value]
+                                        player.state['pay_btn_active'] = [
+                                            player.money >= pulled_card.value * player.pay_multiplier, 'pay sum',
+                                            pulled_card.value]
                                         mortgage_btn_check(player.color)
                                         penises_check(player.color)
                                         exchange_check(player.color)
@@ -835,7 +881,8 @@ def receive_data():
                                         message = [{'type': 'text',
                                                     'value': [
                                                         {'text': player.name, 'color': player.color_value},
-                                                        {'text': f' должен заплатить {pulled_card.value}~', 'color': (0, 0, 0)}
+                                                        {'text': f' должен заплатить {pulled_card.value}~',
+                                                         'color': (0, 0, 0)}
                                                     ]}]
                                         message_data = f'message|{json.dumps(message)}%'
                                         log_textbox_.append_messages(message)
@@ -849,7 +896,8 @@ def receive_data():
                                     message = [{'type': 'text',
                                                 'value': [
                                                     {'text': player.name, 'color': player.color_value},
-                                                    {'text': f' должен заплатить {pulled_card.value}~ каждому игроку', 'color': (0, 0, 0)}
+                                                    {'text': f' должен заплатить {pulled_card.value}~ каждому игроку',
+                                                     'color': (0, 0, 0)}
                                                 ]}]
                                     message_data = f'message|{json.dumps(message)}%'
                                     log_textbox_.append_messages(message)
@@ -858,7 +906,8 @@ def receive_data():
                                         information_sent_to('Информация отправлена к', player2.color, message_data)
 
                                     player.state['pay_btn_active'] = [
-                                        player.money >= pulled_card.value * (len(players) - 1) * player.pay_multiplier, 'players',
+                                        player.money >= pulled_card.value * (len(players) - 1) * player.pay_multiplier,
+                                        'players',
                                         pulled_card.value]
                                     mortgage_btn_check(player.color)
                                     penises_check(player.color)
@@ -871,8 +920,9 @@ def receive_data():
                                         if tile.owner == player.color:
                                             penises += tile.penises
                                     if penises:
-                                        player.state['pay_btn_active'] = [player.money >= pulled_card.value * penises * player.pay_multiplier,
-                                                                          'pay sum', pulled_card.value * penises]
+                                        player.state['pay_btn_active'] = [
+                                            player.money >= pulled_card.value * penises * player.pay_multiplier,
+                                            'pay sum', pulled_card.value * penises]
                                         mortgage_btn_check(player.color)
                                         penises_check(player.color)
                                         exchange_check(player.color)
@@ -881,7 +931,9 @@ def receive_data():
                                         message = [{'type': 'text',
                                                     'value': [
                                                         {'text': player.name, 'color': player.color_value},
-                                                        {'text': f' должен заплатить {pulled_card.value}~ за каждый белый пЭнис, то есть {pulled_card.value * penises}~', 'color': (0, 0, 0)}
+                                                        {
+                                                            'text': f' должен заплатить {pulled_card.value}~ за каждый белый пЭнис, то есть {pulled_card.value * penises}~',
+                                                            'color': (0, 0, 0)}
                                                     ]}]
                                         message_data = f'message|{json.dumps(message)}%'
                                         log_textbox_.append_messages(message)
@@ -894,7 +946,8 @@ def receive_data():
                                                     'value': [
                                                         {'text': 'У игрока ', 'color': (0, 0, 0)},
                                                         {'text': player.name, 'color': player.color_value},
-                                                        {'text': ' нет белых пЭнисов, он не должен ничего платить', 'color': (0, 0, 0)}
+                                                        {'text': ' нет белых пЭнисов, он не должен ничего платить',
+                                                         'color': (0, 0, 0)}
                                                     ]}]
                                         message_data = f'message|{json.dumps(message)}%'
                                         log_textbox_.append_messages(message)
@@ -950,7 +1003,8 @@ def receive_data():
                                                 'value': [
                                                     {'text': f'{first_message_part} игрока ', 'color': (0, 0, 0)},
                                                     {'text': player.name, 'color': player.color_value},
-                                                    {'text': f' на поле {all_tiles[player.piece_position].name}', 'color': (0, 0, 0)}
+                                                    {'text': f' на поле {all_tiles[player.piece_position].name}',
+                                                     'color': (0, 0, 0)}
                                                 ]}]
                                     message_data = f'message|{json.dumps(message)}%'
                                     log_textbox_.append_messages(message)
@@ -985,7 +1039,8 @@ def receive_data():
                                                 'value': [
                                                     {'text': f'{first_message_part} игрока ', 'color': (0, 0, 0)},
                                                     {'text': player.name, 'color': player.color_value},
-                                                    {'text': f' на поле {all_tiles[player.piece_position].name}', 'color': (0, 0, 0)}
+                                                    {'text': f' на поле {all_tiles[player.piece_position].name}',
+                                                     'color': (0, 0, 0)}
                                                 ]}]
                                     message_data = f'message|{json.dumps(message)}%'
                                     log_textbox_.append_messages(message)
@@ -1008,9 +1063,10 @@ def receive_data():
                                         else:
                                             pay_sum = (cube1 + cube2) * 10
 
-                                        player.state['pay_btn_active'] = [player.money >= pay_sum * player.pay_multiplier, 'player',
-                                                                          all_tiles[player.piece_position].owner,
-                                                                          pay_sum]
+                                        player.state['pay_btn_active'] = [
+                                            player.money >= pay_sum * player.pay_multiplier, 'player',
+                                            all_tiles[player.piece_position].owner,
+                                            pay_sum]
                                         mortgage_btn_check(player.color)
                                         penises_check(player.color)
                                         exchange_check(player.color)
@@ -1019,7 +1075,9 @@ def receive_data():
                                         message = [{'type': 'text',
                                                     'value': [
                                                         {'text': player.name, 'color': player.color_value},
-                                                        {'text': f' должен заплатить игроку {owner_player.name} {pay_sum}~', 'color': (0, 0, 0)}
+                                                        {
+                                                            'text': f' должен заплатить игроку {owner_player.name} {pay_sum}~',
+                                                            'color': (0, 0, 0)}
                                                     ]}]
                                         message_data = f'message|{json.dumps(message)}%'
                                         log_textbox_.append_messages(message)
@@ -1078,7 +1136,8 @@ def receive_data():
                                     message = [{'type': 'text',
                                                 'value': [
                                                     {'text': player.name, 'color': player.color_value},
-                                                    {'text': ' вытягивает карточку выхода из тюрьмы', 'color': (0, 0, 0)}
+                                                    {'text': ' вытягивает карточку выхода из тюрьмы',
+                                                     'color': (0, 0, 0)}
                                                 ]}]
                                     message_data = f'message|{json.dumps(message)}%'
                                     log_textbox_.append_messages(message)
@@ -1091,10 +1150,13 @@ def receive_data():
                                         information_sent_to('Информация отправлена к', player2.color, message_data)
                                     moving_player_changing(not player.state['double'])
 
-                        elif all_tiles[player.piece_position].owner == player.color or all_tiles[player.piece_position].mortgaged:
+                        elif all_tiles[player.piece_position].owner == player.color or all_tiles[
+                            player.piece_position].mortgaged:
                             moving_player_changing(not player.state['double'])
 
                         money_data = f'money|{player.color}|{player.money}%'
+                        player_value_calculation(player.color)
+
                         for player2 in players:
                             player2.conn.send(money_data.encode())
                             information_sent_to('Информация отправлена к', player2.color, money_data)
@@ -1113,16 +1175,18 @@ def receive_data():
                             auction_players = players.copy()
 
                             if len(auction_players) > 0:
-                                auction_players.pop(0) # удаляем того, кто инициировал аукцион
+                                auction_players.pop(0)  # удаляем того, кто инициировал аукцион
 
                             for auction_player in auction_players:
-                                if auction_player.imprisoned or auction_player.money < all_tiles[tile_position].price + 20:
+                                if auction_player.imprisoned or auction_player.money < all_tiles[
+                                    tile_position].price + 20:
                                     auction_players.remove(auction_player)
 
                             message = [{'type': 'text',
                                         'value': [
                                             {'text': player.name, 'color': player.color_value},
-                                            {'text': f' выставляет {all_tiles[tile_position].name} на аукцион', 'color': (0, 0, 0)}
+                                            {'text': f' выставляет {all_tiles[tile_position].name} на аукцион',
+                                             'color': (0, 0, 0)}
                                         ]}]
                             message_data = f'message|{json.dumps(message)}%'
                             log_textbox_.append_messages(message)
@@ -1141,13 +1205,15 @@ def receive_data():
 
                                 send_player_state(auction_players[0].color)
 
-                                information_sent_to('Информация отправлена к', auction_players[0].color, auction_information)
+                                information_sent_to('Информация отправлена к', auction_players[0].color,
+                                                    auction_information)
                             else:
                                 moving_player_changing(not players[0].state['double'])
                                 print('Игроки не смогли принять участие в аукционе')
 
                                 message = [
-                                    {'type': 'text', 'value': [{'text': 'Игроки не смогли принять участие в аукционе', 'color': (0, 0, 0)}]},
+                                    {'type': 'text', 'value': [
+                                        {'text': 'Игроки не смогли принять участие в аукционе', 'color': (0, 0, 0)}]},
                                     {'type': 'text', 'value': [{'text': 'Аукцион не состоялся', 'color': (0, 0, 0)}]}
                                 ]
                                 message_data = f'message|{json.dumps(message)}%'
@@ -1185,11 +1251,13 @@ def receive_data():
 
                         if auction_players:
                             auction_players[0].conn.send(auction_information.encode())
-                            information_sent_to('Информация отправлена к', auction_players[0].color, auction_information)
+                            information_sent_to('Информация отправлена к', auction_players[0].color,
+                                                auction_information)
 
                             message = [{'type': 'text',
                                         'value': [
-                                            {'text': auction_players_who_are_wanting_to_buy[-1].name, 'color': auction_players_who_are_wanting_to_buy[-1].color_value},
+                                            {'text': auction_players_who_are_wanting_to_buy[-1].name,
+                                             'color': auction_players_who_are_wanting_to_buy[-1].color_value},
                                             {'text': f' участвует в аукционе. Ставка {price}~', 'color': (0, 0, 0)}
                                         ]}]
                             message_data = f'message|{json.dumps(message)}%'
@@ -1200,11 +1268,13 @@ def receive_data():
 
                         elif auction_players_who_are_wanting_to_buy:
                             auction_players_who_are_wanting_to_buy[0].conn.send(auction_information.encode())
-                            information_sent_to('Информация отправлена к', auction_players_who_are_wanting_to_buy[0].color, auction_information)
+                            information_sent_to('Информация отправлена к',
+                                                auction_players_who_are_wanting_to_buy[0].color, auction_information)
 
                             message = [{'type': 'text',
                                         'value': [
-                                            {'text': auction_players_who_are_wanting_to_buy[-1].name, 'color': auction_players_who_are_wanting_to_buy[-1].color_value},
+                                            {'text': auction_players_who_are_wanting_to_buy[-1].name,
+                                             'color': auction_players_who_are_wanting_to_buy[-1].color_value},
                                             {'text': f' участвует в аукционе. Ставка {price}~', 'color': (0, 0, 0)}
                                         ]}]
                             message_data = f'message|{json.dumps(message)}%'
@@ -1240,15 +1310,17 @@ def receive_data():
                         elif auction_players_who_are_wanting_to_buy:
                             auction_players_who_are_wanting_to_buy.pop(0)
 
-
                         if auction_players:
                             auction_players[0].conn.send(auction_information.encode())
-                            information_sent_to('Информация отправлена к', auction_players[0].color, auction_information)
+                            information_sent_to('Информация отправлена к', auction_players[0].color,
+                                                auction_information)
 
                         elif auction_players_who_are_wanting_to_buy:
                             if len(auction_players_who_are_wanting_to_buy) > 1:
                                 auction_players_who_are_wanting_to_buy[0].conn.send(auction_information.encode())
-                                information_sent_to('Информация отправлена к', auction_players_who_are_wanting_to_buy[0].color, auction_information)
+                                information_sent_to('Информация отправлена к',
+                                                    auction_players_who_are_wanting_to_buy[0].color,
+                                                    auction_information)
                             else:
                                 auction_win()
                         else:
@@ -1256,7 +1328,8 @@ def receive_data():
                             print('Все игроки отказались от аукциона')
 
                             message = [
-                                {'type': 'text', 'value': [{'text': 'Все игроки отказались от участия в аукционе', 'color': (0, 0, 0)}]},
+                                {'type': 'text', 'value': [
+                                    {'text': 'Все игроки отказались от участия в аукционе', 'color': (0, 0, 0)}]},
                                 {'type': 'text', 'value': [{'text': 'Аукцион не состоялся', 'color': (0, 0, 0)}]}
                             ]
                             message_data = f'message|{json.dumps(message)}%'
@@ -1281,12 +1354,16 @@ def receive_data():
                         message = [{'type': 'text',
                                     'value': [
                                         {'text': player.name, 'color': player.color_value},
-                                        {'text': f' заплатил Глебу {-all_tiles[player.piece_position].price * multiplier}~', 'color': (0, 0, 0)}
+                                        {
+                                            'text': f' заплатил Глебу {-all_tiles[player.piece_position].price * multiplier}~',
+                                            'color': (0, 0, 0)}
                                     ]}]
                         message_data = f'message|{json.dumps(message)}%'
                         log_textbox_.append_messages(message)
 
                         money_data = f'money|{player.color}|{player.money}%'
+                        player_value_calculation(player.color)
+
                         for player2 in players:
                             player2.conn.send(money_data.encode())
                             player2.conn.send(message_data.encode())
@@ -1319,6 +1396,8 @@ def receive_data():
                         message_data = f'message|{json.dumps(message)}%'
                         log_textbox_.append_messages(message)
                         money_data = f'money|{player.color}|{player.money}%'
+                        player_value_calculation(player.color)
+
                         for player2 in players:
                             player2.conn.send(money_data.encode())
                             player2.conn.send(message_data.encode())
@@ -1361,6 +1440,8 @@ def receive_data():
                         log_textbox_.append_messages(message)
                         money_data1 = f'money|{player2.color}|{player2.money}%'
                         money_data2 = f'money|{player.color}|{player.money}%'
+                        player_value_calculation(player2.color)
+                        player_value_calculation(player.color)
 
                         for player3 in players:
                             player3.conn.send(money_data1.encode())
@@ -1398,10 +1479,14 @@ def receive_data():
                         send_player_state(player2.color)
 
                         money_data1 = f'money|{player2.color}|{player2.money}%'
+                        player_value_calculation(player2.color)
+
                         message = [{'type': 'text',
                                     'value': [
                                         {'text': player.name, 'color': player.color_value},
-                                        {'text': f' заплатил игроку {player2.name} {int(data[2]) * multiplier}~', 'color': (0, 0, 0)}
+                                        {'text': f'заплатил игроку', 'color': (0, 0, 0)},
+                                        {'text': player2.name, 'color': player2.color_value},
+                                        {'text': f'{int(data[2]) * multiplier}~', 'color': (0, 0, 0)},
                                     ]}]
                         message_data = f'message|{json.dumps(message)}%'
                         log_textbox_.append_messages(message)
@@ -1409,7 +1494,7 @@ def receive_data():
                         if not eggs_players_who_need_to_pay_to_one_player:
                             moving_player_changing(not player.state['double'])
                         money_data2 = f'money|{player.color}|{player.money}%'
-
+                        player_value_calculation(player.color)
 
                         for player3 in players:
                             player3.conn.send(money_data1.encode())
@@ -1437,6 +1522,8 @@ def receive_data():
                         send_player_state(player.color)
 
                         money_data2 = f'money|{player.color}|{player.money}%'
+                        player_value_calculation(player.color)
+
                         for player2 in players:
                             if player2 != player:
                                 player2.money += int(data[1]) * multiplier
@@ -1447,10 +1534,14 @@ def receive_data():
                                 send_player_state(player.color)
 
                                 money_data1 = f'money|{player2.color}|{player2.money}%'
+                                player_value_calculation(player2.color)
+
                                 message = [{'type': 'text',
                                             'value': [
                                                 {'text': player.name, 'color': player.color_value},
-                                                {'text': f' заплатил игроку {player2.name} {int(data[1]) * multiplier}~', 'color': (0, 0, 0)}
+                                                {
+                                                    'text': f' заплатил игроку {player2.name} {int(data[1]) * multiplier}~',
+                                                    'color': (0, 0, 0)}
                                             ]}]
                                 message_data = f'message|{json.dumps(message)}%'
                                 log_textbox_.append_messages(message)
@@ -1486,10 +1577,14 @@ def receive_data():
                             send_player_state(player.color)
 
                             money_data = f'money|{player.color}|{player.money}%'
+                            player_value_calculation(player.color)
+
                             message = [{'type': 'text',
                                         'value': [
                                             {'text': player.name, 'color': player.color_value},
-                                            {'text': f' заплатил {(player.prison_break_attempts + 1) * 25 * multiplier}~ за выход из тюрьмы', 'color': (0, 0, 0)}
+                                            {
+                                                'text': f' заплатил {(player.prison_break_attempts + 1) * 25 * multiplier}~ за выход из тюрьмы',
+                                                'color': (0, 0, 0)}
                                         ]}]
                             player.prison_break_attempts = 0
                             message_data = f'message|{json.dumps(message)}%'
@@ -1550,17 +1645,19 @@ def receive_data():
 
                                 send_player_state(player.color)
 
-                                pay_amount = 9999 # placeholder
+                                pay_amount = 9999  # placeholder
                                 if player.state['pay_btn_active'][1] == 'minus':
                                     pay_amount = -all_tiles[player.piece_position].price * player.pay_multiplier
                                 elif player.state['pay_btn_active'][1] == 'pay sum':
                                     pay_amount = player.state['pay_btn_active'][2] * player.pay_multiplier
                                 elif player.state['pay_btn_active'][1] == 'color':
-                                    pay_amount = all_tiles[player.piece_position].penis_income_calculation() * player.pay_multiplier
+                                    pay_amount = all_tiles[
+                                                     player.piece_position].penis_income_calculation() * player.pay_multiplier
                                 elif player.state['pay_btn_active'][1] == 'player':
                                     pay_amount = player.state['pay_btn_active'][3] * player.pay_multiplier
                                 elif player.state['pay_btn_active'][1] == 'players':
-                                    pay_amount = player.state['pay_btn_active'][2] * (len(players) - 1) * player.pay_multiplier
+                                    pay_amount = player.state['pay_btn_active'][2] * (
+                                                len(players) - 1) * player.pay_multiplier
                                 elif player.state['pay_btn_active'][1] == 'prison':
                                     pay_amount = (player.prison_break_attempts + 1) * 25 * player.pay_multiplier
 
@@ -1573,7 +1670,8 @@ def receive_data():
                                     {'type': 'text',
                                      'value': [
                                          {'text': player.name, 'color': player.color_value},
-                                         {'text': f' удвоил свой долг, и теперь он составляет {pay_amount}~', 'color': (0, 0, 0)}
+                                         {'text': f' удвоил свой долг, и теперь он составляет {pay_amount}~',
+                                          'color': (0, 0, 0)}
                                      ]}
                                 ]
                             else:
@@ -1585,7 +1683,6 @@ def receive_data():
                                 redeem_btn_check(player.color)
 
                                 send_player_state(player.color)
-
 
                                 message = [
                                     {'type': 'text',
@@ -1613,13 +1710,13 @@ def receive_data():
                         tile = all_tiles[int(data[1])]
                         # print(all_tiles[tile_position].full_family, all_tiles[tile_position].penises < 5, player.money >= all_tiles[tile_position].penis_price, all_tiles[tile_position].type == 'buildable', all_tiles[tile_position].owner == player.color)
                         if (tile.full_family and
-                            tile.owner == player.color and
-                            tile.type == 'buildable' and
-                            player.state['on_move'] and
-                            not player.imprisoned and
-                            not tile.recently_built and
-                            player.money >= tile.penis_price and
-                            tile.penises < 5):
+                                tile.owner == player.color and
+                                tile.type == 'buildable' and
+                                player.state['on_move'] and
+                                not player.imprisoned and
+                                not tile.recently_built and
+                                player.money >= tile.penis_price and
+                                tile.penises < 5):
 
                             for tile_ in all_tiles:
                                 if tile_.family == tile.family:
@@ -1636,11 +1733,14 @@ def receive_data():
                             message = [{'type': 'text',
                                         'value': [
                                             {'text': player.name, 'color': player.color_value},
-                                            {'text': f' суёт пЭнис в {tile.name} и тратит {tile.penis_price}~', 'color': (0, 0, 0)}
+                                            {'text': f' суёт пЭнис в {tile.name} и тратит {tile.penis_price}~',
+                                             'color': (0, 0, 0)}
                                         ]}]
                             message_data = f'message|{json.dumps(message)}%'
                             log_textbox_.append_messages(message)
                             money_data = f'money|{player.color}|{player.money}%'
+                            player_value_calculation(player.color)
+
                             penis_data = f'penis built|{tile.position}%'
                             for player2 in players:
                                 player2.conn.send(money_data.encode())
@@ -1654,10 +1754,10 @@ def receive_data():
                         tile = all_tiles[int(data[1])]
                         # print(all_tiles[tile_position].full_family, all_tiles[tile_position].penises, all_tiles[tile_position].type, all_tiles[tile_position].owner)
                         if (tile.full_family and
-                            tile.owner == player.color and
-                            tile.type == 'buildable' and
-                            1 <= tile.penises <= 5 and
-                            (player.state['on_move'] or player.state['pay_btn_active'][1])):
+                                tile.owner == player.color and
+                                tile.type == 'buildable' and
+                                1 <= tile.penises <= 5 and
+                                (player.state['on_move'] or player.state['pay_btn_active'][1])):
 
                             player.money += tile.penis_price
                             tile.penises -= 1
@@ -1672,11 +1772,14 @@ def receive_data():
                             message = [{'type': 'text',
                                         'value': [
                                             {'text': player.name, 'color': player.color_value},
-                                            {'text': f' высовывает пЭнис из {tile.name} и получает {tile.penis_price}~', 'color': (0, 0, 0)}
+                                            {'text': f' высовывает пЭнис из {tile.name} и получает {tile.penis_price}~',
+                                             'color': (0, 0, 0)}
                                         ]}]
                             message_data = f'message|{json.dumps(message)}%'
                             log_textbox_.append_messages(message)
                             money_data = f'money|{player.color}|{player.money}%'
+                            player_value_calculation(player.color)
+
                             penis_data = f'penis removed|{tile.position}%'
                             for player2 in players:
                                 player2.conn.send(money_data.encode())
@@ -1798,6 +1901,8 @@ def receive_data():
                             all_property_information = all_property_information + '%'
 
                         money_data = f'money|{player2.color}|{player2.money}%'
+                        player_value_calculation(player2.color)
+
                         for player3 in players:
                             player3.conn.send(all_property_information.encode())
                             player3.conn.send(money_data.encode())
@@ -1816,6 +1921,8 @@ def receive_data():
                             all_property_information = all_property_information + '%'
 
                         money_data = f'money|{player.color}|{player.money}%'
+                        player_value_calculation(player.color)
+
                         for player3 in players:
                             player3.conn.send(all_property_information.encode())
                             player3.conn.send(money_data.encode())
@@ -1859,12 +1966,15 @@ def receive_data():
                             message = [{'type': 'text',
                                         'value': [
                                             {'text': player.name, 'color': player.color_value},
-                                            {'text': f' закладывает {tile.name} и получает {int(tile.price / 2)}~', 'color': (0, 0, 0)}
+                                            {'text': f' закладывает {tile.name} и получает {int(tile.price / 2)}~',
+                                             'color': (0, 0, 0)}
                                         ]}]
                             message_data = f'message|{json.dumps(message)}%'
                             log_textbox_.append_messages(message)
                             mortgage_information = f'mortgaged|{data[1]}%'
                             money_information = f'money|{player.color}|{player.money}%'
+                            player_value_calculation(player.color)
+
                             for player2 in players:
                                 player2.conn.send(mortgage_information.encode())
                                 player2.conn.send(money_information.encode())
@@ -1890,12 +2000,15 @@ def receive_data():
                             message = [{'type': 'text',
                                         'value': [
                                             {'text': player.name, 'color': player.color_value},
-                                            {'text': f' закладывает {tile.name} и тратит {tile.price}~', 'color': (0, 0, 0)}
+                                            {'text': f' закладывает {tile.name} и тратит {tile.price}~',
+                                             'color': (0, 0, 0)}
                                         ]}]
                             message_data = f'message|{json.dumps(message)}%'
                             log_textbox_.append_messages(message)
                             redeem_information = f'redeemed|{data[1]}%'
                             money_information = f'money|{player.color}|{player.money}%'
+                            player_value_calculation(player.color)
+
                             for player2 in players:
                                 player2.conn.send(redeem_information.encode())
                                 player2.conn.send(money_information.encode())
@@ -1908,7 +2021,7 @@ def receive_data():
                         message = {'type': 'text',
                                    'value': [
                                        {'text': f'{player.name}:', 'color': player.color_value},
-                                       {'text': data[1], 'color': (0, 0, 0)}]} # data[1] содержит текст
+                                       {'text': data[1], 'color': (0, 0, 0)}]}  # data[1] содержит текст
                         message_data = f'message|{json.dumps(message)}%'
                         log_textbox_.append_messages(message)
 
@@ -1916,12 +2029,321 @@ def receive_data():
                             player2.conn.send(message_data.encode())
                             information_sent_to('Информация отправлена к', player2.color, message_data)
 
-                    elif data[0] == 'receive size':
-                        receive_size = int(data[1])
+                    elif data[0] == 'surrender':
+                        if player.state['surrender_btn_active']:
+                            player.bankrupt = True
+                            messages = []
 
+                            if player.state['pay_btn_active'][1] == 'prison':
+                                pay_amount = (player.prison_break_attempts + 1) * 25 * player.pay_multiplier
+                                if player.money >= pay_amount:
+                                    player.money -= pay_amount
+                                    player_value_calculation(player.color)
+                                    paid = pay_amount
+                                else:
+                                    if player.value >= pay_amount:
+                                        player.value -= pay_amount
+                                        player.money = 0
+                                        paid = pay_amount
+                                    else:
+                                        paid = int(player.value)
+                                        player.value = 0
+                                        player.money = 0
+
+                                    value_information = f'value|{player.color}|{player.value}%'
+                                    for player2 in players:
+                                        player2.conn.send(value_information.encode())
+                                        information_sent_to('Информация отправлена к', player2.color, value_information)
+
+                                messages.append({'type': 'text',
+                                                 'value': [
+                                                     {'text': player.name, 'color': player.color_value},
+                                                     {'text': f' заплатил {paid}~ за выход из тюрьмы', 'color': (0, 0, 0)}
+                                                 ]})
+
+                                money_data = f'money|{player.color}|{player.money}%'
+                                for player2 in players:
+                                    player2.conn.send(money_data.encode())
+                                    information_sent_to('Информация отправлена к', player2.color, money_data)
+
+                            elif player.state['pay_btn_active'][1] == 'minus':
+                                pay_amount = -all_tiles[player.piece_position].price * player.pay_multiplier
+                                if player.money >= pay_amount:
+                                    player.money -= pay_amount
+                                    player_value_calculation(player.color)
+                                    paid = pay_amount
+
+                                else:
+                                    if player.value >= pay_amount:
+                                        player.value -= pay_amount
+                                        player.money = 0
+                                        paid = pay_amount
+                                    else:
+                                        paid = int(player.value)
+                                        player.value = 0
+                                        player.money = 0
+
+
+
+                                    value_information = f'value|{player.color}|{player.value}%'
+                                    for player2 in players:
+                                        player2.conn.send(value_information.encode())
+                                        information_sent_to('Информация отправлена к', player2.color, value_information)
+
+                                messages.append({'type': 'text',
+                                                 'value': [
+                                                     {'text': player.name, 'color': player.color_value},
+                                                     {'text': f' заплатил Глебу {paid}~', 'color': (0, 0, 0)}
+                                                 ]})
+
+                                money_data = f'money|{player.color}|{player.money}%'
+                                for player2 in players:
+                                    player2.conn.send(money_data.encode())
+                                    information_sent_to('Информация отправлена к', player2.color, money_data)
+
+                            elif player.state['pay_btn_active'][1] == 'pay sum':
+                                pay_amount = player.state['pay_btn_active'][2] * player.pay_multiplier
+                                if player.money >= pay_amount:
+                                    player.money -= pay_amount
+                                    player_value_calculation(player.color)
+                                    paid = pay_amount
+
+                                else:
+                                    if player.value >= pay_amount:
+                                        player.value -= pay_amount
+                                        player.money = 0
+                                        paid = pay_amount
+                                    else:
+                                        paid = int(player.value)
+                                        player.value = 0
+                                        player.money = 0
+
+                                    value_information = f'value|{player.color}|{player.value}%'
+                                    for player2 in players:
+                                        player2.conn.send(value_information.encode())
+                                        information_sent_to('Информация отправлена к', player2.color, value_information)
+
+                                messages.append({'type': 'text',
+                                                 'value': [
+                                                     {'text': player.name, 'color': player.color_value},
+                                                     {'text': f' заплатил {paid}~',
+                                                      'color': (0, 0, 0)}
+                                                 ]})
+
+                                money_data = f'money|{player.color}|{player.money}%'
+                                for player2 in players:
+                                    player2.conn.send(money_data.encode())
+                                    information_sent_to('Информация отправлена к', player2.color, money_data)
+
+                            elif player.state['pay_btn_active'][1] == 'color':
+                                pay_amount = all_tiles[player.piece_position].penis_income_calculation() * player.pay_multiplier
+                                if player.money >= pay_amount:
+                                    player.money -= pay_amount
+                                    player_value_calculation(player.color)
+                                    player_dict[all_tiles[player.piece_position].owner].money += pay_amount
+                                    paid = pay_amount
+
+                                else:
+                                    if player.value >= pay_amount:
+                                        player.value -= pay_amount
+                                        player.money = 0
+                                        player_dict[all_tiles[player.piece_position].owner].money += pay_amount
+                                        paid = pay_amount
+                                    else:
+                                        paid = int(player.value)
+                                        player_dict[all_tiles[player.piece_position].owner].money += player.value
+                                        player.value = 0
+                                        player.money = 0
+
+                                    value_information = f'value|{player.color}|{player.value}%'
+                                    for player2 in players:
+                                        player2.conn.send(value_information.encode())
+                                        information_sent_to('Информация отправлена к', player2.color, value_information)
+
+                                messages.append({'type': 'text',
+                                                    'value': [
+                                                        {'text': player.name, 'color': player.color_value},
+                                                        {'text': f' заплатил игроку', 'color': (0, 0, 0)},
+                                                        {'text': player_dict[all_tiles[player.piece_position].owner].name, 'color': player_dict[all_tiles[player.piece_position].owner].color_value},
+                                                        {'text': f'{paid}~', 'color': (0, 0, 0)},
+                                                ]})
+
+                                money_data = f'money|{player.color}|{player.money}%'
+                                money_data2 = f'money|{player_dict[all_tiles[player.piece_position].owner].color}|{player_dict[all_tiles[player.piece_position].owner].money}%'
+                                for player2 in players:
+                                    player2.conn.send(money_data.encode())
+                                    player2.conn.send(money_data2.encode())
+                                    information_sent_to('Информация отправлена к', player2.color, money_data)
+                                    information_sent_to('Информация отправлена к', player2.color, money_data2)
+
+                            elif player.state['pay_btn_active'][1] == 'player':
+                                pay_amount = player.state['pay_btn_active'][3] * player.pay_multiplier
+
+                                if player.money >= pay_amount:
+                                    player.money -= pay_amount
+                                    player_value_calculation(player.color)
+                                    player_dict[player.state['pay_btn_active'][2]].money += pay_amount
+                                    paid = pay_amount
+                                else:
+                                    if player.value >= pay_amount:
+                                        player.value -= pay_amount
+                                        player.money = 0
+                                        player_dict[player.state['pay_btn_active'][2]].money += pay_amount
+                                        paid = pay_amount
+                                    else:
+                                        paid = int(player.value)
+                                        player_dict[player.state['pay_btn_active'][2]].money += player.value
+                                        player.value = 0
+                                        player.money = 0
+
+                                    value_information = f'value|{player.color}|{player.value}%'
+                                    for player2 in players:
+                                        player2.conn.send(value_information.encode())
+                                        information_sent_to('Информация отправлена к', player2.color, value_information)
+
+                                messages.append({'type': 'text',
+                                                 'value': [
+                                                     {'text': player.name, 'color': player.color_value},
+                                                     {'text': f' заплатил игроку', 'color': (0, 0, 0)},
+                                                     {'text': player_dict[player.state['pay_btn_active'][2]].name, 'color': player_dict[player.state['pay_btn_active'][2]].color_value},
+                                                     {'text': f'{paid}~', 'color': (0, 0, 0)}
+                                                 ]})
+
+                                money_data = f'money|{player.color}|{player.money}%'
+                                money_data2 = f'money|{player_dict[player.state['pay_btn_active'][2]].color}|{player_dict[player.state['pay_btn_active'][2]].money}%'
+                                for player2 in players:
+                                    player2.conn.send(money_data.encode())
+                                    player2.conn.send(money_data2.encode())
+                                    information_sent_to('Информация отправлена к', player2.color, money_data)
+                                    information_sent_to('Информация отправлена к', player2.color, money_data2)
+
+                            elif player.state['pay_btn_active'][1] == 'players':
+                                pay_amount = player.state['pay_btn_active'][2] * (len(players) - 1) * player.pay_multiplier
+                                if player.money >= pay_amount:
+                                    player.money -= pay_amount
+                                    for player2 in players:
+                                        if player2 != player:
+                                            player2.money += pay_amount // (len(players) - 1)
+                                            paid = pay_amount // (len(players) - 1)
+                                            player_value_calculation(player2.color)
+
+                                            messages.append({'type': 'text',
+                                                             'value': [
+                                                                 {'text': player.name, 'color': player.color_value},
+                                                                 {'text': f' заплатил игроку', 'color': (0, 0, 0)},
+                                                                 {'text': player2.name, 'color': player2.color_value},
+                                                                 {'text': f'{paid}~', 'color': (0, 0, 0)}
+                                                             ]})
+
+                                            for player3 in players:
+                                                money_data = f'money|{player2.color}|{player2.money}%'
+                                                player3.conn.send(money_data.encode())
+                                                information_sent_to('Информация отправлена к', player3.color, money_data)
+                                    player_value_calculation(player.color)
+
+                                else:
+                                    if player.value >= pay_amount:
+                                        player.value -= pay_amount
+                                        player.money = 0
+                                        for player2 in players:
+                                            if player2 != player:
+                                                player2.money += pay_amount // (len(players) - 1)
+                                                paid = pay_amount // (len(players) - 1)
+                                                player_value_calculation(player2.color)
+
+                                                messages.append({'type': 'text',
+                                                                 'value': [
+                                                                     {'text': player.name, 'color': player.color_value},
+                                                                     {'text': f' заплатил игроку', 'color': (0, 0, 0)},
+                                                                     {'text': player2.name, 'color': player2.color_value},
+                                                                     {'text': f'{paid}~', 'color': (0, 0, 0)}
+                                                                 ]})
+
+                                                for player3 in players:
+                                                    money_data = f'money|{player2.color}|{player2.money}%'
+                                                    player3.conn.send(money_data.encode())
+                                                    information_sent_to('Информация отправлена к', player3.color, money_data)
+                                    else:
+                                        for player2 in players:
+                                            if player2 != player:
+                                                paid = player.value // (len(players) - 1)
+                                                player2.money += player.value // (len(players) - 1)
+                                                player_value_calculation(player2.color)
+
+                                                messages.append({'type': 'text',
+                                                                 'value': [
+                                                                     {'text': player.name, 'color': player.color_value},
+                                                                     {'text': f' заплатил игроку', 'color': (0, 0, 0)},
+                                                                     {'text': player2.name, 'color': player2.color_value},
+                                                                     {'text': f'{paid}~', 'color': (0, 0, 0)}
+                                                                 ]})
+
+                                                for player3 in players:
+                                                    money_data = f'money|{player2.color}|{player2.money}%'
+                                                    player3.conn.send(money_data.encode())
+                                                    information_sent_to('Информация отправлена к', player3.color, money_data)
+                                        player.value = 0
+                                        player.money = 0
+
+                                money_data = f'money|{player.color}|{player.money}%'
+                                player.conn.send(money_data.encode())
+                                information_sent_to('Информация отправлена к', player.color, money_data)
+
+                            if player.state['on_move']:
+                                moving_player_changing(True)
+
+                            player.state['on_move'] = False
+                            player.state['double'] = False
+                            player.state['paid'] = False
+                            player.state['refused_to_buy'] = False
+                            player.state['throw_cubes_btn_active'] = False
+                            player.state['buy_btn_active'] = [False, None]
+                            player.state['pay_btn_active'] = [False, None]
+                            player.state['penis_build_btn_active'] = False
+                            player.state['penis_remove_btn_active'] = False
+                            player.state['mortgage_btn_active'] = False
+                            player.state['redeem_btn_active'] = False
+                            player.state['auction_btn_active'] = False
+                            player.state['exchange_btn_active'] = False
+                            player.state['surrender_btn_active'] = False
+                            send_player_state(player.color)
+
+                            for tile in all_tiles:
+                                if tile.owner == player.color:
+                                    tile.reset_tile()
+
+                            active_players_count = 0
+                            last_active_player = None
+                            for player2 in players:
+                                if not player2.bankrupt:
+                                    active_players_count += 1
+                                    last_active_player = player2
+
+                            messages.append({'type': 'text',
+                                            'value': [
+                                                {'text': player.name, 'color': player.color_value},
+                                                {'text': f'объявлен банкротом', 'color': (0, 0, 0)}
+                                            ]})
+                            if active_players_count == 1:
+                                messages.append({'type': 'text',
+                                                'value': [
+                                                    {'text': last_active_player.name, 'color': last_active_player.color_value},
+                                                    {'text': f'победил!', 'color': (0, 0, 0)}
+                                                ]})
+                            message_data = f'message|{json.dumps(messages)}%'
+                            log_textbox_.append_messages(messages)
+                            for player2 in players:
+                                player2.conn.send(message_data.encode())
+                                information_sent_to('Информация отправлена к', player2.color, message_data)
+
+                            for player3 in players:
+                                surrender_data = f'surrendered|{player.color}%'
+                                player3.conn.send(surrender_data.encode())
+                                information_sent_to('Информация отправлена к', player3.color, surrender_data)
                     else:
                         player.conn.send(f'error|Незарегистрированная команда: {data[0]}%'.encode())
-                        information_sent_to('Информация отправлена к', player.color, f'error|Незарегистрированная команда: {data[0]}%')
+                        information_sent_to('Информация отправлена к', player.color,
+                                            f'error|Незарегистрированная команда: {data[0]}%')
 
             except (BlockingIOError, ConnectionAbortedError, ConnectionResetError, AttributeError):
                 pass
@@ -2082,9 +2504,9 @@ def message_send():
             for player in players:
                 player.conn.send(message_data.encode())
                 information_sent_to('Информация отправлена к', player.color, message_data)
-        else:
+        elif debug_mode:
             message_command = msg_text[1:].split(' ')
-            
+
             if message_command[0] == 'money':
                 for player in players:
                     if player.color == message_command[2]:
@@ -2101,7 +2523,6 @@ def message_send():
                             information_sent_to('Информация отправлена к', player2.color, money_data)
 
             if message_command[0] == 'set_state':
-                players[0].state['throw_cubes_btn_active'] = True
                 player = player_dict[message_command[1]]
                 new_state_type = message_command[2]
 
@@ -2115,13 +2536,7 @@ def message_send():
 
                 if is_state_determined:
                     player.state[new_state_type] = new_state_value
-                    for player in players:
-                        if player.color == message_command[1]:
-                            player.state['on_move'] = True
-
-                            for player2 in players:
-                                player2.conn.send(f'onMove|{player.color}%'.encode())
-                                information_sent_to('Информация отправлена к', player2.color, f'onMove|{player.color}%')
+                send_player_state(player.color)
 
 
 def connection():
@@ -2141,8 +2556,10 @@ def connection():
             player.connect(colors)
             players.append(player)
             start_button.enable()
-            globals()[f'{player.color}_profile'] = pg.image.load(f'resources/{resolution_folder}/profile/{player.color}_profile.png').convert_alpha()
-            globals()[f'{player.color}_property_image'] = pg.image.load(f'resources/{resolution_folder}/property/{player.color}_property.png').convert_alpha()
+            globals()[f'{player.color}_profile'] = pg.image.load(
+                f'resources/{resolution_folder}/profile/{player.color}_profile.png').convert_alpha()
+            globals()[f'{player.color}_property_image'] = pg.image.load(
+                f'resources/{resolution_folder}/property/{player.color}_property.png').convert_alpha()
             print(f'Игрок с цветом {player.color} добавлен в список')
         except BlockingIOError:
             pass
@@ -2233,6 +2650,7 @@ def start_server():
 
 
 def start_game():
+    global first_player_color
     if state['is_server_started'] and not state['is_game_started']:
         state['is_game_started'] = True
         random.shuffle(players)
@@ -2241,16 +2659,19 @@ def start_game():
             game_started_command += f'{player.color}_'
         game_started_command = game_started_command[:-1] + '%'
 
+        first_player_color = players[0].color
         players[0].state['on_move'] = True
         players[0].state['throw_cubes_btn_active'] = True
         for tile in all_tiles:
             tile.recently_built = False
         penises_check(players[0].color)
-
+        surrender_check(players[0].color)
         exchange_check(players[0].color)
 
         if players[0].imprisoned:
-            players[0].state['pay_btn_active'] = [players[0].money >= (players[0].prison_break_attempts + 1) * 25 * players[0].pay_multiplier, 'prison', (players[0].prison_break_attempts + 1) * 25]
+            players[0].state['pay_btn_active'] = [
+                players[0].money >= (players[0].prison_break_attempts + 1) * 25 * players[0].pay_multiplier, 'prison',
+                (players[0].prison_break_attempts + 1) * 25]
         send_player_state(players[0].color)
 
         print('Игра начата')
@@ -2272,41 +2693,61 @@ def moving_player_changing(do_change):
             penises_check(players[0].color)
             buy_btn_check(players[0].color)
             exchange_check(players[0].color)
+            surrender_check(players[0].color)
 
             send_player_state(players[0].color)
 
-            players.append(players[0])
-            players.pop(0)
-            for tile in all_tiles:
-                if tile.mortgaged:
-                    tile.mortgaged_moves_count -= 1
-                    mortgaged_moves_count_information = f'mortgaged_moves_count|{tile.position}|{tile.mortgaged_moves_count}%'
-                    for player2 in players:
-                        player2.conn.send(mortgaged_moves_count_information.encode())
-                        information_sent_to('Информация отправлена к', player2.color, mortgaged_moves_count_information)
-                    if tile.mortgaged_moves_count == 0:
-                        player = player_dict[tile.owner]
-                        message = [{'type': 'text',
-                                    'value': [
-                                        {'text': player.name, 'color': player.color_value},
-                                        {'text': f' не смог выкупить {tile.name}', 'color': (0, 0, 0)}
-                                    ]}]
-                        message_data = f'message|{json.dumps(message)}%'
-                        log_textbox_.append_messages(message)
+            mortgage_tile_needs_update = False
+            player_chosen = False
+            while not player_chosen:
+                if not players[0].bankrupt:
+                    player_chosen = True
+                players.append(players[0])
+                players.pop(0)
+                if players[0].color == first_player_color:
+                    mortgage_tile_needs_update = True
 
-                        tile.mortgaged = False
-                        tile.owned = False
-                        tile.owner = ''
-                        late_to_redeem_information = f'late to redeem|{tile.position}%'
-                        for player2 in players:
-                            player2.conn.send(late_to_redeem_information.encode())
-                            player2.conn.send(message_data.encode())
-                            information_sent_to('Информация отправлена к', player2.color, late_to_redeem_information)
-                            information_sent_to('Информация отправлена к', player2.color, message_data)
-                    for tile_ in all_tiles:
-                        if tile_.family == tile.family:
-                            tile_.family_members -= 1
-                    tile.family_members = 0
+            if player_chosen:
+                if mortgage_tile_needs_update:
+                    for tile in all_tiles:
+                        if tile.mortgaged:
+                            tile.mortgaged_moves_count -= 1
+                            mortgaged_moves_count_information = f'mortgaged_moves_count|{tile.position}|{tile.mortgaged_moves_count}%'
+                            for player2 in players:
+                                player2.conn.send(mortgaged_moves_count_information.encode())
+                                information_sent_to('Информация отправлена к', player2.color, mortgaged_moves_count_information)
+                            if tile.mortgaged_moves_count == 0:
+                                player = player_dict[tile.owner]
+                                message = [{'type': 'text',
+                                            'value': [
+                                                {'text': player.name, 'color': player.color_value},
+                                                {'text': f'не смог выкупить {tile.name}', 'color': (0, 0, 0)}
+                                            ]}]
+                                message_data = f'message|{json.dumps(message)}%'
+                                log_textbox_.append_messages(message)
+                                tile.reset_tile()
+
+                                late_to_redeem_information = f'late to redeem|{tile.position}%'
+                                for player2 in players:
+                                    player2.conn.send(late_to_redeem_information.encode())
+                                    player2.conn.send(message_data.encode())
+                                    information_sent_to('Информация отправлена к', player2.color, late_to_redeem_information)
+                                    information_sent_to('Информация отправлена к', player2.color, message_data)
+                            for tile_ in all_tiles:
+                                if tile_.family == tile.family:
+                                    tile_.family_members -= 1
+                            tile.family_members = 0
+            else:
+                message = [{'type': 'text',
+                            'value': [
+                                {'text': f'Ни одного игрока не осталось, все проиграли...', 'color': (0, 0, 0)}
+                            ]}]
+                message_data = f'message|{json.dumps(message)}%'
+                log_textbox_.append_messages(message)
+                for player2 in players:
+                    player2.conn.send(message_data.encode())
+                    information_sent_to('Информация отправлена к', player2.color, message_data)
+                return
 
         players[0].state['on_move'] = True
         players[0].state['throw_cubes_btn_active'] = True
@@ -2319,6 +2760,7 @@ def moving_player_changing(do_change):
         mortgage_btn_check(players[0].color)
         exchange_check(players[0].color)
         buy_btn_check(players[0].color)
+        surrender_check(players[0].color)
 
         send_player_state(players[0].color)
     except:
@@ -2355,39 +2797,26 @@ def blit_items():
             screen.blit(text, text_rect)
 
         if 1 <= tile.penises <= 5:
-            screen.blit(pg.image.load(f'resources/{resolution_folder}/white penises/{tile.penises}.png'), (tile.x_position, tile.y_position))
+            screen.blit(pg.image.load(f'resources/{resolution_folder}/white penises/{tile.penises}.png'),
+                        (tile.x_position, tile.y_position))
 
     try:
         for player in players:
             screen.blit(pg.image.load(f'resources/{resolution_folder}/pieces/{player.color}_piece.png'), (player.x, player.y))
-            # position_update(player.color)
 
             player_index = players.index(player)
 
-            screen.blit(profile_picture,
-                        (profile_coordinates[player_index]['profile'][0],
-                         profile_coordinates[player_index]['profile'][1]))
-
-            screen.blit(player.avatar_image, (profile_coordinates[player_index]['avatar'][0],
-                                        profile_coordinates[player_index]['avatar'][1]))
-
+            screen.blit(profile_picture, profile_coordinates[player_index]['profile'])
+            screen.blit(player.avatar_image, profile_coordinates[player_index]['avatar'])
             if player.imprisoned:
-                screen.blit(player_bars, (profile_coordinates[player_index]['avatar'][0],
-                                          profile_coordinates[player_index]['avatar'][1]))
-
-
-
+                screen.blit(player_bars, profile_coordinates[player_index]['avatar'])
             screen.blit(globals()[f'{player.color}_profile'], profile_coordinates[player_index]['avatar'])
+            screen.blit(font.render(f'{player.money}~', False, 'black'), profile_coordinates[player_index]['money'])
+            screen.blit(font.render(f'{player.value}~', False, 'black'), profile_coordinates[player_index]['value'])
+            screen.blit(font.render(player.name, False, 'black'), profile_coordinates[player_index]['name'])
+            if player.bankrupt:
+                screen.blit(bankrupt_picture, profile_coordinates[player_index]['profile'])
 
-
-
-            screen.blit(font.render(f'{player.money}~', False, 'black'),
-                        (profile_coordinates[player_index]['money'][0],
-                         profile_coordinates[player_index]['money'][1]))
-
-            screen.blit(font.render(player.name, False, 'black'),
-                        (profile_coordinates[player_index]['name'][0],
-                         profile_coordinates[player_index]['name'][1]))
     except ValueError:
         pass
 
@@ -2550,38 +2979,49 @@ def send_player_state(color):
 
 def pay_btn_check(color):
     if state['is_game_started']:
-        for player in players:
-            if player.color == color:
-                temp_state = player.state['pay_btn_active']
-                if player.state['pay_btn_active'][1] not in ('pay sum', 'player', 'players'):
-                    temp_state = [False, None]
+        player = player_dict[color]
+        if not player.bankrupt:
+            temp_state = player.state['pay_btn_active']
+            if player.state['pay_btn_active'][1] not in ('pay sum', 'player', 'players'):
+                temp_state = [False, None]
 
-                elif player.state['pay_btn_active'][1] == 'pay sum':
-                    temp_state = [player.money >= player.state['pay_btn_active'][2] * player.pay_multiplier, 'pay sum', player.state['pay_btn_active'][2]]
+            elif player.state['pay_btn_active'][1] == 'pay sum':
+                temp_state = [player.money >= player.state['pay_btn_active'][2] * player.pay_multiplier, 'pay sum',
+                              player.state['pay_btn_active'][2]]
 
-                elif player.state['pay_btn_active'][1] == 'players':
-                    temp_state = [player.money >= player.state['pay_btn_active'][2] * (len(players) - 1) * player.pay_multiplier, 'players', player.state['pay_btn_active'][2]]
+            elif player.state['pay_btn_active'][1] == 'players':
+                temp_state = [
+                    player.money >= player.state['pay_btn_active'][2] * (len(players) - 1) * player.pay_multiplier,
+                    'players', player.state['pay_btn_active'][2]]
 
-                elif player.state['pay_btn_active'][1] == 'player':
-                    temp_state = [player.money >= player.state['pay_btn_active'][3] * player.pay_multiplier, 'player', player.state['pay_btn_active'][2], player.state['pay_btn_active'][3]]
+            elif player.state['pay_btn_active'][1] == 'player':
+                temp_state = [player.money >= player.state['pay_btn_active'][3] * player.pay_multiplier, 'player',
+                              player.state['pay_btn_active'][2], player.state['pay_btn_active'][3]]
 
-                if player.imprisoned and player.state['on_move']:
-                    temp_state = [player.money >= (player.prison_break_attempts + 1) * 25 * player.pay_multiplier, 'prison', (player.prison_break_attempts + 1) * 25]
+            if player.imprisoned and player.state['on_move']:
+                temp_state = [player.money >= (player.prison_break_attempts + 1) * 25 * player.pay_multiplier,
+                              'prison', (player.prison_break_attempts + 1) * 25]
 
-                if not player.state['paid'] and not player.state['refused_to_buy']:
-                    if player.piece_position == 4 or player.piece_position == 38:
-                        temp_state = [player.money >= -all_tiles[player.piece_position].income * player.pay_multiplier, 'minus', -all_tiles[player.piece_position].income]
+            if not player.state['paid'] and not player.state['refused_to_buy']:
+                if player.piece_position == 4 or player.piece_position == 38:
+                    temp_state = [player.money >= -all_tiles[player.piece_position].income * player.pay_multiplier,
+                                  'minus', -all_tiles[player.piece_position].income]
 
-                    elif all_tiles[player.piece_position].owner != player.color and all_tiles[player.piece_position].owned and not all_tiles[player.piece_position].mortgaged and all_tiles[player.piece_position].type != 'infrastructure':
-                        temp_state = [player.money >= all_tiles[player.piece_position].penis_income_calculation() * player.pay_multiplier, 'color', all_tiles[player.piece_position].owner]
+                elif all_tiles[player.piece_position].owner != player.color and all_tiles[
+                    player.piece_position].owned and not all_tiles[player.piece_position].mortgaged and all_tiles[
+                    player.piece_position].type != 'infrastructure':
+                    temp_state = [player.money >= all_tiles[
+                        player.piece_position].penis_income_calculation() * player.pay_multiplier, 'color',
+                                  all_tiles[player.piece_position].owner]
 
-                player.state['pay_btn_active'] = temp_state
-                print(f'Состояние pay_btn_active игрока {color} установлено на {player.state['pay_btn_active']}')
+            player.state['pay_btn_active'] = temp_state
+            # print(f'Состояние pay_btn_active игрока {color} установлено на {player.state['pay_btn_active']}')
 
 
 def buy_btn_check(color):
-    for player in players:
-        if player.color == color:
+    if state['is_game_started']:
+        player = player_dict[color]
+        if not player.bankrupt:
             temp_state_buy = [False, None]
             temp_state_auc = False
             if all_tiles[player.piece_position].buyable:
@@ -2600,17 +3040,19 @@ def buy_btn_check(color):
 
 def mortgage_btn_check(color):  # заложить
     if state['is_game_started']:
-        for player in players:
-            if player.color == color:
-                temp_state = False
-                if (player.state['on_move'] or player.state['buy_btn_active'][1] or player.state['pay_btn_active'][1] or
-                   (all_tiles[player.piece_position].owner != player.color and all_tiles[player.piece_position].owned and not player.state['paid'] and not player.state['refused_to_buy'])):
-                    for tile in all_tiles:
-                        if tile.owner == player.color:
-                            if not tile.penised_family and not tile.mortgaged:
-                                temp_state = True
-                player.state['mortgage_btn_active'] = temp_state
-                # print(f'Состояние mortgage_btn_active игрока {color} установлено на {player.state['mortgage_btn_active']}')
+        player = player_dict[color]
+        if not player.bankrupt:
+            temp_state = False
+            if (player.state['on_move'] or player.state['buy_btn_active'][1] or player.state['pay_btn_active'][1] or
+                    (all_tiles[player.piece_position].owner != player.color and all_tiles[
+                        player.piece_position].owned and not player.state['paid'] and not player.state[
+                        'refused_to_buy'])):
+                for tile in all_tiles:
+                    if tile.owner == player.color:
+                        if not tile.penised_family and not tile.mortgaged:
+                            temp_state = True
+            player.state['mortgage_btn_active'] = temp_state
+            # print(f'Состояние mortgage_btn_active игрока {color} установлено на {player.state['mortgage_btn_active']}')
 
 
 def redeem_btn_check(color):  # выкупить
@@ -2619,7 +3061,7 @@ def redeem_btn_check(color):  # выкупить
         for tile in all_tiles:
             if tile.mortgaged:
                 player = player_dict[color]
-                if player.state['on_move'] and not player.imprisoned:
+                if player.state['on_move'] and not player.imprisoned and not player.bankrupt:
                     if player.color == tile.owner:
                         if player.money >= tile.price:
                             temp_state = True
@@ -2628,22 +3070,24 @@ def redeem_btn_check(color):  # выкупить
 
 
 def penises_check(color):
-    for player in players:
-        if player.color == color:
-            temp_state_build = False
-            temp_state_remove = False
+    player = player_dict[color]
+    if not player.bankrupt:
+        temp_state_build = False
+        temp_state_remove = False
 
-            for tile in all_tiles:
-                if tile.full_family and tile.owner == player.color and tile.type == 'buildable':
-                    if player.state['on_move'] and not player.imprisoned and not tile.recently_built and player.money >= tile.penis_price and tile.penises < 5:
-                        temp_state_build = True
-                    if 1 <= tile.penises <= 5 and (player.state['on_move'] or player.state['pay_btn_active'][1] or player.state['buy_btn_active'][1]):
-                        temp_state_remove = True
+        for tile in all_tiles:
+            if tile.full_family and tile.owner == player.color and tile.type == 'buildable':
+                if player.state[
+                    'on_move'] and not player.imprisoned and not tile.recently_built and player.money >= tile.penis_price and tile.penises < 5:
+                    temp_state_build = True
+                if 1 <= tile.penises <= 5 and (player.state['on_move'] or player.state['pay_btn_active'][1] or
+                                               player.state['buy_btn_active'][1]):
+                    temp_state_remove = True
 
-            player.state['penis_build_btn_active'] = temp_state_build
-            player.state['penis_remove_btn_active'] = temp_state_remove
-            # print(f'Состояние penis_build_btn_active игрока {color} установлено на {player.state['penis_build_btn_active']}')
-            # print(f'Состояние penis_remove_btn_active игрока {color} установлено на {player.state['penis_remove_btn_active']}')
+        player.state['penis_build_btn_active'] = temp_state_build
+        player.state['penis_remove_btn_active'] = temp_state_remove
+        # print(f'Состояние penis_build_btn_active игрока {color} установлено на {player.state['penis_build_btn_active']}')
+        # print(f'Состояние penis_remove_btn_active игрока {color} установлено на {player.state['penis_remove_btn_active']}')
 
 
 def exchange_check(color):
@@ -2651,12 +3095,40 @@ def exchange_check(color):
         player = player_dict[color]
 
         temp_state = False
-        if player.state['pay_btn_active'][1] not in (None, 'prison') or player.state['on_move']:
+        if (player.state['pay_btn_active'][1] not in (None, 'prison') or player.state['on_move']) and not player.bankrupt:
             if len(players) > 1 and not player.imprisoned:
                 for tile in all_tiles:
                     if tile.owned:
                         temp_state = True
         player.state['exchange_btn_active'] = temp_state
+
+
+def surrender_check(color):
+    if state['is_game_started']:
+        player = player_dict[color]
+
+        temp_state = False
+        if (player.state['throw_cubes_btn_active'] or player.state['pay_btn_active'][1]) and not player.bankrupt:
+            temp_state = True
+        player.state['surrender_btn_active'] = temp_state
+
+
+def player_value_calculation(color):
+    if state['is_game_started']:
+        player = player_dict[color]
+        if not player.bankrupt:
+            value = player.money
+            for tile in all_tiles:
+                if tile.owner == color:
+                    if not tile.mortgaged:
+                        value += int(tile.price / 2)
+                    value += tile.penis_price * tile.penises
+            player.value = value
+
+            value_information = f'value|{color}|{player.value}%'
+            for player2 in players:
+                player2.conn.send(value_information.encode())
+                information_sent_to('Информация отправлена к', player2.color, value_information)
 
 
 load_assets()
@@ -2703,14 +3175,11 @@ while running:
 
     pg.display.update()
 
-if os.path.exists(f'resources/temp/images/server image messages'):
-    for file in os.listdir('resources/temp/images/server image messages'):
-        os.remove(f'resources/temp/images/server image messages/{file}')
-
 if os.path.exists(f'resources/temp/audios'):
     for file in os.listdir('resources/temp/audios'):
         os.remove(f'resources/temp/audios/{file}')
 
 print('Сервер закрыт')
 if debug_mode:
+    all_fps.pop(0)
     print(f'Средний FPS: {sum(all_fps) / len(all_fps)}')

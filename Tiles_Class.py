@@ -116,3 +116,15 @@ class Tiles:
 
         self.text_rect = text.get_rect(center=(self.xText + math.ceil(offset), self.yText - math.ceil(offset))) # + round(offset) - round(offset) math.ceil
 
+
+    def reset_tile(self):
+        self.family_members = 0
+        self.penises = 0
+        self.penised_family = False
+        self.recently_built = False
+        self.income = 0
+        self.owned = False
+        self.owner = ''
+        self.full_family = False
+        self.mortgaged = False
+        self.mortgaged_moves_count = 0
