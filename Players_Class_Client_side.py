@@ -23,4 +23,3 @@ class Player:
     def main_color(self, main_color):
         self.color = main_color
         self.main = True
-        print('Основной цвет:',self.color)

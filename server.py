@@ -1790,21 +1790,20 @@ def receive_data():
                                 information_sent_to('Информация отправлена к', player2.color, message_data)
 
                     elif data[0] == 'exchange request':
-                        for player2 in players:
-                            if player2.color == data[3]:
-                                message = [{'type': 'text',
-                                            'value': [
-                                                {'text': player.name, 'color': player.color_value},
-                                                {'text': f' предлагает игроку {player2.name} обмен', 'color': (0, 0, 0)}
-                                            ]}]
-                                message_data = f'message|{json.dumps(message)}%'
-                                log_textbox_.append_messages(message)
-                                exchange_request = f'exchange request|{data[1]}|{data[2]}|{player.color}%'
-                                player2.conn.send(exchange_request.encode())
-                                information_sent_to('Информация отправлена к', player2.color, exchange_request)
-                                for player3 in players:
-                                    player3.conn.send(message_data.encode())
-                                    information_sent_to('Информация отправлена к', player3.color, message_data)
+                        player2 = player_dict[data[3]]
+                        message = [{'type': 'text',
+                                    'value': [
+                                        {'text': player.name, 'color': player.color_value},
+                                        {'text': f' предлагает игроку {player2.name} обмен', 'color': (0, 0, 0)}
+                                    ]}]
+                        message_data = f'message|{json.dumps(message)}%'
+                        log_textbox_.append_messages(message)
+                        exchange_request = f'exchange request|{data[1]}|{data[2]}|{player.color}%'
+                        player2.conn.send(exchange_request.encode())
+                        information_sent_to('Информация отправлена к', player2.color, exchange_request)
+                        for player3 in players:
+                            player3.conn.send(message_data.encode())
+                            information_sent_to('Информация отправлена к', player3.color, message_data)
 
                     elif data[0] == 'exchange':
                         give_data = data[1].split('_')
@@ -2508,19 +2507,18 @@ def message_send():
             message_command = msg_text[1:].split(' ')
 
             if message_command[0] == 'money':
-                for player in players:
-                    if player.color == message_command[2]:
-                        if message_command[1] == 'add':
-                            player.money += int(message_command[3])
-                        elif message_command[1] == 'set':
-                            player.money = int(message_command[3])
-                        buy_btn_check(player.color)
-                        mortgage_btn_check(player.color)
-                        redeem_btn_check(player.color)
-                        money_data = f'money|{player.color}|{player.money}%'
-                        for player2 in players:
-                            player2.conn.send(money_data.encode())
-                            information_sent_to('Информация отправлена к', player2.color, money_data)
+                player = player_dict[message_command[2]]
+                if message_command[1] == 'add':
+                    player.money += int(message_command[3])
+                elif message_command[1] == 'set':
+                    player.money = int(message_command[3])
+                buy_btn_check(player.color)
+                mortgage_btn_check(player.color)
+                redeem_btn_check(player.color)
+                money_data = f'money|{player.color}|{player.money}%'
+                for player2 in players:
+                    player2.conn.send(money_data.encode())
+                    information_sent_to('Информация отправлена к', player2.color, money_data)
 
             if message_command[0] == 'set_state':
                 player = player_dict[message_command[1]]
@@ -2966,15 +2964,14 @@ def debug_output():
 
 def send_player_state(color):
     if state['is_game_started']:
-        for player in players:
-            if player.color == color:
-                sendable_state = {}
-                for state_key in player.state:
-                    if state_key not in ('on_move'):
-                        sendable_state[state_key] = player.state[state_key]
-                json_encoded_state = f'player state|{json.dumps(sendable_state)}%'
-                player.conn.send(json_encoded_state.encode())
-                information_sent_to('Информация отправлена к', player.color, json_encoded_state)
+        player = player_dict[color]
+        sendable_state = {}
+        for state_key in player.state:
+            if state_key not in ('on_move'):
+                sendable_state[state_key] = player.state[state_key]
+        json_encoded_state = f'player state|{json.dumps(sendable_state)}%'
+        player.conn.send(json_encoded_state.encode())
+        information_sent_to('Информация отправлена к', player.color, json_encoded_state)
 
 
 def pay_btn_check(color):

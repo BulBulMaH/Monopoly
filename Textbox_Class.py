@@ -48,6 +48,7 @@ class Textbox:
         self.mouse_position = (0, 0)
         self.scroll_bar_button_pressed = False
         self.pressed_mouse_position = (0, 0)
+        self.hidden = False
 
         # Атрибуты для выделения текста
         self.selection_active = False
@@ -257,46 +258,47 @@ class Textbox:
             pyperclip.copy(' '.join(selected_parts))
 
     def render(self, screen: pygame.Surface):
-        screen.fill(self.border_color, self.border_rect)
-        screen.fill(self.background_color, self.background_rect)
+        if not self.hidden:
+            screen.fill(self.border_color, self.border_rect)
+            screen.fill(self.background_color, self.background_rect)
 
-        if self.visible_messages:
-            old_clip = screen.get_clip()
-            screen.set_clip(self.visible_text_rect)
+            if self.visible_messages:
+                old_clip = screen.get_clip()
+                screen.set_clip(self.visible_text_rect)
 
-            for rect in self.selection_rects:
-                s = pygame.Surface((rect.width, rect.height), pygame.SRCALPHA)
-                s.fill((0, 84, 255, 204))
-                screen.blit(s, rect)
+                for rect in self.selection_rects:
+                    s = pygame.Surface((rect.width, rect.height), pygame.SRCALPHA)
+                    s.fill((0, 84, 255, 204))
+                    screen.blit(s, rect)
 
-            for msg in self.visible_messages:
-                element = msg['element']
-                dest_y = self.visible_text_rect.y + msg['y']
+                for msg in self.visible_messages:
+                    element = msg['element']
+                    dest_y = self.visible_text_rect.y + msg['y']
 
-                if element['type'] == 'text':
-                    if 'segments' in element:
-                        # Разноцветная строка
-                        for seg in element['segments']:
-                            screen.blit(seg['surface'], (self.visible_text_rect.x + seg['x_offset'], dest_y))
-                    else:
-                        # Одноцветная строка (старый формат)
+                    if element['type'] == 'text':
+                        if 'segments' in element:
+                            # Разноцветная строка
+                            for seg in element['segments']:
+                                screen.blit(seg['surface'], (self.visible_text_rect.x + seg['x_offset'], dest_y))
+                        else:
+                            # Одноцветная строка (старый формат)
+                            screen.blit(element['surface'], (self.visible_text_rect.x, dest_y))
+
+                    elif element['type'] == 'image':
                         screen.blit(element['surface'], (self.visible_text_rect.x, dest_y))
 
-                elif element['type'] == 'image':
-                    screen.blit(element['surface'], (self.visible_text_rect.x, dest_y))
+                    elif element['type'] == 'audio':
+                        player = element['player']
+                        if self.visible_text_rect.colliderect(player.border_rect):
+                            player.render(screen)
+                screen.set_clip(old_clip)
 
-                elif element['type'] == 'audio':
-                    player = element['player']
-                    if self.visible_text_rect.colliderect(player.border_rect):
-                        player.render(screen)
-            screen.set_clip(old_clip)
+            if self.scroll_bar:
+                self.scroll_bar.render(screen)
+                self.scroll_bar.button.render(screen)
 
-        if self.scroll_bar:
-            self.scroll_bar.render(screen)
-            self.scroll_bar.button.render(screen)
-
-        for player in self.audio_players:
-            player.update()
+            for player in self.audio_players:
+                player.update()
 
     def check_for_scroll_bar(self):
         if not self.scroll_bar and self.total_height > self.visible_text_rect.height:
@@ -352,122 +354,110 @@ class Textbox:
         return self.ui_manager.get_hovering_any_element()
 
     def process_events(self, event: pygame.event.Event):
-        collided_with_player = False
-        for player in self.audio_players:
-            if player.process_events(event):
-                collided_with_player = True
+        if not self.hidden:
+            collided_with_player = False
+            for player in self.audio_players:
+                if player.process_events(event):
+                    collided_with_player = True
 
-        if event.type == pygame.MOUSEWHEEL:
-            mouse_pos = pygame.mouse.get_pos()
-            if self.visible_text_rect.collidepoint(mouse_pos):
-                max_scroll = max(0, self.total_height - self.visible_text_rect.height)
-                if max_scroll > 0:
-                    delta = -event.y * self.line_height
-                    self.scroll_y = pygame.math.clamp(self.scroll_y + delta, 0, max_scroll)
-                    self.update_visible_elements()
-                    if self.scroll_bar:
-                        percentage = self.scroll_y / max_scroll
-                        self.scroll_bar.set_scrolled_percentage(percentage)
+            if event.type == pygame.MOUSEWHEEL:
+                mouse_pos = pygame.mouse.get_pos()
+                if self.visible_text_rect.collidepoint(mouse_pos):
+                    max_scroll = max(0, self.total_height - self.visible_text_rect.height)
+                    if max_scroll > 0:
+                        delta = -event.y * self.line_height
+                        self.scroll_y = pygame.math.clamp(self.scroll_y + delta, 0, max_scroll)
+                        self.update_visible_elements()
+                        if self.scroll_bar:
+                            percentage = self.scroll_y / max_scroll
+                            self.scroll_bar.set_scrolled_percentage(percentage)
 
 
 
-        # Обработка выделения текста
-        if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-            self.pressed_mouse_position = event.pos
-            if self.scroll_bar and self.scroll_bar.button.border_rect.collidepoint(event.pos):
-                self.scroll_bar_button_pressed = True
-                self.scroll_bar.button.relative_pressed_position = event.pos[1] - self.scroll_bar.button.border_rect.y
-                # Сброс выделения при клике на скроллбар
-                self.selection_active = False
-                self.selection_start = self.selection_end = None
-                self.selection_rects.clear()
-            else:
-                # Проверяем, кликнули ли по аудиоплееру
-                clicked_on_player = any(p.border_rect.collidepoint(event.pos) for p in self.audio_players)
-                if self.visible_text_rect.collidepoint(event.pos) and not clicked_on_player:
-                    pos = self._get_char_pos_at(*event.pos)
-                    if pos:
-                        idx, char = pos
-                        self.selection_active = True
-                        self.selection_start = (idx, char)
-                        self.selection_end = (idx, char)
-                        self._update_selection_rects()
-                    else:
-                        # Клик вне текста (пустое место) – сброс выделения
-                        self.selection_active = False
-                        self.selection_start = self.selection_end = None
-                        self.selection_rects.clear()
-                else:
-                    # Клик вне текстовой области или на плеере – сброс
+            # Обработка выделения текста
+            if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+                self.pressed_mouse_position = event.pos
+                if self.scroll_bar and self.scroll_bar.button.border_rect.collidepoint(event.pos):
+                    self.scroll_bar_button_pressed = True
+                    self.scroll_bar.button.relative_pressed_position = event.pos[1] - self.scroll_bar.button.border_rect.y
+                    # Сброс выделения при клике на скроллбар
                     self.selection_active = False
                     self.selection_start = self.selection_end = None
                     self.selection_rects.clear()
-
-
-        elif event.type == pygame.MOUSEMOTION:
-
-            self.mouse_position = event.pos
-
-            # Расширение выделения при зажатой левой кнопке (без изменений)
-
-            if self.selection_active and pygame.mouse.get_pressed()[0]:
-
-                pos = self._get_char_pos_at(*event.pos)
-
-                if pos:
-
-                    idx, char = pos
-
-                    if (idx, char) != self.selection_end:
-                        self._set_selection(self.selection_start[0], self.selection_start[1], idx, char)
-
-            # Обновление курсора ТОЛЬКО если мышь НЕ над pygame-gui
-
-            if not self._is_mouse_over_gui():
-
-                scroll_bar_collided = self.scroll_bar and self.scroll_bar.border_rect.collidepoint(self.mouse_position)
-
-                current_cursor = pygame.mouse.get_cursor()
-
-                if not collided_with_player:
-
-                    if self.border_rect.collidepoint(self.mouse_position) and not scroll_bar_collided:
-
-                        if current_cursor != self.i_beam_cursor:
-                            pygame.mouse.set_cursor(self.i_beam_cursor)
-
+                else:
+                    # Проверяем, кликнули ли по аудиоплееру
+                    clicked_on_player = any(p.border_rect.collidepoint(event.pos) for p in self.audio_players)
+                    if self.visible_text_rect.collidepoint(event.pos) and not clicked_on_player:
+                        pos = self._get_char_pos_at(*event.pos)
+                        if pos:
+                            idx, char = pos
+                            self.selection_active = True
+                            self.selection_start = (idx, char)
+                            self.selection_end = (idx, char)
+                            self._update_selection_rects()
+                        else:
+                            # Клик вне текста (пустое место) – сброс выделения
+                            self.selection_active = False
+                            self.selection_start = self.selection_end = None
+                            self.selection_rects.clear()
                     else:
+                        # Клик вне текстовой области или на плеере – сброс
+                        self.selection_active = False
+                        self.selection_start = self.selection_end = None
+                        self.selection_rects.clear()
 
-                        if current_cursor == self.i_beam_cursor:
-                            pygame.mouse.set_cursor(self.normal_cursor)
+            elif event.type == pygame.MOUSEMOTION:
+                self.mouse_position = event.pos
+                # Расширение выделения при зажатой левой кнопке (без изменений)
+                if self.selection_active and pygame.mouse.get_pressed()[0]:
+                    pos = self._get_char_pos_at(*event.pos)
+                    if pos:
+                        idx, char = pos
+                        if (idx, char) != self.selection_end:
+                            self._set_selection(self.selection_start[0], self.selection_start[1], idx, char)
+                # Обновление курсора ТОЛЬКО если мышь НЕ над pygame-gui
+                if not self._is_mouse_over_gui():
+                    scroll_bar_collided = self.scroll_bar and self.scroll_bar.border_rect.collidepoint(self.mouse_position)
+                    current_cursor = pygame.mouse.get_cursor()
+                    if not collided_with_player:
+                        if self.border_rect.collidepoint(self.mouse_position) and not scroll_bar_collided:
+                            if current_cursor != self.i_beam_cursor:
+                                pygame.mouse.set_cursor(self.i_beam_cursor)
+                        else:
+                            if current_cursor == self.i_beam_cursor:
+                                pygame.mouse.set_cursor(self.normal_cursor)
+                    elif current_cursor != self.pointy_cursor:
+                        pygame.mouse.set_cursor(self.pointy_cursor)
 
-                elif current_cursor != self.pointy_cursor:
+            elif event.type == pygame.MOUSEBUTTONUP and event.button == 1:
+                self.scroll_bar_button_pressed = False
+                if self.selection_active:
+                    self.selection_active = False
+                    # Выделение остаётся
 
-                    pygame.mouse.set_cursor(self.pointy_cursor)
+            elif event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_c and event.mod & pygame.KMOD_CTRL:
+                    self.copy_selection()
 
-        elif event.type == pygame.MOUSEBUTTONUP and event.button == 1:
-            self.scroll_bar_button_pressed = False
-            if self.selection_active:
-                self.selection_active = False
-                # Выделение остаётся
+            # Перетаскивание скроллбара (как в оригинале)
+            if self.scroll_bar_button_pressed:
+                delta_y = self.mouse_position[1] - self.scroll_bar.button.border_rect.y
+                button_y = self.scroll_bar.button.border_rect.y + delta_y - self.scroll_bar.button.relative_pressed_position
+                min_y = self.scroll_bar.background_rect.top
+                max_y = self.scroll_bar.background_rect.bottom - self.scroll_bar.button.border_rect.height
+                button_y = pygame.math.clamp(button_y, min_y, max_y)
+                self.scroll_bar.button.set_button_y_position(button_y)
 
-        elif event.type == pygame.KEYDOWN:
-            if event.key == pygame.K_c and event.mod & pygame.KMOD_CTRL:
-                self.copy_selection()
+                percentage = self.scroll_bar.get_scrolled_percentage()
+                max_scroll = max(0, self.total_height - self.visible_text_rect.height)
+                self.scroll_y = percentage * max_scroll
+                self.update_visible_elements()
 
-        # Перетаскивание скроллбара (как в оригинале)
-        if self.scroll_bar_button_pressed:
-            delta_y = self.mouse_position[1] - self.scroll_bar.button.border_rect.y
-            button_y = self.scroll_bar.button.border_rect.y + delta_y - self.scroll_bar.button.relative_pressed_position
-            min_y = self.scroll_bar.background_rect.top
-            max_y = self.scroll_bar.background_rect.bottom - self.scroll_bar.button.border_rect.height
-            button_y = pygame.math.clamp(button_y, min_y, max_y)
-            self.scroll_bar.button.set_button_y_position(button_y)
+    def hide(self):
+        self.hidden = True
 
-            percentage = self.scroll_bar.get_scrolled_percentage()
-            max_scroll = max(0, self.total_height - self.visible_text_rect.height)
-            self.scroll_y = percentage * max_scroll
-            self.update_visible_elements()
+    def show(self):
+        self.hidden = False
 
 
 class ScrollBar:

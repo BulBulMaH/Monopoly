@@ -367,67 +367,55 @@ def load_game():
 def throw_cubes():
     exchange_screen_reset()
     if state['throw_cubes_btn_active'] and state['is_game_started']:
-        for player in players:
-            if player.main:
-                move_command = 'move%'
-                sock.send(move_command.encode())
-                information_sent('Команда отправлена', move_command)
+        move_command = 'move%'
+        sock.send(move_command.encode())
+        information_sent('Команда отправлена', move_command)
 
 
 def buy():
     if state['is_game_started'] and state['buy_btn_active'][0]:
-        for player in players:
-            if player.main:
-                buy_command = f'buy|{state['buy_btn_active'][1]}%'
-                sock.send(buy_command.encode())
-                information_sent('Команда отправлена', buy_command)
+        buy_command = f'buy|{state['buy_btn_active'][1]}%'
+        sock.send(buy_command.encode())
+        information_sent('Команда отправлена', buy_command)
 
 
 def pay():
     if state['is_game_started']:
         if state['pay_btn_active'][1] == 'minus':
-            for player in players:
-                if player.main:
-                    pay_command = f'pay|{player.piece_position}%'
-                    sock.send(pay_command.encode())
-                    information_sent('Команда отправлена', pay_command)
+            player = player_dict['main']
+            pay_command = f'pay|{player.piece_position}%'
+            sock.send(pay_command.encode())
+            information_sent('Команда отправлена', pay_command)
 
         elif state['pay_btn_active'][1] == 'pay sum':
-            for player in players:
-                if player.main:
-                    pay_command = f'pay sum|{state['pay_btn_active'][2]}%'
-                    sock.send(pay_command.encode())
-                    information_sent('Команда отправлена', pay_command)
+            pay_command = f'pay sum|{state['pay_btn_active'][2]}%'
+            sock.send(pay_command.encode())
+            information_sent('Команда отправлена', pay_command)
 
         elif state['pay_btn_active'][1] == 'color':
-            for player in players:
-                if player.main:
-                    pay_command = f'payToColor|{player.piece_position}|{state['pay_btn_active'][2]}%'
-                    sock.send(pay_command.encode())
-                    information_sent('Команда отправлена', pay_command)
+            player = player_dict['main']
+            pay_command = f'payToColor|{player.piece_position}|{state['pay_btn_active'][2]}%'
+            sock.send(pay_command.encode())
+            information_sent('Команда отправлена', pay_command)
 
         elif state['pay_btn_active'][1] == 'player':
-            for player in players:
-                if player.main:
-                    if player.money >= state['pay_btn_active'][3] * player.pay_multiplier:
-                        pay_command = f'pay to player|{state['pay_btn_active'][2]}|{state['pay_btn_active'][3]}%' # 'pay to player|{color}|{sum}%'
-                        sock.send(pay_command.encode())
-                        information_sent('Команда отправлена', pay_command)
+            player = player_dict['main']
+            if player.money >= state['pay_btn_active'][3] * player.pay_multiplier:
+                pay_command = f'pay to player|{state['pay_btn_active'][2]}|{state['pay_btn_active'][3]}%' # 'pay to player|{color}|{sum}%'
+                sock.send(pay_command.encode())
+                information_sent('Команда отправлена', pay_command)
 
         elif state['pay_btn_active'][1] == 'players':
-            for player in players:
-                if player.main:
-                    if player.money >= state['pay_btn_active'][2] * (len(players) - 1) * player.pay_multiplier:
-                        pay_command = f'pay to players|{state['pay_btn_active'][2]}%' # 'pay to players|{sum}%'
-                        sock.send(pay_command.encode())
-                        information_sent('Команда отправлена', pay_command)
+            player = player_dict['main']
+            if player.money >= state['pay_btn_active'][2] * (len(players) - 1) * player.pay_multiplier:
+                pay_command = f'pay to players|{state['pay_btn_active'][2]}%' # 'pay to players|{sum}%'
+                sock.send(pay_command.encode())
+                information_sent('Команда отправлена', pay_command)
 
         elif state['pay_btn_active'][1] == 'prison':
-            for player in players:
-                if player.main:
-                    pay_command = f'pay for prison%'
-                    sock.send(pay_command.encode())
-                    information_sent('Команда отправлена', pay_command)
+            pay_command = f'pay for prison%'
+            sock.send(pay_command.encode())
+            information_sent('Команда отправлена', pay_command)
 
 
 def debug_output():
@@ -526,49 +514,45 @@ def tile_button(tile_position):
               f'{tile.mortgaged_moves_count = }\n')
 
     if state['is_game_started'] and state['all_penises_build_btns_active']:
-        for player in players:
-            if player.main:
-                if (all_tiles[tile_position].full_family and
-                        all_tiles[tile_position].penises < 5 and
-                        player.money >= all_tiles[tile_position].penis_price and
-                        all_tiles[tile_position].type == 'buildable' and
-                        all_tiles[tile_position].owner == player.color):
-                    state['all_penises_build_btns_active'] = False
-                    penis_command = f'penis build|{tile_position}%'
-                    sock.send(penis_command.encode())
-                    information_sent('Информация отправлена', penis_command)
-                    active_buttons_check()
+        player = player_dict['main']
+        if (all_tiles[tile_position].full_family and
+                all_tiles[tile_position].penises < 5 and
+                player.money >= all_tiles[tile_position].penis_price and
+                all_tiles[tile_position].type == 'buildable' and
+                all_tiles[tile_position].owner == player.color):
+            state['all_penises_build_btns_active'] = False
+            penis_command = f'penis build|{tile_position}%'
+            sock.send(penis_command.encode())
+            information_sent('Информация отправлена', penis_command)
+            active_buttons_check()
 
     elif state['is_game_started'] and state['all_penises_remove_btns_active']:
-        for player in players:
-            if player.main:
-                if (all_tiles[tile_position].full_family and
-                        1 <= all_tiles[tile_position].penises <= 5 and
-                        all_tiles[tile_position].type == 'buildable' and
-                        all_tiles[tile_position].owner == player.color):
-                    state['all_penises_remove_btns_active'] = False
-                    penis_command = f'penis remove|{tile_position}%'
-                    sock.send(penis_command.encode())
-                    information_sent('Информация отправлена', penis_command)
+        player = player_dict['main']
+        if (all_tiles[tile_position].full_family and
+                1 <= all_tiles[tile_position].penises <= 5 and
+                all_tiles[tile_position].type == 'buildable' and
+                all_tiles[tile_position].owner == player.color):
+            state['all_penises_remove_btns_active'] = False
+            penis_command = f'penis remove|{tile_position}%'
+            sock.send(penis_command.encode())
+            information_sent('Информация отправлена', penis_command)
 
     elif state['is_game_started'] and state['exchange_tile_btn_active']:
         global exchange_give, exchange_get
         if tile_position in available_tiles_for_exchange:
             if (tile_position not in exchange_give and
                     tile_position not in exchange_get):
-                for player in players:
-                    if player.main:
-                        if player.color == all_tiles[tile_position].owner:
-                            exchange_give.append(tile_position)
-                        else:
-                            exchange_get.append(tile_position)
+                player = player_dict['main']
+                if player.color == all_tiles[tile_position].owner:
+                    exchange_give.append(tile_position)
+                else:
+                    exchange_get.append(tile_position)
             else:
-                for player in players:
-                    if player.main:
-                        if player.color == all_tiles[tile_position].owner:
-                            exchange_give.remove(tile_position)
-                        else:
-                            exchange_get.remove(tile_position)
+                player = player_dict['main']
+                if player.color == all_tiles[tile_position].owner:
+                    exchange_give.remove(tile_position)
+                else:
+                    exchange_get.remove(tile_position)
             exchange_value_calculation()
 
     elif state['is_game_started'] and state['mortgage_tile_btn_active']:
@@ -579,13 +563,12 @@ def tile_button(tile_position):
             state['mortgage_tile_btn_active'] = False
 
     elif state['is_game_started'] and state['redeem_tile_btn_active']:
-        for player in players:
-            if player.main:
-                if all_tiles[tile_position].mortgaged and player.money >= all_tiles[tile_position].price / 2 * 1.1:
-                    redeem_command = f'redeem|{tile_position}%'
-                    sock.send(redeem_command.encode())
-                    information_sent('Команда отправлена', redeem_command)
-                    state['redeem_tile_btn_active'] = False
+        player = player_dict['main']
+        if all_tiles[tile_position].mortgaged and player.money >= all_tiles[tile_position].price / 2 * 1.1:
+            redeem_command = f'redeem|{tile_position}%'
+            sock.send(redeem_command.encode())
+            information_sent('Команда отправлена', redeem_command)
+            state['redeem_tile_btn_active'] = False
 
     elif not state['redeem_tile_btn_active'] and not state['all_penises_build_btns_active'] and not state['all_penises_remove_btns_active'] and not state['exchange_tile_btn_active'] and not state['mortgage_tile_btn_active'] and not state['redeem_tile_btn_active']:
         tile = all_tiles[tile_position]
@@ -643,18 +626,16 @@ def tile_button(tile_position):
 def player_button(color):
     global available_tiles_for_exchange, exchange_color, exchange_give, exchange_get
     if state['is_game_started'] and state['exchange_player_btn_active']:
-        for player2 in players:
-            if player2.color == color:
-                if not player2.main:
-                    available_tiles_for_exchange = []
-                    for player in players:
-                        if player.main:
-                            for tile in all_tiles:
-                                if not tile.penised_family:
-                                    if tile.owner == player.color:
-                                        available_tiles_for_exchange.append(tile.position)
-                                    elif tile.owner == color:
-                                        available_tiles_for_exchange.append(tile.position)
+        player2 = player_dict[color]
+        if not player2.main:
+            available_tiles_for_exchange = []
+            player = player_dict['main']
+            for tile in all_tiles:
+                if not tile.penised_family:
+                    if tile.owner == player.color:
+                        available_tiles_for_exchange.append(tile.position)
+                    elif tile.owner == color:
+                        available_tiles_for_exchange.append(tile.position)
 
                     exchange_give = []
                     exchange_get = []
@@ -684,15 +665,14 @@ def shove_penis_activation():
     if state['is_game_started'] and state['penis_build_btn_active']:
         for tile in all_tiles:
             if tile.full_family:
-                for player in players:
-                    if player.main:
-                        if tile.owner == player.color:
-                            state['all_penises_build_btns_active'] = True
-                            state['all_penises_remove_btns_active'] = False
-                            state['mortgage_tile_btn_active'] = False
-                            state['redeem_tile_btn_active'] = False
-                            state['exchange_tile_btn_active'] = False
-                            active_buttons_check()
+                player = player_dict['main']
+                if tile.owner == player.color:
+                    state['all_penises_build_btns_active'] = True
+                    state['all_penises_remove_btns_active'] = False
+                    state['mortgage_tile_btn_active'] = False
+                    state['redeem_tile_btn_active'] = False
+                    state['exchange_tile_btn_active'] = False
+                    active_buttons_check()
 
 
 def remove_penis_activation():
@@ -701,15 +681,14 @@ def remove_penis_activation():
         for tile in all_tiles:
             if tile.full_family:
                 if 1 <= tile.penises <= 5:
-                    for player in players:
-                        if player.main:
-                            if tile.owner == player.color:
-                                state['all_penises_remove_btns_active'] = True
-                                state['all_penises_build_btns_active'] = False
-                                state['mortgage_tile_btn_active'] = False
-                                state['redeem_tile_btn_active'] = False
-                                state['exchange_tile_btn_active'] = False
-                                active_buttons_check()
+                    player = player_dict['main']
+                    if tile.owner == player.color:
+                        state['all_penises_remove_btns_active'] = True
+                        state['all_penises_build_btns_active'] = False
+                        state['mortgage_tile_btn_active'] = False
+                        state['redeem_tile_btn_active'] = False
+                        state['exchange_tile_btn_active'] = False
+                        active_buttons_check()
 
 
 def exchange():
@@ -941,31 +920,29 @@ def choose_avatar():
 
 def auction():
     if state['is_game_started'] and state['auction_btn_active']:
-        for player in players:
-            if player.main:
-                if all_tiles[player.piece_position].buyable:
-                    auction_command = f'auction initiate|{player.piece_position}%'
-                    sock.send(auction_command.encode())
-                    information_sent('Команда отправлена', auction_command)
+        player = player_dict['main']
+        if all_tiles[player.piece_position].buyable:
+            auction_command = f'auction initiate|{player.piece_position}%'
+            sock.send(auction_command.encode())
+            information_sent('Команда отправлена', auction_command)
 
 
 def auction_buy():
     if state['show_auction_screen'][0]:
-        for player in players:
-            if player.main:
-                if player.money >= int(state['show_auction_screen'][2]) + 20:
-                    auction_command = f'auction accept|{state['show_auction_screen'][1]}|{int(state['show_auction_screen'][2]) + 20}%'
-                    sock.send(auction_command.encode())
-                    information_sent('Команда отправлена', auction_command)
-                    state['show_auction_screen'] = [False]
-                    auction_buy_button.hide()
-                    auction_reject_button.hide()
-                    log_textbox.show()
-                    log_text_send_button.show()
-                    log_audio_send_button.show()
-                    log_voice_message_send_button.show()
-                    log_image_send_button.show()
-                    log_entry_textbox.show()
+        player = player_dict['main']
+        if player.money >= int(state['show_auction_screen'][2]) + 20:
+            auction_command = f'auction accept|{state['show_auction_screen'][1]}|{int(state['show_auction_screen'][2]) + 20}%'
+            sock.send(auction_command.encode())
+            information_sent('Команда отправлена', auction_command)
+            state['show_auction_screen'] = [False]
+            auction_buy_button.hide()
+            auction_reject_button.hide()
+            log_textbox.show()
+            log_text_send_button.show()
+            log_audio_send_button.show()
+            log_voice_message_send_button.show()
+            log_image_send_button.show()
+            log_entry_textbox.show()
 
 
 def auction_reject():
@@ -1021,34 +998,32 @@ def surrender():
 
 def exit_prison_by_egg_s(egg_type):
     prison_exit_information = ''
-    for player in players:
-        if player.main:
-            if player.imprisoned:
-                state['bonus_buttons'].remove(egg_type)
-                if player.egg_prison_exit_card and egg_type == 'Яйцо':
-                    prison_exit_information = f'prison exit by eggs|Яйцо%'
-                    player.egg_prison_exit_card = False
-                    exit_prison_egg_btn.hide()
-                elif player.eggs_prison_exit_card and egg_type == 'Яйца':
-                    prison_exit_information = f'prison exit by eggs|Яйца%'
-                    player.eggs_prison_exit_card = False
-                    exit_prison_eggs_btn.hide()
-                sock.send(prison_exit_information.encode())
-                information_sent('Команда отправлена', prison_exit_information)
+    player = player_dict['main']
+    if player.imprisoned:
+        state['bonus_buttons'].remove(egg_type)
+        if player.egg_prison_exit_card and egg_type == 'Яйцо':
+            prison_exit_information = f'prison exit by eggs|Яйцо%'
+            player.egg_prison_exit_card = False
+            exit_prison_egg_btn.hide()
+        elif player.eggs_prison_exit_card and egg_type == 'Яйца':
+            prison_exit_information = f'prison exit by eggs|Яйца%'
+            player.eggs_prison_exit_card = False
+            exit_prison_eggs_btn.hide()
+        sock.send(prison_exit_information.encode())
+        information_sent('Команда отправлена', prison_exit_information)
 
 
 def dn_activate():
-    for player in players:
-        if player.main:
-            if state['pay_btn_active'][1]:
-                state['bonus_buttons'].remove('dn')
-                if player.dn_card:
-                    dn_information = f'double or nothing%'
-                    player.dn_card = False
-                    dn_btn.hide()
+    player = player_dict['main']
+    if state['pay_btn_active'][1]:
+        state['bonus_buttons'].remove('dn')
+        if player.dn_card:
+            dn_information = f'double or nothing%'
+            player.dn_card = False
+            dn_btn.hide()
 
-                    sock.send(dn_information.encode())
-                    information_sent('Команда отправлена', dn_information)
+            sock.send(dn_information.encode())
+            information_sent('Команда отправлена', dn_information)
 
 
 def egg_s_reset():
@@ -1373,49 +1348,39 @@ def move_by_cubes(cube1, cube2, color):  # Не спрашивайте, как �
     global players, state
     if cube1 >= 0:
         show_cubes(cube1, cube2)
+    player = player_dict[color]
+    # aver_time = []
+    for i in range(abs(cube1 + cube2)):
+        # now = time.time()
+        players_on_tile = []
 
-    for player in players:
-        if player.color == color:
-            # aver_time = []
-            for i in range(abs(cube1 + cube2)):
-                # now = time.time()
-                players_on_tile = []
+        if cube1 > 0:
+            player.piece_position += 1
+            if player.piece_position >= 40:
+                player.piece_position -= 40
+        else:
+            player.piece_position -= 1
+            if player.piece_position < 0:
+                player.piece_position += 40
 
-                if cube1 > 0:
-                    player.piece_position += 1
-                    if player.piece_position >= 40:
-                        player.piece_position -= 40
-                else:
-                    player.piece_position -= 1
-                    if player.piece_position < 0:
-                        player.piece_position += 40
+        for player2 in players:
+            if player2.piece_position == player.piece_position:
+                players_on_tile.append(player2)
+        end_positions = []
+        for player3 in players_on_tile:
+            if player.piece_position in (0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29):
+                end_positions.append((all_tiles[player3.piece_position].x_center + offset_horizontal[len(players_on_tile) - 1][players_on_tile.index(player3)][0],
+                                      all_tiles[player3.piece_position].y_center + offset_horizontal[len(players_on_tile) - 1][players_on_tile.index(player3)][1]))
+            else:
+                end_positions.append((all_tiles[player3.piece_position].x_center + offset_vertical[len(players_on_tile) - 1][players_on_tile.index(player3)][0],
+                                      all_tiles[player3.piece_position].y_center + offset_vertical[len(players_on_tile) - 1][players_on_tile.index(player3)][1]))
+        move(players_on_tile, end_positions, cube1 + cube2)
 
-                for player2 in players:
-                    if player2.piece_position == player.piece_position:
-                        players_on_tile.append(player2)
-                end_positions = []
-                for player3 in players_on_tile:
-                    if player.piece_position in (0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29):
-                        end_positions.append((all_tiles[player3.piece_position].x_center + offset_horizontal[len(players_on_tile) - 1][players_on_tile.index(player3)][0],
-                                              all_tiles[player3.piece_position].y_center + offset_horizontal[len(players_on_tile) - 1][players_on_tile.index(player3)][1]))
-                    else:
-                        end_positions.append((all_tiles[player3.piece_position].x_center + offset_vertical[len(players_on_tile) - 1][players_on_tile.index(player3)][0],
-                                              all_tiles[player3.piece_position].y_center + offset_vertical[len(players_on_tile) - 1][players_on_tile.index(player3)][1]))
-                move(players_on_tile, end_positions, cube1 + cube2)
+        position_update()
 
-                position_update()
-
-            if player.main:
-                # if all_tiles[player.piece_position].family == 'Яйцо':
-                #     sock.send('pull card|Яйцо%'.encode())
-                #     information_sent('Информация отправлена', 'pull card|Яйцо%')
-                #
-                # elif all_tiles[player.piece_position].family == 'Яйца':
-                #     sock.send('pull card|Яйца%'.encode())
-                #     information_sent('Информация отправлена', 'pull card|Яйца%')
-
-                sock.send('moved|cubes%'.encode())
-                information_sent('Информация отправлена', 'moved|cubes%')
+    if player.main:
+        sock.send('moved|cubes%'.encode())
+        information_sent('Информация отправлена', 'moved|cubes%')
 
 
 def move(players_on_tile, end_positions, cube_sum):
@@ -1504,35 +1469,34 @@ def handle_connection():
                                 information_received('Информация получена', data)
 
                             if data[0] == 'color main':
-                                for allPlayer in all_players:
-                                    if allPlayer.color == data[1]:
-                                        allPlayer.main_color(data[1])
+                                allPlayer = player_dict[data[1]]
+                                allPlayer.main_color(data[1])
+                                player_dict['main'] = allPlayer
                                 connect_file_socket(data[1])
 
                             elif data[0] == 'move':
                                 move_by_cubes(int(data[2]), int(data[3]), data[1])
 
                             elif data[0] == 'move diagonally':
-                                for player in players:
-                                    if player.color == data[1]:
-                                        new_position = int(data[2])
-                                        player.piece_position = new_position
-                                        players_on_tile = []
-                                        for player2 in players:
-                                            if player2.piece_position == new_position:
-                                                players_on_tile.append(player2)
-                                        end_positions = []
-                                        for player3 in players_on_tile:
-                                            if player.piece_position in (0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29): # только горизонтальные
-                                                end_positions.append((all_tiles[player3.piece_position].x_center + offset_horizontal[len(players_on_tile) - 1][players_on_tile.index(player3)][0],
-                                                                      all_tiles[player3.piece_position].y_center + offset_horizontal[len(players_on_tile) - 1][players_on_tile.index(player3)][1]))
-                                            else:
-                                                end_positions.append((all_tiles[player3.piece_position].x_center + offset_vertical[len(players_on_tile) - 1][players_on_tile.index(player3)][0],
-                                                                      all_tiles[player3.piece_position].y_center + offset_vertical[len(players_on_tile) - 1][players_on_tile.index(player3)][1]))
+                                player = player_dict[data[1]]
+                                new_position = int(data[2])
+                                player.piece_position = new_position
+                                players_on_tile = []
+                                for player2 in players:
+                                    if player2.piece_position == new_position:
+                                        players_on_tile.append(player2)
+                                end_positions = []
+                                for player3 in players_on_tile:
+                                    if player.piece_position in (0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29): # только горизонтальные
+                                        end_positions.append((all_tiles[player3.piece_position].x_center + offset_horizontal[len(players_on_tile) - 1][players_on_tile.index(player3)][0],
+                                                              all_tiles[player3.piece_position].y_center + offset_horizontal[len(players_on_tile) - 1][players_on_tile.index(player3)][1]))
+                                    else:
+                                        end_positions.append((all_tiles[player3.piece_position].x_center + offset_vertical[len(players_on_tile) - 1][players_on_tile.index(player3)][0],
+                                                              all_tiles[player3.piece_position].y_center + offset_vertical[len(players_on_tile) - 1][players_on_tile.index(player3)][1]))
 
-                                        move([player], end_positions, 10)
+                                move([player], end_positions, 10)
 
-                                        position_update()
+                                position_update()
 
                             elif data[0] == 'playersData':
                                 globals()[f'{data[1]}_profile'] = pg.image.load(f'resources/{resolution_folder}/profile/{data[1]}_profile.png').convert_alpha()
@@ -1542,11 +1506,10 @@ def handle_connection():
                                         if i == allPlayer.color:
                                             if allPlayer not in players:
                                                 players.append(allPlayer)
-                                for i, player in enumerate(players):
-                                    if player.color == data[1]:
-                                        player.money = int(data[2])
-                                        player.piece_position = int(data[3])
-                                        player.name = data[4]
+                                player = player_dict[data[1]]
+                                player.money = int(data[2])
+                                player.piece_position = int(data[3])
+                                player.name = data[4]
                                 position_update()
 
                             elif data[0] == 'property':
@@ -1564,18 +1527,16 @@ def handle_connection():
                                         player.money = int(data[2])
 
                             elif data[0] == 'playerDeleted':
-                                for player in players:
-                                    if player.color == data[1]:
-                                        players.remove(player)
+                                player = player_dict[data[1]]
+                                players.remove(player)
 
                             elif data[0] == 'gameStarted':
                                 state['is_game_started'] = True
                                 players_queue = data[1].split('_')
                                 players_temp = []
                                 for new_color in players_queue:
-                                    for player in players:
-                                        if player.color == new_color:
-                                            players_temp.append(player)
+                                    player = player_dict[new_color]
+                                    players_temp.append(player)
                                 players = players_temp
 
                                 for player in players:
@@ -1716,10 +1677,9 @@ def handle_connection():
                             elif data[0] == 'need to pay to player':
                                 global pulled_card_strings
                                 if state['show_egg_panel']:
-                                    for player in players:
-                                        if player.color == data[1]:
-                                            for i in pulled_card_strings:
-                                                i.replace('{player_name}', player.name)
+                                    player = player_dict[data[1]]
+                                    for i in pulled_card_strings:
+                                        i.replace('{player_name}', player.name)
 
                             elif data[0] == 'pulled card position':
                                 global pulled_card_text,  pulled_card_title, pulled_card_title_rect
@@ -1735,9 +1695,8 @@ def handle_connection():
                                     if '{tile_name}' in text:
                                         text = text.replace('{tile_name}', all_tiles[all_egg[egg_card_position].value].name)
                                     if '{player_name}' in text:
-                                        for player in players:
-                                            if player.color == data[1]:
-                                                text = text.replace('{player_name}', player.name)
+                                        player = player_dict[data[1]]
+                                        text = text.replace('{player_name}', player.name)
                                     text = text.split(' ')
 
                                 elif data[2] == 'Яйца':
@@ -1751,9 +1710,8 @@ def handle_connection():
                                     if '{tile_name}' in text:
                                         text = text.replace('{tile_name}', all_tiles[all_eggs[egg_card_position].value].name)
                                     if '{player_name}' in text:
-                                        for player in players:
-                                            if player.color == data[1]:
-                                                text = text.replace('{player_name}', player.name)
+                                        player = player_dict[data[1]]
+                                        text = text.replace('{player_name}', player.name)
                                     text = text.split(' ')
 
                                 while text:
@@ -2097,14 +2055,6 @@ def event_handler():
                             initial_colour=settings_data['background color converted'],
                             manager=manager,
                             visible=0)
-
-
-def player_move_change(do_change):
-    for player in players:
-        if player.main:
-            next_player_command = f'nextPlayer|{do_change}%'
-            sock.send(next_player_command.encode())
-            information_sent('Команда отправлена', next_player_command)
 
 
 def buttons():
