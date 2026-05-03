@@ -51,6 +51,7 @@ class Textbox:
         self.hidden = False
 
         # Атрибуты для выделения текста
+        self.selection_anchor = None
         self.selection_active = False
         self.selection_start = None   # (index_in_content, char_offset)
         self.selection_end = None
@@ -92,14 +93,35 @@ class Textbox:
                     space_width = self.font.size(' ')[0] if line_tokens else 0
 
                     if current_width + space_width + word_width <= self.visible_text_rect.width:
+                        # Слово умещается в текущей строке
                         line_tokens.append(token)
                         current_width += space_width + word_width
                     else:
-                        # Строка заполнена, финализируем её
-                        self._add_text_line(line_tokens)
-                        # Начинаем новую строку с текущего слова
-                        line_tokens = [token]
-                        current_width = word_width
+                        # Слово не умещается – возможно, строка непуста или слово само по себе слишком длинное
+                        if line_tokens:
+                            # Завершаем предыдущую строку (с уже набранными словами)
+                            self._add_text_line(line_tokens)
+                            line_tokens = []
+                            current_width = 0
+
+                        # Теперь строка гарантированно пуста, обрабатываем проблемное слово
+                        if self.font.size(word)[0] > self.visible_text_rect.width:
+                            # Слово шире видимой области – разбиваем посимвольно
+                            parts = self._split_long_word(word, self.visible_text_rect.width)
+                            for i, part in enumerate(parts):
+                                part_token = {'text': part, 'color': token['color']}
+                                if i == len(parts) - 1:
+                                    # Последняя часть остаётся в текущей строке (может позже дополниться)
+                                    line_tokens = [part_token]
+                                    current_width = self.font.size(part)[0]
+                                else:
+                                    # Остальные части – самостоятельные строки
+                                    self._add_text_line([part_token])
+                        else:
+                            # Слово само по себе влезает (просто не хватило места с учётом пробела)
+                            # Начинаем новую строку с него
+                            line_tokens = [token]
+                            current_width = word_width
 
                 # Последняя строка
                 if line_tokens:
@@ -238,6 +260,23 @@ class Textbox:
         })
         # ✅ Увеличиваем общую высоту на высоту одной строки
         self.total_height += self.line_height
+
+    def _split_long_word(self, word, max_width):
+        """Разбивает слово word на части, каждая из которых не шире max_width."""
+        parts = []
+        current_part = ""
+        for char in word:
+            test_part = current_part + char
+            if self.font.size(test_part)[0] <= max_width:
+                current_part = test_part
+            else:
+                # текущая часть уже не влезает с новым символом, сохраняем current_part
+                if current_part:  # она может быть пустой только если первая буква шире max_width (крайний случай)
+                    parts.append(current_part)
+                current_part = char
+        if current_part:
+            parts.append(current_part)
+        return parts if parts else [word]  # если слово целиком не разбилось, вернуть хотя бы его
 
     def copy_selection(self):
         if not self.selection_start or not self.selection_end:
@@ -392,11 +431,11 @@ class Textbox:
                         if pos:
                             idx, char = pos
                             self.selection_active = True
+                            self.selection_anchor = (idx, char)  # фиксируем anchor
                             self.selection_start = (idx, char)
                             self.selection_end = (idx, char)
                             self._update_selection_rects()
                         else:
-                            # Клик вне текста (пустое место) – сброс выделения
                             self.selection_active = False
                             self.selection_start = self.selection_end = None
                             self.selection_rects.clear()
@@ -413,8 +452,10 @@ class Textbox:
                     pos = self._get_char_pos_at(*event.pos)
                     if pos:
                         idx, char = pos
-                        if (idx, char) != self.selection_end:
-                            self._set_selection(self.selection_start[0], self.selection_start[1], idx, char)
+                        # Всегда используем anchor, а не текущий selection_start
+                        self._set_selection(
+                            self.selection_anchor[0], self.selection_anchor[1],
+                            idx, char)
                 # Обновление курсора ТОЛЬКО если мышь НЕ над pygame-gui
                 if not self._is_mouse_over_gui():
                     scroll_bar_collided = self.scroll_bar and self.scroll_bar.border_rect.collidepoint(self.mouse_position)

@@ -52,7 +52,7 @@ class Tiles:
         else:
             self.full_family = False
 
-        if self.owned:
+        if self.owned and not self.mortgaged:
             if self.type == 'buildable':
                 if self.special_price:
                     coef = 6.4
@@ -78,10 +78,7 @@ class Tiles:
     def text_defining(self, font):
         self.penis_income_calculation()
         if self.type == 'buildable' or self.type == 'train' or self.type == 'minus':
-            if not self.mortgaged:
-                text = f'{self.income}~'
-            else:
-                text = f'{self.income // 2}~'
+            text = f'{self.income}~'
 
         elif self.type == 'infrastructure':
             if self.owned:

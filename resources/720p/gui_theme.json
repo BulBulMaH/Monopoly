@@ -367,5 +367,12 @@
 			"border_width": "2",
 			"shadow_width": "0"
 		}
+	},
+	"tool_tip":
+	{
+		"misc": 
+		{
+			"rect_width": "150"
+		}
 	}
 }

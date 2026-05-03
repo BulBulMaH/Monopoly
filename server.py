@@ -132,7 +132,7 @@ screen = pg.display.set_mode(resolution)
 manager = pygame_gui.UIManager(resolution, theme_path=f'resources/{resolution_folder}/gui_theme.json',
                                enable_live_theme_updates=False)
 manager.add_font_paths('BulBulPoly', "resources/fonts/bulbulpoly-4.ttf")
-manager.preload_fonts([{'name': 'BulBulPoly', 'point_size': f'{font_size}', 'style': 'regular', 'antialiased': '1'}])
+manager.preload_fonts([{'name': 'BulBulPoly', 'point_size': f'{font_size}', 'style': 'regular', 'antialiased': '0'}])
 pg.display.set_caption(TITLE)
 clock = pg.time.Clock()
 
@@ -194,12 +194,12 @@ def receive_data():
 
                 send_player_state(player.color)
 
-                message = {'type': 'text',
+                message = [{'type': 'text',
                            'value': [
                                {'text': f'{player.name}', 'color': player.color_value},
                                {
                                    'text': f'побеждает в аукционе и приобретает {all_tiles[tile_position].name} за {price}~',
-                                   'color': (0, 0, 0)}]}
+                                   'color': (0, 0, 0)}]}]
                 log_textbox_.append_messages(message)
 
                 message_data = f'message|{json.dumps(message)}%'
@@ -274,6 +274,7 @@ def receive_data():
                         player.state['mortgage_btn_active'] = False
                         player.state['buy_btn_active'] = [False, None]
                         player.state['pay_btn_active'] = [False, None]
+                        player.state['surrender_btn_active'] = False
                         player.state['paid'] = False
                         player.state['refused_to_buy'] = False
 
@@ -2017,10 +2018,10 @@ def receive_data():
                                 information_sent_to('Информация отправлена к', player2.color, message_data)
 
                     elif data[0] == 'message':
-                        message = {'type': 'text',
+                        message = [{'type': 'text',
                                    'value': [
                                        {'text': f'{player.name}:', 'color': player.color_value},
-                                       {'text': data[1], 'color': (0, 0, 0)}]}  # data[1] содержит текст
+                                       {'text': data[1], 'color': (0, 0, 0)}]}]  # data[1] содержит текст
                         message_data = f'message|{json.dumps(message)}%'
                         log_textbox_.append_messages(message)
 
@@ -2339,6 +2340,7 @@ def receive_data():
                                 surrender_data = f'surrendered|{player.color}%'
                                 player3.conn.send(surrender_data.encode())
                                 information_sent_to('Информация отправлена к', player3.color, surrender_data)
+
                     else:
                         player.conn.send(f'error|Незарегистрированная команда: {data[0]}%'.encode())
                         information_sent_to('Информация отправлена к', player.color,
@@ -2429,12 +2431,14 @@ def process_file_command(cmd, player):
         audio_bytes_decoded_base64 = base64.b64decode(audio_bytes_ascii_decoded)
         audio_bytes_decoded = zlib.decompress(audio_bytes_decoded_base64)
 
-        message = [{'type': 'text', 'value': [{'text': f'Аудио файл от {player.name}:', 'color': (0, 0, 0)}]}]
+        message = [{'type': 'text',
+                    'value': [{'text': f'Аудио файл от {player.name}:', 'color': (0, 0, 0)}
+                              ]}]
         message_data = f'message|{json.dumps(message)}%'
         log_textbox_.append_messages(message)
-        log_textbox_.append_messages({'type': 'audio',
+        log_textbox_.append_messages([{'type': 'audio',
                                       'value': audio_bytes_decoded,
-                                      'color': (0, 0, 0)})
+                                      'color': (0, 0, 0)}])
 
         sendable_data = f'sound message|{parts[1]}%'
 
@@ -2452,9 +2456,9 @@ def process_file_command(cmd, player):
 
         log_textbox_.append_messages(message)
 
-        log_textbox_.append_messages({'type': 'audio',
+        log_textbox_.append_messages([{'type': 'audio',
                                       'value': audio_bytes_decoded,
-                                      'color': (0, 0, 0)})
+                                      'color': (0, 0, 0)}])
 
         sendable_data = f'voice message|{parts[1]}%'
 
@@ -2474,8 +2478,7 @@ def process_file_command(cmd, player):
         image = pg.image.load(image_bytes).convert_alpha()
         message = [{'type': 'text', 'value': [{'text': f'{player.name}: ', 'color': (0, 0, 0)}]}]
         log_textbox_.append_messages(message)
-        message = {'type': 'image', 'value': image}
-        log_textbox_.append_messages(message)
+        log_textbox_.append_messages([{'type': 'image', 'value': image}])
         message_data = f'message|{json.dumps(message)}%'
 
         for player2 in players:

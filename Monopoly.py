@@ -207,6 +207,8 @@ def monopoly_init():
     settings_buttons(settings_data)
     theme = manager.create_new_theme(f'resources/{resolution_folder}/gui_theme.json')
     manager.set_ui_theme(theme)
+    manager.add_font_paths('BulBulPoly', "resources/fonts/bulbulpoly-4.ttf")
+    manager.preload_fonts([{'name': 'BulBulPoly', 'point_size': f'{font_size}', 'style': 'regular', 'antialiased': '0'}])
 
     if debug_mode:
         global command_counter, unknown_commands
@@ -315,6 +317,8 @@ def load_assets():
     global theme
     theme = manager.create_new_theme(f'resources/{resolution_folder}/gui_theme.json')
     manager.set_ui_theme(theme)
+    # manager.add_font_paths('BulBulPoly', "resources/fonts/bulbulpoly-4.ttf")
+    # manager.preload_fonts([{'name': 'BulBulPoly', 'point_size': f'{font_size}', 'style': 'regular', 'antialiased': '0'}])
 
     settings_buttons(settings)
     start_game_button.rebuild()
@@ -358,6 +362,8 @@ def load_game():
 
     theme = manager.create_new_theme(f'resources/{resolution_folder}/gui_theme.json')
     manager.set_ui_theme(theme)
+    manager.add_font_paths('BulBulPoly', "resources/fonts/bulbulpoly-4.ttf")
+    manager.preload_fonts([{'name': 'BulBulPoly', 'point_size': f'{font_size}', 'style': 'regular', 'antialiased': '0'}])
     active_buttons_check()
 
     global game_started
@@ -1825,8 +1831,9 @@ def file_receiver():
                 process_file_command(cmd)
         except BlockingIOError:#, socket.timeout):
             time.sleep(0.01)
-        except Exception as e:
-            print(f"Ошибка в file_receiver: {e}")
+        except:
+            print(f'{"\033[31m{}".format(traceback.format_exc())}{'\033[0m'}')
+
             break
     if file_sock:
         file_sock.close()
@@ -1878,13 +1885,12 @@ def process_file_command(cmd):
         image_decoded.save(image_bytes, format='PNG')
         image_bytes.seek(0)
         image = pg.image.load(image_bytes).convert_alpha()
-        message = {'type': 'image', 'value': image}
+        message = [{'type': 'image', 'value': image}]
         log_textbox.append_messages(message)
 
     elif parts[0] == 'message':
-        log_textbox.append_messages([{'type': 'text',
-                                      'value': parts[1],
-                                      'color': (0, 0, 0)}])
+        message = json.loads(parts[1])
+        log_textbox.append_messages(message)
 
 
 def delta_time(old_time):
@@ -1909,10 +1915,12 @@ def event_handler():
             elif state['tile_info_show'][0]:
                 tile_info_reset()
 
-        elif event.type == pg.KEYUP and debug_mode and not optimized and game_started:
+        elif event.type == pg.KEYUP and game_started:
             if not ip_textbox.is_focused and not port_textbox.is_focused and not name_textbox.is_focused and not exchange_give_textbox.is_focused and not exchange_get_textbox.is_focused and not log_entry_textbox.is_focused:
                 if event.key == pg.K_c:
                     connect()
+                elif event.key == pg.K_t:
+                    throw_cubes()
                 elif event.key == pg.K_d:
                     debug_output()
             elif name_textbox.is_focused:
@@ -2063,52 +2071,62 @@ def buttons():
     cube_button = pygame_gui.elements.UIButton(
         relative_rect=pg.Rect(btn_coordinates['throw_cubes']),
         text='Бросить кубы',
-        manager=manager)
+        manager=manager,
+        tool_tip_text=f'<font face="BulBulPoly" pixel_size={font_size} color="#000000">Просто бросить кубы</font>')
 
     buy_button = pygame_gui.elements.UIButton(
         relative_rect=pg.Rect(btn_coordinates['buy']),
         text='Купить',
-        manager=manager)
+        manager=manager,
+        tool_tip_text=f'<font face="BulBulPoly" pixel_size={font_size} color="#000000">Купить поле</font>')
 
     pay_button = pygame_gui.elements.UIButton(
         relative_rect=pg.Rect(btn_coordinates['pay']),
         text='Оплатить',
-        manager=manager)
+        manager=manager,
+        tool_tip_text=f'<font face="BulBulPoly" pixel_size={font_size} color="#000000">Оплатить свой долг</font>')
 
     shove_penis_button = pygame_gui.elements.UIButton(
         relative_rect=pg.Rect(btn_coordinates['shove_penis']),
         text='Сунуть пЭнис',
-        manager=manager)
+        manager=manager,
+        tool_tip_text=f'<font face="BulBulPoly" pixel_size={font_size} color="#000000">Сувание пЭнисов повышает ценность поля</font>')
 
     remove_penis_button = pygame_gui.elements.UIButton(
         relative_rect=pg.Rect(btn_coordinates['remove_penis']),
         text='Убрать пЭнис',
-        manager=manager)
+        manager=manager,
+        tool_tip_text=f'<font face="BulBulPoly" pixel_size={font_size} color="#000000">Убирание пЭнисов возвращает стоимость пЭниса полностью</font>')
 
     exchange_button = pygame_gui.elements.UIButton(
         relative_rect=pg.Rect(btn_coordinates['exchange']),
         text='Обмен',
-        manager=manager)
+        manager=manager,
+        tool_tip_text=f'<font face="BulBulPoly" pixel_size={font_size} color="#000000">Обмен с другим игроком</font>')
 
     auction_button = pygame_gui.elements.UIButton(
         relative_rect=pg.Rect(btn_coordinates['auction']),
         text='Аукцион',
-        manager=manager)
+        manager=manager,
+        tool_tip_text=f'<font face="BulBulPoly" pixel_size={font_size} color="#000000">Выставить поле, которое вы не хотите покупать, на аукцион</font>')
 
     mortgage_button = pygame_gui.elements.UIButton(
         relative_rect=pg.Rect(btn_coordinates['mortgage']),
         text='Заложить',
-        manager=manager)
+        manager=manager,
+        tool_tip_text=f'<font face="BulBulPoly" pixel_size={font_size} color="#000000">Заложить купленное поле за половину стоимости</font>')
 
     redeem_button = pygame_gui.elements.UIButton(
         relative_rect=pg.Rect(btn_coordinates['redeem']),
         text='Выкупить',
-        manager=manager)
+        manager=manager,
+        tool_tip_text=f'<font face="BulBulPoly" pixel_size={font_size} color="#000000">Выкупить заложенное поле за полную стоимость</font>')
 
     surrender_button = pygame_gui.elements.UIButton(
         relative_rect=pg.Rect(btn_coordinates['surrender']),
         text='Сдаться',
-        manager=manager)
+        manager=manager,
+        tool_tip_text=f'<font face="BulBulPoly" pixel_size={font_size} color="#000000">Просто сдаться</font>')
 
 
     name_textbox = pygame_gui.elements.UITextEntryBox(
@@ -2132,7 +2150,8 @@ def buttons():
     avatar_choose_button = pygame_gui.elements.UIButton(
         relative_rect=pg.Rect(start_btn_textboxes_coordinates['choose_avatar']),
         text='Выбрать аватар',
-        manager=manager)
+        manager=manager,
+        tool_tip_text=f'<font face="BulBulPoly" pixel_size={font_size} color="#000000">Только после начала игры</font>')
 
     connect_button = pygame_gui.elements.UIButton(
         relative_rect=pg.Rect(start_btn_textboxes_coordinates['connect']),
@@ -2198,21 +2217,24 @@ def buttons():
         text='',
         visible=False,
         object_id=pygame_gui.core.ObjectID(class_id='@transparent_buttons', object_id='#egg_button'),
-        manager=manager)
+        manager=manager,
+        tool_tip_text=f'<font face="BulBulPoly" pixel_size={font_size} color="#000000">Выйти из тюрьмы</font>')
 
     exit_prison_eggs_btn = pygame_gui.elements.UIButton(
         relative_rect=pg.Rect(egg_btns_coordinates[0]),
         text='',
         visible=False,
         object_id=pygame_gui.core.ObjectID(class_id='@transparent_buttons', object_id='#eggs_button'),
-        manager=manager)
+        manager=manager,
+        tool_tip_text=f'<font face="BulBulPoly" pixel_size={font_size} color="#000000">Выйти из тюрьмы</font>')
 
     dn_btn = pygame_gui.elements.UIButton(
         relative_rect=pg.Rect(egg_btns_coordinates[0]),
         text='',
         visible=False,
         object_id=pygame_gui.core.ObjectID(class_id='@transparent_buttons', object_id='#dn_button'),
-        manager=manager)
+        manager=manager,
+        tool_tip_text=f'<font face="BulBulPoly" pixel_size={font_size} color="#000000">Удвоить или обнулить свой долг</font>')
 
     log_entry_textbox = pygame_gui.elements.UITextEntryBox(
         relative_rect=pg.Rect(log_textbox_coordinates['user_input_box']),
@@ -2223,28 +2245,32 @@ def buttons():
         relative_rect=pg.Rect(log_textbox_coordinates['text_send_button']),
         text='',
         object_id=pygame_gui.core.ObjectID(class_id='@transparent_buttons', object_id='#text_send_button'),
-        manager=manager)
+        manager=manager,
+        tool_tip_text=f'<font face="BulBulPoly" pixel_size={font_size} color="#000000">Отправить текст</font>')
     log_text_send_button.disable()
 
     log_audio_send_button = pygame_gui.elements.UIButton(
         relative_rect=pg.Rect(log_textbox_coordinates['audio_send_button']),
         text='',
         object_id=pygame_gui.core.ObjectID(class_id='@transparent_buttons', object_id='#audio_send_button'),
-        manager=manager)
+        manager=manager,
+        tool_tip_text=f'<font face="BulBulPoly" pixel_size={font_size} color="#000000">Отправить аудио</font>')
     log_audio_send_button.disable()
 
     log_voice_message_send_button = pygame_gui.elements.UIButton(
         relative_rect=pg.Rect(log_textbox_coordinates['voice_message_send_button']),
         text='',
         object_id=pygame_gui.core.ObjectID(class_id='@transparent_buttons', object_id='#voice_message_send_button'),
-        manager=manager)
+        manager=manager,
+        tool_tip_text=f'<font face="BulBulPoly" pixel_size={font_size} color="#000000">Отправить голосовое сообщение</font>')
     log_voice_message_send_button.disable()
 
     log_image_send_button = pygame_gui.elements.UIButton(
         relative_rect=pg.Rect(log_textbox_coordinates['image_send_button']),
         text='',
         object_id=pygame_gui.core.ObjectID(class_id='@transparent_buttons', object_id='#image_send_button'),
-        manager=manager)
+        manager=manager,
+        tool_tip_text=f'<font face="BulBulPoly" pixel_size={font_size} color="#000000">Отправить изображение</font>')
     log_image_send_button.disable()
 
     message_panel = pygame_gui.elements.UIPanel(relative_rect=pg.Rect(tile_info_coordinates, tile_info_coordinates),
