@@ -15,6 +15,9 @@ class Player:
         self.eggs_prison_exit_card = False
         self.dn_card = False
         self.bankrupt = False
+        self.timer_bar = None
+        self.time_left = 10800
+        self.max_time = 10800
         self.pay_multiplier = 1
         self.avatar = pg.image.load(f'resources/{resolution_folder}/profile/avatar_placeholder.png').convert()
         self.player_piece = pg.image.load(f'resources/{resolution_folder}/pieces/{self.color}_piece.png').convert_alpha()

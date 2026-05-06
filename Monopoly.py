@@ -42,6 +42,7 @@ from Recorder_Class import AudioRecorder
 from all_tiles_extraction import all_tiles_get
 from colored_output import thread_open, information_sent, information_received, new_connection
 from resolution_choice import resolution_definition
+from ProgressBar_Class import ProgressBar
 
 
 def settings_buttons(previous_values):
@@ -118,6 +119,8 @@ def monopoly_init():
         os.replace('lib/modified_library_files/pygame-gui/html_parser.py', '.venv/Lib/site-packages/pygame_gui/core/text/html_parser.py')
     if os.path.exists('lib/modified_library_files/pygame-gui/ui_font_dictionary.py'):
         os.replace('lib/modified_library_files/pygame-gui/ui_font_dictionary.py', '.venv/Lib/site-packages/pygame_gui/core/ui_font_dictionary.py')
+    if os.path.exists('lib/modified_library_files/pygame-gui/ui_appearance_theme.py'):
+        os.replace('lib/modified_library_files/pygame-gui/ui_appearance_theme.py', '.venv/Lib/site-packages/pygame_gui/core/ui_appearance_theme.py')
 
     global name, address, port
     global players, exchange_value, exchange_color, state, recorder, log_textbox
@@ -376,6 +379,7 @@ def throw_cubes():
         move_command = 'move%'
         sock.send(move_command.encode())
         information_sent('Команда отправлена', move_command)
+        player_dict['main'].timer_bar.set_percentage(1)
 
 
 def buy():
@@ -383,6 +387,7 @@ def buy():
         buy_command = f'buy|{state['buy_btn_active'][1]}%'
         sock.send(buy_command.encode())
         information_sent('Команда отправлена', buy_command)
+        player_dict['main'].timer_bar.set_percentage(1)
 
 
 def pay():
@@ -392,17 +397,20 @@ def pay():
             pay_command = f'pay|{player.piece_position}%'
             sock.send(pay_command.encode())
             information_sent('Команда отправлена', pay_command)
+            player_dict['main'].timer_bar.set_percentage(1)
 
         elif state['pay_btn_active'][1] == 'pay sum':
             pay_command = f'pay sum|{state['pay_btn_active'][2]}%'
             sock.send(pay_command.encode())
             information_sent('Команда отправлена', pay_command)
+            player_dict['main'].timer_bar.set_percentage(1)
 
         elif state['pay_btn_active'][1] == 'color':
             player = player_dict['main']
             pay_command = f'payToColor|{player.piece_position}|{state['pay_btn_active'][2]}%'
             sock.send(pay_command.encode())
             information_sent('Команда отправлена', pay_command)
+            player_dict['main'].timer_bar.set_percentage(1)
 
         elif state['pay_btn_active'][1] == 'player':
             player = player_dict['main']
@@ -410,6 +418,7 @@ def pay():
                 pay_command = f'pay to player|{state['pay_btn_active'][2]}|{state['pay_btn_active'][3]}%' # 'pay to player|{color}|{sum}%'
                 sock.send(pay_command.encode())
                 information_sent('Команда отправлена', pay_command)
+            player_dict['main'].timer_bar.set_percentage(1)
 
         elif state['pay_btn_active'][1] == 'players':
             player = player_dict['main']
@@ -417,11 +426,13 @@ def pay():
                 pay_command = f'pay to players|{state['pay_btn_active'][2]}%' # 'pay to players|{sum}%'
                 sock.send(pay_command.encode())
                 information_sent('Команда отправлена', pay_command)
+            player_dict['main'].timer_bar.set_percentage(1)
 
         elif state['pay_btn_active'][1] == 'prison':
             pay_command = f'pay for prison%'
             sock.send(pay_command.encode())
             information_sent('Команда отправлена', pay_command)
+            player_dict['main'].timer_bar.set_percentage(1)
 
 
 def debug_output():
@@ -434,7 +445,9 @@ def debug_output():
               f'       main: {player.main}\n'
               f'       x: {player.x}\n'
               f'       y: {player.y}\n'
-              f'       imprisoned: {player.imprisoned}\n')
+              f'       imprisoned: {player.imprisoned}\n'
+              f'       time_left: {player.time_left}\n'
+              f'       max_time: {player.max_time}\n')
 
     pprint.pp(state)
 
@@ -755,6 +768,7 @@ def exchange_commit():
 
             sock.send(exchange_command.encode())
             information_sent('Команда отправлена', exchange_command)
+            player_dict['main'].timer_bar.set_percentage(1)
             state['exchange_tile_btn_active'] = False
             state['exchange_player_btn_active'] = False
             state['show_exchange_screen'] = False
@@ -864,6 +878,7 @@ def exchange_request_confirm():
             log_image_send_button.show()
             log_entry_textbox.show()
             active_buttons_check()
+            player_dict['main'].timer_bar.set_percentage(1)
 
 
 def exchange_request_reject():
@@ -881,6 +896,7 @@ def exchange_request_reject():
         log_image_send_button.show()
         log_entry_textbox.show()
         active_buttons_check()
+        player_dict['main'].timer_bar.set_percentage(1)
 
 
 def choose_avatar():
@@ -931,6 +947,7 @@ def auction():
             auction_command = f'auction initiate|{player.piece_position}%'
             sock.send(auction_command.encode())
             information_sent('Команда отправлена', auction_command)
+            player_dict['main'].timer_bar.set_percentage(1)
 
 
 def auction_buy():
@@ -949,6 +966,7 @@ def auction_buy():
             log_voice_message_send_button.show()
             log_image_send_button.show()
             log_entry_textbox.show()
+        player_dict['main'].timer_bar.set_percentage(1)
 
 
 def auction_reject():
@@ -965,6 +983,7 @@ def auction_reject():
         log_voice_message_send_button.show()
         log_image_send_button.show()
         log_entry_textbox.show()
+        player_dict['main'].timer_bar.set_percentage(1)
 
 
 def mortgage():  # заложить
@@ -1299,6 +1318,8 @@ def blit_board_above_interface():
     if state['connected']:
         for player in players:
             player_index = players.index(player)
+            player.timer_bar.render(screen, (profile_coordinates[player_index]['timer_bar'][0],
+                                             profile_coordinates[player_index]['timer_bar'][1]))
             screen.blit(profile_picture, profile_coordinates[player_index]['profile'])
             screen.blit(player.avatar, profile_coordinates[player_index]['avatar'])
             if player.imprisoned:
@@ -1307,9 +1328,11 @@ def blit_board_above_interface():
             screen.blit(font.render(f'{player.money}~', False, 'black'), profile_coordinates[player_index]['money'])
             screen.blit(font.render(f'{player.value}~', False, 'black'), profile_coordinates[player_index]['value'])
             screen.blit(font.render(player.name, False, 'black'), profile_coordinates[player_index]['name'])
-            screen.blit(player.player_piece, player.player_piece_rect)
             if player.bankrupt:
                 screen.blit(bankrupt_picture, profile_coordinates[player_index]['profile'])
+            else:
+                screen.blit(player.player_piece, player.player_piece_rect)
+
 
     screen.blit(bars, (all_tiles[10].x_position, all_tiles[10].y_position))
 
@@ -1351,7 +1374,6 @@ def position_update():
 
 
 def move_by_cubes(cube1, cube2, color):  # Не спрашивайте, как тут что работает, я сам не знаю
-    global players, state
     if cube1 >= 0:
         show_cubes(cube1, cube2)
     player = player_dict[color]
@@ -1471,11 +1493,12 @@ def handle_connection():
 
                         if data[0] != '':
 
-                            if data[0] not in ['avatar', 'sound message', 'voice message', 'image message']:
+                            if data[0] not in ('avatar', 'sound message', 'voice message', 'image message', 'timer'):
                                 information_received('Информация получена', data)
 
                             if data[0] == 'color main':
                                 allPlayer = player_dict[data[1]]
+
                                 allPlayer.main_color(data[1])
                                 player_dict['main'] = allPlayer
                                 connect_file_socket(data[1])
@@ -1507,12 +1530,20 @@ def handle_connection():
                             elif data[0] == 'playersData':
                                 globals()[f'{data[1]}_profile'] = pg.image.load(f'resources/{resolution_folder}/profile/{data[1]}_profile.png').convert_alpha()
                                 globals()[f'{data[1]}_property_image'] = pg.image.load(f'resources/{resolution_folder}/property/{data[1]}_property.png').convert_alpha()
-                                for allPlayer in all_players:
-                                    for i in data:
-                                        if i == allPlayer.color:
-                                            if allPlayer not in players:
-                                                players.append(allPlayer)
                                 player = player_dict[data[1]]
+                                if player not in players:
+                                    if data[1] == 'red':
+                                        color_value = (255, 0, 0)
+                                    elif data[1] == 'blue':
+                                        color_value = (0, 0, 255)
+                                    elif data[1] == 'yellow':
+                                        color_value = (255, 255, 0)
+                                    elif data[1] == 'green':
+                                        color_value = (10, 160, 10)
+
+                                    player.timer_bar = ProgressBar(profile_coordinates[len(players) - 1]['timer_bar'], color_value, 1)
+                                    players.append(player)
+
                                 player.money = int(data[2])
                                 player.piece_position = int(data[3])
                                 player.name = data[4]
@@ -1773,10 +1804,18 @@ def handle_connection():
                                 player.pay_multiplier = float(data[2])
 
                             elif data[0] == 'surrendered':
-                                player_dict[data[1]].bankrupt = True
+                                player = player_dict[data[1]]
+                                player.bankrupt = True
+                                player.timer_bar.set_percentage(1)
 
                             elif data[0] == 'value':
                                 player_dict[data[1]].value = int(data[2])
+
+                            elif data[0] == 'timer':
+                                player = player_dict[data[1]]
+                                player.time_left = int(data[2])
+                                player.max_time = int(data[3])
+                                player.timer_bar.set_percentage(player.time_left / player.max_time)
 
                             else:
                                 print(f'Ошибка: {"\033[31m{}".format(f'Незарегистрированная команда на стороне клиента: {data[0]}')}{'\033[0m'}')

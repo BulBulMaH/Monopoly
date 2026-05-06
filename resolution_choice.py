@@ -65,10 +65,10 @@ def resolution_definition():
                             'redeem':       (1109, 194, 136, 38),
                             'surrender':    (1109, 252, 136, 38)}
 
-        profile_coordinates = [{'profile': (669, 20 ),  'avatar': (830, 46 ),  'money': (674, 38 ), 'value': (753, 38 ), 'name': (674, 18 )},
-                               {'profile': (669, 169),  'avatar': (830, 195),  'money': (674, 187), 'value': (753, 187), 'name': (674, 167)},
-                               {'profile': (669, 318),  'avatar': (830, 344),  'money': (674, 336), 'value': (753, 336), 'name': (674, 316)},
-                               {'profile': (669, 467),  'avatar': (830, 493),  'money': (674, 485), 'value': (753, 485), 'name': (674, 465)}]
+        profile_coordinates = [{'profile': (669, 20 ),  'avatar': (830, 46 ),  'money': (692, 38 ), 'value': (692, 56 ), 'name': (674, 18 ), 'timer_bar': (677, 85,  146, 10)},
+                               {'profile': (669, 169),  'avatar': (830, 195),  'money': (692, 187), 'value': (692, 205), 'name': (674, 167), 'timer_bar': (677, 234, 146, 10)},
+                               {'profile': (669, 318),  'avatar': (830, 344),  'money': (692, 336), 'value': (692, 354), 'name': (674, 316), 'timer_bar': (677, 383, 146, 10)},
+                               {'profile': (669, 467),  'avatar': (830, 493),  'money': (692, 485), 'value': (692, 503), 'name': (674, 465), 'timer_bar': (677, 532, 146, 10)}]
 
         exchange_coordinates = {'exchange_screen':  (75,  75),
                                 'textbox_give':     (120, 160, 183, 30),
@@ -163,10 +163,10 @@ def resolution_definition():
                             'redeem':       (1689, 291, 204, 57),
                             'surrender':    (1689, 378, 204, 57)}
 
-        profile_coordinates = [{'profile': [1028, 30],  'avatar': [1262, 66],  'money': [1034, 62],  'value': [1149, 62],  'name': [1034, 34]},
-                               {'profile': [1028, 249], 'avatar': [1262, 285], 'money': [1034, 281], 'value': [1149, 281], 'name': [1034, 253]},
-                               {'profile': [1028, 468], 'avatar': [1262, 504], 'money': [1034, 500], 'value': [1149, 500], 'name': [1034, 472]},
-                               {'profile': [1028, 687], 'avatar': [1262, 723], 'money': [1034, 719], 'value': [1149, 719], 'name': [1034, 691]}]
+        profile_coordinates = [{'profile': (1028, 30),  'avatar': (1262, 66),  'money': (1057, 62),  'value': (1057, 88),  'name': (1034, 34),  'timer_bar': (1035, 122, 221, 16)},
+                               {'profile': (1028, 249), 'avatar': (1262, 285), 'money': (1057, 281), 'value': (1057, 307), 'name': (1034, 253), 'timer_bar': (1035, 341, 221, 16)},
+                               {'profile': (1028, 468), 'avatar': (1262, 504), 'money': (1057, 500), 'value': (1057, 526), 'name': (1034, 472), 'timer_bar': (1035, 560, 221, 16)},
+                               {'profile': (1028, 687), 'avatar': (1262, 723), 'money': (1057, 719), 'value': (1057, 735), 'name': (1034, 691), 'timer_bar': (1035, 779, 221, 16)}]
 
         exchange_coordinates = {'exchange_screen':  (108, 108),
                                 'textbox_give':     (177, 240, 290, 30),
@@ -261,10 +261,10 @@ def resolution_definition():
                            'redeem':       (2247, 388, 272, 76),
                            'surrender':    (2247, 504, 272, 76)}
 
-        profile_coordinates = [{'profile': [1381, 40],  'avatar': [1703, 92],  'money': [1391, 76],  'value': [1552, 76],  'name': [1391, 36]},
-                               {'profile': [1381, 338], 'avatar': [1703, 390], 'money': [1391, 374], 'value': [1552, 374], 'name': [1391, 334]},
-                               {'profile': [1381, 636], 'avatar': [1703, 688], 'money': [1391, 672], 'value': [1552, 672], 'name': [1391, 632]},
-                               {'profile': [1381, 934], 'avatar': [1703, 986], 'money': [1391, 970], 'value': [1552, 970], 'name': [1391, 930]}]
+        profile_coordinates = [{'profile': (1381, 40),  'avatar': (1703, 92),  'money': (1422, 76),  'value': (1422, 112),  'name': (1391, 36),  'timer_bar': (1397, 171,  290, 8)},
+                               {'profile': (1381, 338), 'avatar': (1703, 390), 'money': (1422, 374), 'value': (1422, 410),  'name': (1391, 334), 'timer_bar': (1397, 469,  290, 8)},
+                               {'profile': (1381, 636), 'avatar': (1703, 688), 'money': (1422, 672), 'value': (1422, 708),  'name': (1391, 632), 'timer_bar': (1397, 767,  290, 8)},
+                               {'profile': (1381, 934), 'avatar': (1703, 986), 'money': (1422, 970), 'value': (1422, 1006), 'name': (1391, 930), 'timer_bar': (1397, 1065, 290, 8)}]
 
         exchange_coordinates = {'exchange_screen':  (150, 150),
                                 'textbox_give':     (240, 320, 366, 60),
@@ -278,39 +278,39 @@ def resolution_definition():
 
         auction_coordinates = {'auction_screen':  (150, 150),
                                'price_text':      (288, 930),
-                               'confirm':        ((288, 984), (272, 76)),
-                               'reject':         ((738, 984), (272, 76)),
+                               'confirm':         (288, 984, 272, 76),
+                               'reject':          (738, 984, 272, 76),
                                'company_text':    (240, 320)}
 
-        start_btn_textboxes_coordinates = {'debug':         (2127, 827 , 392, 76),
-                                           'name':          (2127, 943 , 392, 60),
+        start_btn_textboxes_coordinates = {'debug':         (2127, 827,  392, 76),
+                                           'name':          (2127, 943,  392, 60),
                                            'IP':            (2127, 1035, 265, 60),
                                            'port':          (2401, 1035, 118, 60),
                                            'connect':       (2127, 1127, 392, 76),
                                            'choose_avatar': (2127, 1243, 392, 76)}
 
-        log_textbox_coordinates = {'main_box':                  (197, 197, 961, 911),
-                                   'user_input_box':            (197, 1098, 760, 60),
-                                   'audio_send_button':         (915, 1098, 63, 60),
-                                   'voice_message_send_button': (975, 1098, 63, 60),
+        log_textbox_coordinates = {'main_box':                  (197,  197,  961, 911),
+                                   'user_input_box':            (197,  1098, 760, 60),
+                                   'audio_send_button':         (915,  1098, 63, 60),
+                                   'voice_message_send_button': (975,  1098, 63, 60),
                                    'image_send_button':         (1035, 1098, 63, 60),
                                    'text_send_button':          (1095, 1098, 63, 60)}
 
-        settings_buttons_coordinates = {'dropdown':              (20, 20, 230, 50),
+        settings_buttons_coordinates = {'dropdown':              (20,   20,   230, 50),
                                         'start_game_button':     (1155, 1273, 250, 57),
-                                        'fps_textbox':           (534, 81, 120, 55),
-                                        'optimization_checkbox': (451, 144, 45, 45),
-                                        'debug_checkbox':        (238, 198, 45, 45),
-                                        'fullscreen_checkbox':   (443, 252, 45, 45),
-                                        'sharp_scale_checkbox':  (507, 306, 45, 45),
-                                        'pick_color_button':     (20, 424, 250, 57),
-                                        'apply_button':          (20, 511, 250, 57),
-                                        'color_picker':          (60, 120, 390, 390),
-                                        'fps_text':              (20, 80),
-                                        'optimization_text':     (20, 134),
-                                        'debug_text':            (20, 188),
-                                        'fullscreen_text':       (20, 242),
-                                        'sharp_scale_text':      (20, 296)}
+                                        'fps_textbox':           (534,  81,   120, 55),
+                                        'optimization_checkbox': (451,  144,  45,  45),
+                                        'debug_checkbox':        (238,  198,  45,  45),
+                                        'fullscreen_checkbox':   (443,  252,  45,  45),
+                                        'sharp_scale_checkbox':  (507,  306,  45,  45),
+                                        'pick_color_button':     (20,   424,  250, 57),
+                                        'apply_button':          (20,   511,  250, 57),
+                                        'color_picker':          (60,   120,  390, 390),
+                                        'fps_text':              (20,   80),
+                                        'optimization_text':     (20,   134),
+                                        'debug_text':            (20,   188),
+                                        'fullscreen_text':       (20,   242),
+                                        'sharp_scale_text':      (20,   296)}
 
         egg_btns_coordinates = ((1935, 620, 106, 76),
                                 (2101, 620, 106, 76),
