@@ -6,12 +6,7 @@ import gc
 import pprint
 import json
 import datetime
-
-import cProfile
-import pstats
-
-pr = cProfile.Profile()
-pr.enable()
+# import objgraph
 
 os.environ['SDL_VIDEO_WINDOW_POS'] = '%d,%d' % (0, 31) # (0, 31)
 os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = '1'
@@ -46,7 +41,7 @@ from ProgressBar_Class import ProgressBar
 
 
 def settings_buttons(previous_values):
-    global start_game_button, dropdown, fps_textbox, optimization_checkbox, debug_checkbox, pick_color_button, color_picker, fullscreen_checkbox, sharp_scale_checkbox, apply_button
+    global start_game_button, dropdown, fps_textbox, minimize_window_fps_optimization_checkbox, minimize_window_fps_optimization_textbox, inactivity_fps_optimization_checkbox, inactivity_fps_optimization_textbox, debug_checkbox, pick_color_button, color_picker, fullscreen_checkbox, scale_checkbox, apply_button
     dropdown = pygame_gui.elements.UIDropDownMenu(
         relative_rect=pg.Rect(settings_buttons_coordinates['dropdown']),
         starting_option=previous_values['resolution'],
@@ -60,10 +55,30 @@ def settings_buttons(previous_values):
         object_id='#settings_font',
         manager=manager)
 
-    optimization_checkbox = pygame_gui.elements.UICheckBox(
-        relative_rect=pg.Rect(settings_buttons_coordinates['optimization_checkbox']),
+    minimize_window_fps_optimization_checkbox = pygame_gui.elements.UICheckBox(
+        relative_rect=pg.Rect(settings_buttons_coordinates['minimize_window_fps_optimization_checkbox']),
         text='',
-        initial_state=previous_values['optimized movement'],
+        initial_state=previous_values['minimize window fps optimize'],
+        manager=manager)
+
+    minimize_window_fps_optimization_textbox = pygame_gui.elements.UITextEntryBox(
+        relative_rect=pg.Rect(settings_buttons_coordinates['minimize_window_fps_optimization_textbox']),
+        placeholder_text='',
+        initial_text=str(previous_values['minimize window fps optimization value']),
+        object_id='#settings_font',
+        manager=manager)
+
+    inactivity_fps_optimization_checkbox = pygame_gui.elements.UICheckBox(
+        relative_rect=pg.Rect(settings_buttons_coordinates['inactivity_fps_optimization_checkbox']),
+        text='',
+        initial_state=previous_values['inactive fps optimize'],
+        manager=manager)
+
+    inactivity_fps_optimization_textbox = pygame_gui.elements.UITextEntryBox(
+        relative_rect=pg.Rect(settings_buttons_coordinates['inactivity_fps_optimization_textbox']),
+        placeholder_text='',
+        initial_text=str(previous_values['inactive fps optimization value']),
+        object_id='#settings_font',
         manager=manager)
 
     debug_checkbox = pygame_gui.elements.UICheckBox(
@@ -78,13 +93,13 @@ def settings_buttons(previous_values):
         initial_state=previous_values['fullscreen'],
         manager=manager)
 
-    sharp_scale_checkbox = pygame_gui.elements.UICheckBox(
-        relative_rect=pg.Rect(settings_buttons_coordinates['sharp_scale_checkbox']),
+    scale_checkbox = pygame_gui.elements.UICheckBox(
+        relative_rect=pg.Rect(settings_buttons_coordinates['scale_checkbox']),
         text='',
-        initial_state=previous_values['sharp fullscreen'],
+        initial_state=previous_values['scaled fullscreen'],
         manager=manager)
     if not fullscreen_checkbox.get_state():
-        sharp_scale_checkbox.disable()
+        scale_checkbox.disable()
 
     pick_color_button = pygame_gui.elements.UIButton(
         relative_rect=pg.Rect(settings_buttons_coordinates['pick_color_button']),
@@ -100,7 +115,7 @@ def settings_buttons(previous_values):
 
     color_picker = pygame_gui.windows.UIColourPickerDialog(
         rect=pg.Rect(settings_buttons_coordinates['color_picker']),
-        initial_colour=settings_data['background color converted'],
+        initial_colour=previous_values['background color converted'],
         manager=manager,
         visible=False)
 
@@ -122,7 +137,6 @@ def monopoly_init():
     if os.path.exists('lib/modified_library_files/pygame-gui/ui_appearance_theme.py'):
         os.replace('lib/modified_library_files/pygame-gui/ui_appearance_theme.py', '.venv/Lib/site-packages/pygame_gui/core/ui_appearance_theme.py')
 
-    global name, address, port
     global players, exchange_value, exchange_color, state, recorder, log_textbox
 
     gc.enable()
@@ -131,6 +145,7 @@ def monopoly_init():
     mimetypes.init()
 
     players = []
+
     exchange_value = -100
     exchange_color = ''
     log_textbox = None
@@ -172,46 +187,39 @@ def monopoly_init():
              'audio_recording': False,
              'messages_count': 0}
 
-    global screen, clock, settings_data
+    global screen, clock
 
-    global resolution, resolution_folder, btn_coordinates, profile_coordinates, start_btn_textboxes_coordinates, cubes_coordinates, speed, avatar_side_size, exchange_coordinates, FPS, auction_coordinates, tile_size, offset_horizontal, offset_vertical, debug_mode, fps_coordinates, font_size, egg_card_coordinates, egg_card_text_center, egg_card_title_center, egg_font_size, egg_card_text_width, egg_btns_coordinates, optimized, background_color, log_textbox_coordinates, tile_info_coordinates, fullscreen, sharp_scale, settings_buttons_coordinates, settings_font_size, log_image_size, name, address, port
-    resolution, resolution_folder, btn_coordinates, profile_coordinates, start_btn_textboxes_coordinates, cubes_coordinates, speed, avatar_side_size, exchange_coordinates, FPS, auction_coordinates, tile_size, offset_horizontal, offset_vertical, debug_mode, fps_coordinates, font_size, egg_card_coordinates, egg_card_text_center, egg_card_title_center, egg_font_size, egg_card_text_width, egg_btns_coordinates, optimized, background_color, log_textbox_coordinates, tile_info_coordinates, fullscreen, sharp_scale, settings_buttons_coordinates, settings_font_size, log_image_size, name, address, port = resolution_definition()
+    global resolution, resolution_folder, btn_coordinates, profile_coordinates, start_btn_textboxes_coordinates, cubes_coordinates, speed, avatar_side_size, exchange_coordinates, auction_coordinates, tile_size, offset_horizontal, offset_vertical, fps_coordinates, font_path, egg_card_coordinates, egg_card_text_center, egg_card_title_center, egg_card_text_width, egg_btns_coordinates, log_textbox_coordinates, tile_info_coordinates, settings_buttons_coordinates, max_log_image_size
+    resolution, resolution_folder, btn_coordinates, profile_coordinates, start_btn_textboxes_coordinates, cubes_coordinates, speed, avatar_side_size, exchange_coordinates, auction_coordinates, tile_size, offset_horizontal, offset_vertical, fps_coordinates, font_path, egg_card_coordinates, egg_card_text_center, egg_card_title_center, egg_card_text_width, egg_btns_coordinates, log_textbox_coordinates, tile_info_coordinates, settings_buttons_coordinates, max_log_image_size = resolution_definition()
+
     with open('settings.json') as f:
-        settings_data = json.load(f)
-    if settings_data['resolution index'] == 1:
-        settings_data['resolution'] = '1280x720'
-    elif settings_data['resolution index'] == 2:
-        settings_data['resolution'] = '1920x1080'
-    elif settings_data['resolution index'] == 3:
-        settings_data['resolution'] = '2560x1440'
-
-    settings_data['background color converted'] = pg.Color(settings_data['background color'])
-
-    if not settings_data['fullscreen']:
-        settings_data['sharp fullscreen'] = False
-
+        settings_data_ = json.load(f)
     flags = pg.HWSURFACE
-    if settings_data['fullscreen']:
+    if settings_data_['fullscreen']:
         flags = flags | pg.FULLSCREEN
-    if settings_data['sharp fullscreen']:
         flags = flags | pg.SCALED
+    del settings_data_
+
     screen = pg.display.set_mode((2560, 1360))
     screen = pg.display.set_mode(resolution, flags)
-    TITLE = 'Monopoly v0.18'
+    TITLE = 'Monopoly v1.1'
     icon = pg.image.load(f'resources/icon.png')
     pg.display.set_icon(icon)
     pg.display.set_caption(TITLE)
     clock = pg.time.Clock()
 
+    load_settings()
+
     global font, settings_font, manager, prev_time
-    font = pg.font.Font('resources/fonts/bulbulpoly-4.ttf', font_size)
-    settings_font = pg.font.Font('resources/fonts/bulbulpoly-4.ttf', settings_font_size)
+    font = pg.font.Font(font_path)
     manager = pygame_gui.UIManager(resolution, theme_path=f'resources/{resolution_folder}/gui_theme.json', enable_live_theme_updates=False, starting_language='ru')
+
     settings_buttons(settings_data)
+
     theme = manager.create_new_theme(f'resources/{resolution_folder}/gui_theme.json')
     manager.set_ui_theme(theme)
-    manager.add_font_paths('BulBulPoly', "resources/fonts/bulbulpoly-4.ttf")
-    manager.preload_fonts([{'name': 'BulBulPoly', 'point_size': f'{font_size}', 'style': 'regular', 'antialiased': '0'}])
+    manager.add_font_paths('BulBulPoly', "resources/fonts/BulBulPoly 4 1x.bdf")
+    manager.preload_fonts([{'name': 'BulBulPoly', 'point_size': f'{1}', 'style': 'regular', 'antialiased': '0'}])
 
     if debug_mode:
         global command_counter, unknown_commands
@@ -223,7 +231,8 @@ def monopoly_init():
                         'mortgaged', 'redeemed', 'late to redeem', 'need to pay to player', 'pulled card position',
                         'show cubes', 'free prison escape card',
                         'message', 'mortgaged_moves_count', 'sound message', 'voice message', 'image message',
-                        'receive size', 'player state', 'd/n card', 'pay multiplier']:
+                        'receive size', 'player state', 'd/n card', 'pay multiplier', 'ping', 'ping by player',
+                        'timer', 'surrender', 'value']:
             command_counter[command] = 0
         unknown_commands = []
 
@@ -233,25 +242,27 @@ def monopoly_init():
 def save_settings():
     settings_data_new = {'resolution index': settings_data['resolution index'],
                          'fps': int(fps_textbox.get_text()),
-                         'optimized movement': optimization_checkbox.get_state(),
+                         'minimize window fps optimize': minimize_window_fps_optimization_checkbox.get_state(),
+                         'minimize window fps optimization value': int(minimize_window_fps_optimization_textbox.get_text()),
+                         'inactive fps optimize': inactivity_fps_optimization_checkbox.get_state(),
+                         'inactive fps optimization value': int(inactivity_fps_optimization_textbox.get_text()),
                          'background color': settings_data['background color'],
                          'fullscreen': fullscreen_checkbox.get_state(),
-                         'sharp fullscreen': sharp_scale_checkbox.get_state(),
+                         'scaled fullscreen': scale_checkbox.get_state(),
                          'debug mode': debug_checkbox.get_state(),
                          'name': name,
                          'address': address,
-                         'port': port,
-                         'clear overflowed chat': False}
+                         'port': port}
 
     with open("settings.json", "w") as outfile:
         json.dump(settings_data_new, outfile, indent=4, ensure_ascii=False)
 
 
 def load_assets():
-    global resolution, resolution_folder, btn_coordinates, profile_coordinates, start_btn_textboxes_coordinates, cubes_coordinates, speed, avatar_side_size, exchange_coordinates, FPS, auction_coordinates, tile_size, offset_horizontal, offset_vertical, debug_mode, fps_coordinates, font_size, egg_card_coordinates, egg_card_text_center, egg_card_title_center, egg_font_size, egg_card_text_width, egg_btns_coordinates, optimized, background_color, log_textbox_coordinates, tile_info_coordinates, fullscreen, sharp_scale, settings_buttons_coordinates, settings_font_size, log_image_size, name, address, port
-    resolution, resolution_folder, btn_coordinates, profile_coordinates, start_btn_textboxes_coordinates, cubes_coordinates, speed, avatar_side_size, exchange_coordinates, FPS, auction_coordinates, tile_size, offset_horizontal, offset_vertical, debug_mode, fps_coordinates, font_size, egg_card_coordinates, egg_card_text_center, egg_card_title_center, egg_font_size, egg_card_text_width, egg_btns_coordinates, optimized, background_color, log_textbox_coordinates, tile_info_coordinates, fullscreen, sharp_scale, settings_buttons_coordinates, settings_font_size, log_image_size, name, address, port = resolution_definition()
+    global resolution, resolution_folder, btn_coordinates, profile_coordinates, start_btn_textboxes_coordinates, cubes_coordinates, speed, avatar_side_size, exchange_coordinates, auction_coordinates, tile_size, offset_horizontal, offset_vertical, fps_coordinates, font_path, egg_card_coordinates, egg_card_text_center, egg_card_title_center, egg_card_text_width, egg_btns_coordinates, log_textbox_coordinates, tile_info_coordinates, settings_buttons_coordinates, max_log_image_size
+    resolution, resolution_folder, btn_coordinates, profile_coordinates, start_btn_textboxes_coordinates, cubes_coordinates, speed, avatar_side_size, exchange_coordinates, auction_coordinates, tile_size, offset_horizontal, offset_vertical, fps_coordinates, font_path, egg_card_coordinates, egg_card_text_center, egg_card_title_center, egg_card_text_width, egg_btns_coordinates, log_textbox_coordinates, tile_info_coordinates, settings_buttons_coordinates, max_log_image_size = resolution_definition()
 
-    global exchange_screen, auction_screen, darkening_full, darkening_tile, profile_picture, bars, player_bars, mortgaged_tile, font, eggs_card_uncovered, egg_font, board_image, settings_font, bankrupt_picture
+    global exchange_screen, auction_screen, darkening_full, darkening_tile, profile_picture, bars, player_bars, mortgaged_tile, font, eggs_card_uncovered, board_image, bankrupt_picture
     exchange_screen = pg.image.load(f'resources/{resolution_folder}/exchange.png').convert_alpha()
     auction_screen = pg.image.load(f'resources/{resolution_folder}/auction.png').convert_alpha()
     darkening_full = pg.image.load(f'resources/{resolution_folder}/darkening all.png').convert_alpha()
@@ -262,9 +273,7 @@ def load_assets():
     player_bars = pg.image.load(f'resources/{resolution_folder}/profile/profile_bars.png').convert_alpha()
     mortgaged_tile = pg.image.load(f'resources/{resolution_folder}/mortgaged.png').convert_alpha()
     eggs_card_uncovered = pg.image.load(f'resources/{resolution_folder}/egg-s_card_uncovered.png').convert()
-    font = pg.font.Font('resources/fonts/bulbulpoly-4.ttf', font_size)
-    egg_font = pg.font.Font('resources/fonts/bulbulpoly-4.ttf', egg_font_size)
-    settings_font = pg.font.Font('resources/fonts/bulbulpoly-4.ttf', settings_font_size)
+    font = pg.font.Font(font_path)
 
     for penis in range(5):
         globals()[f'{penis + 1}_penises_image'] = pg.image.load(f'resources/{resolution_folder}/white penises/{penis + 1}.png').convert_alpha()
@@ -276,10 +285,10 @@ def load_assets():
 
     board_image = pg.image.load(f'resources/temp/images/{resolution_folder}/board image.png').convert()
 
-    all_players = [Player('red',    (all_tiles[0].x_center, all_tiles[0].y_center), resolution_folder),
-                   Player('blue',   (all_tiles[0].x_center, all_tiles[0].y_center), resolution_folder),
-                   Player('yellow', (all_tiles[0].x_center, all_tiles[0].y_center), resolution_folder),
-                   Player('green',  (all_tiles[0].x_center, all_tiles[0].y_center), resolution_folder)]
+    all_players = [Player('red',    (all_tiles[0].x_center, all_tiles[0].y_center), resolution_folder, font),
+                   Player('blue',   (all_tiles[0].x_center, all_tiles[0].y_center), resolution_folder, font),
+                   Player('yellow', (all_tiles[0].x_center, all_tiles[0].y_center), resolution_folder, font),
+                   Player('green',  (all_tiles[0].x_center, all_tiles[0].y_center), resolution_folder, font)]
     player_dict = {}
     for player in all_players:
         player_dict[player.color] = player
@@ -289,7 +298,7 @@ def load_assets():
     flags = pg.HWSURFACE
     if fullscreen:
         flags = flags | pg.FULLSCREEN
-    if sharp_scale:
+    if scale:
         flags = flags | pg.SCALED
 
     with open('settings.json') as f:
@@ -309,12 +318,15 @@ def load_assets():
     start_game_button.kill()
     dropdown.kill()
     fps_textbox.kill()
-    optimization_checkbox.kill()
+    minimize_window_fps_optimization_checkbox.kill()
+    minimize_window_fps_optimization_textbox.kill()
+    inactivity_fps_optimization_checkbox.kill()
+    inactivity_fps_optimization_textbox.kill()
     debug_checkbox.kill()
     pick_color_button.kill()
     color_picker.kill()
     fullscreen_checkbox.kill()
-    sharp_scale_checkbox.kill()
+    scale_checkbox.kill()
     apply_button.kill()
 
     global theme
@@ -327,12 +339,15 @@ def load_assets():
     start_game_button.rebuild()
     dropdown.rebuild()
     fps_textbox.rebuild()
-    optimization_checkbox.rebuild()
+    minimize_window_fps_optimization_checkbox.rebuild()
+    minimize_window_fps_optimization_textbox.rebuild()
+    inactivity_fps_optimization_checkbox.rebuild()
+    inactivity_fps_optimization_textbox.rebuild()
     debug_checkbox.rebuild()
     pick_color_button.rebuild()
     color_picker.rebuild()
     fullscreen_checkbox.rebuild()
-    sharp_scale_checkbox.rebuild()
+    scale_checkbox.rebuild()
     apply_button.rebuild()
 
     theme = manager.create_new_theme(f'resources/{resolution_folder}/gui_theme.json')
@@ -346,12 +361,15 @@ def load_game():
     start_game_button.kill()
     dropdown.kill()
     fps_textbox.kill()
-    optimization_checkbox.kill()
+    minimize_window_fps_optimization_checkbox.kill()
+    minimize_window_fps_optimization_textbox.kill()
+    inactivity_fps_optimization_checkbox.kill()
+    inactivity_fps_optimization_textbox.kill()
     debug_checkbox.kill()
     pick_color_button.kill()
     color_picker.kill()
     fullscreen_checkbox.kill()
-    sharp_scale_checkbox.kill()
+    scale_checkbox.kill()
     apply_button.kill()
 
     sock = sck.socket(sck.AF_INET, sck.SOCK_STREAM)
@@ -365,12 +383,64 @@ def load_game():
 
     theme = manager.create_new_theme(f'resources/{resolution_folder}/gui_theme.json')
     manager.set_ui_theme(theme)
-    manager.add_font_paths('BulBulPoly', "resources/fonts/bulbulpoly-4.ttf")
-    manager.preload_fonts([{'name': 'BulBulPoly', 'point_size': f'{font_size}', 'style': 'regular', 'antialiased': '0'}])
+    manager.add_font_paths('BulBulPoly', "resources/fonts/BulBulPoly 4 1x.bdf")
+    manager.preload_fonts([{'name': 'BulBulPoly', 'point_size': f'{1}', 'style': 'regular', 'antialiased': '0'}])
     active_buttons_check()
 
     global game_started
     game_started = True
+
+
+def load_settings():
+    global settings_data
+    with open('settings.json') as f:
+        settings_data = json.load(f)
+    default_settings = {'resolution index': 1,
+                        'fps': 60,
+                        'minimize window fps optimize': False,
+                        'minimize window fps optimization value': 15,
+                        'inactive fps optimize': False,
+                        'inactive fps optimization value': 30,
+                        'background color': [128, 128, 128, 255],
+                        'fullscreen': False,
+                        'scaled fullscreen': False,
+                        'debug mode': False,
+                        'name': '',
+                        'address': '',
+                        'port': ''}
+    for key in default_settings.keys():
+        if key not in settings_data:
+            settings_data[key] = default_settings[key]
+
+    if settings_data['resolution index'] == 1:
+        settings_data['resolution'] = '1280x720'
+    elif settings_data['resolution index'] == 2:
+        settings_data['resolution'] = '1920x1080'
+    elif settings_data['resolution index'] == 3:
+        settings_data['resolution'] = '2560x1440'
+
+    settings_data['background color converted'] = pg.Color(settings_data['background color'])
+
+    if not settings_data['fullscreen']:
+        settings_data['sharp fullscreen'] = False
+
+    global name, address, port, FPS, debug_mode, background_color, fullscreen, scale, minimize_window_fps_optimize, minimize_window_fps, inactive_fps_optimize, inactive_fps, max_fps
+    max_fps = settings_data['fps']
+    FPS = settings_data['inactive fps optimization value']
+    debug_mode = settings_data['debug mode']
+    background_color = pg.Color(settings_data['background color'])
+    fullscreen = settings_data['fullscreen']
+    scale = settings_data['scaled fullscreen']
+    name = settings_data['name']
+    address = settings_data['address']
+    port = settings_data['port']
+    minimize_window_fps_optimize = settings_data['minimize window fps optimize']
+    minimize_window_fps = settings_data['minimize window fps optimization value']
+    inactive_fps_optimize = settings_data['inactive fps optimize']
+    inactive_fps = settings_data['inactive fps optimization value']
+
+    global settings_message
+    settings_message = ''
 
 
 def throw_cubes():
@@ -450,6 +520,7 @@ def debug_output():
               f'       max_time: {player.max_time}\n')
 
     pprint.pp(state)
+    # objgraph.show_most_common_types(limit=15)
 
 
 def connect():
@@ -462,7 +533,6 @@ def connect():
             if '%' not in name_ and '|' not in name_:
                 if name_:
                     sock.connect((ip_, port_))
-                    # connect_file_socket()
                     sock.send(f'name|{name_}%'.encode())
                     state['connected'] = True
 
@@ -1091,8 +1161,10 @@ def send_message():
 
 def send_audio():
     if state['connected']:
+
         top = tkinter.Tk()
         top.withdraw()
+        top.attributes('-topmost', True)
         file_name = tkinter.filedialog.askopenfilename(parent=top, filetypes=[('Аудио файлы',
                                                                                ('*.aiff', '*.flac', '*.iff', '*.mp3',
                                                                                 '*.oga', '*.opus', '*.wav'))])
@@ -1153,13 +1225,13 @@ def send_image():
                                           'color': (208, 57, 42)}])
             return
         width, height = image.size
-        if width <= height:
-            new_side_size = width
-        else:
-            new_side_size = height
-        image = image.crop(((width - new_side_size) // 2, (height - new_side_size) // 2, (width + new_side_size) // 2,
-                            (height + new_side_size) // 2))
-        image = image.resize([256, 256])
+        if height > 462:
+            width = round(462 * width / height)
+            height = 462
+        if width > 925:
+            height = round(925 * height / width)
+            width = 925
+        image = image.resize((width, height))
 
         image_bytes = io.BytesIO()
         image.save(image_bytes, format='PNG')
@@ -1325,9 +1397,9 @@ def blit_board_above_interface():
             if player.imprisoned:
                 screen.blit(player_bars, profile_coordinates[player_index]['avatar'])
             screen.blit(globals()[f'{player.color}_profile'], profile_coordinates[player_index]['avatar'])
-            screen.blit(font.render(f'{player.money}~', False, 'black'), profile_coordinates[player_index]['money'])
-            screen.blit(font.render(f'{player.value}~', False, 'black'), profile_coordinates[player_index]['value'])
-            screen.blit(font.render(player.name, False, 'black'), profile_coordinates[player_index]['name'])
+            screen.blit(player.rendered_money, profile_coordinates[player_index]['money'])
+            screen.blit(player.rendered_value, profile_coordinates[player_index]['value'])
+            screen.blit(player.rendered_name, profile_coordinates[player_index]['name'])
             if player.bankrupt:
                 screen.blit(bankrupt_picture, profile_coordinates[player_index]['profile'])
             else:
@@ -1339,7 +1411,7 @@ def blit_board_above_interface():
     if state['show_egg_panel']:
         screen.blit(eggs_card_uncovered, egg_card_coordinates)
         screen.blit(pulled_card_title, pulled_card_title_rect)
-        render_multiline_text(pulled_card_strings, egg_card_text_center[0], egg_card_text_center[1], egg_font, egg_font.get_linesize(), 'center')
+        render_multiline_text(pulled_card_strings, egg_card_text_center[0], egg_card_text_center[1], font, font.get_linesize(), 'center')
 
     if state['tile_info_show'][0]:
         tile_info = state['tile_info_show'][1]
@@ -1349,7 +1421,11 @@ def blit_board_above_interface():
 def price_printing():
     for tile in all_tiles:
         if tile.prerendered_text:
+
+
+            # screen.fill('green', tile.text_rect)
             screen.blit(tile.prerendered_text, tile.text_rect)
+            # pg.draw.circle(screen, 'red', (tile.xText, tile.yText), 1)
 
 
 def position_update():
@@ -1412,6 +1488,9 @@ def move_by_cubes(cube1, cube2, color):  # Не спрашивайте, как �
 
 
 def move(players_on_tile, end_positions, cube_sum):
+    if inactive_fps_optimize:
+        global FPS
+        FPS = max_fps
     if not players_on_tile:
         return
 
@@ -1425,12 +1504,8 @@ def move(players_on_tile, end_positions, cube_sum):
     cube_speed = math.sqrt(abs(7 / cube_sum))
     distance = math.hypot(diff_x, diff_y)
 
-    if not optimized:
-        step_amount = round(distance * cube_speed * 75 * speed)
-        sleep_seconds = cube_speed * 3.3 * speed
-    else:
-        step_amount = round(distance * cube_speed * 10 * speed)
-        sleep_seconds = cube_speed * 25 * speed
+    step_amount = round(distance * cube_speed * 10 * speed)
+    sleep_seconds = cube_speed * 25 * speed
 
     total_time = step_amount * sleep_seconds
     start_time = time.time()
@@ -1457,11 +1532,12 @@ def move(players_on_tile, end_positions, cube_sum):
             player.player_piece_rect = player.player_piece.get_rect(center=(player.x, player.y))
 
         time.sleep(0.01)
+    if inactive_fps_optimize:
+        FPS = inactive_fps
 
 
 def handle_connection():
     global players, all_tiles, cube_1_picture, cube_2_picture, list_for_file_handler
-
 
     def price_update(tile):
         tile_family_members = 0
@@ -1476,7 +1552,6 @@ def handle_connection():
                     tile_.family_members = tile_family_members
                     tile_.text_defining(font)
 
-
     buffer = ''
     while running:
         time.sleep(ideal_dt)
@@ -1484,7 +1559,7 @@ def handle_connection():
             if state['connected']:
                 try:
                     data_undecoded = sock.recv(1024)
-                    data_unsplit = data_undecoded.decode().replace('[1foe_S]', '')
+                    data_unsplit = data_undecoded.decode()
                     buffer += data_unsplit
 
                     while '%' in buffer:
@@ -1493,10 +1568,20 @@ def handle_connection():
 
                         if data[0] != '':
 
-                            if data[0] not in ('avatar', 'sound message', 'voice message', 'image message', 'timer'):
+                            if data[0] not in ('avatar', 'sound message', 'voice message', 'image message', 'timer', 'ping', 'ping by player'):
                                 information_received('Информация получена', data)
 
-                            if data[0] == 'color main':
+                            if data[0] == 'ping by player':
+                                player = player_dict[data[1]]
+                                player.ping = int(data[2])
+
+                            elif data[0] == 'ping':
+                                time_server = float(data[1])
+                                time_now = time.time()
+                                ping = int((time_now - time_server) * 1000)
+                                sock.send(f'pong|{ping}%'.encode())
+
+                            elif data[0] == 'color main':
                                 allPlayer = player_dict[data[1]]
 
                                 allPlayer.main_color(data[1])
@@ -1547,6 +1632,8 @@ def handle_connection():
                                 player.money = int(data[2])
                                 player.piece_position = int(data[3])
                                 player.name = data[4]
+                                player.rendered_name = player.font.render(f'{player.name}~', False, 'black')
+                                player.rendered_money = player.font.render(f'{player.money}~', False, 'black')
                                 position_update()
 
                             elif data[0] == 'property':
@@ -1562,6 +1649,7 @@ def handle_connection():
                                 for i, player in enumerate(players):
                                     if data[1] == player.color:
                                         player.money = int(data[2])
+                                        player.rendered_money = player.font.render(f'{player.money}~', False, 'black')
 
                             elif data[0] == 'playerDeleted':
                                 player = player_dict[data[1]]
@@ -1722,7 +1810,7 @@ def handle_connection():
                                 global pulled_card_text,  pulled_card_title, pulled_card_title_rect
                                 state['show_egg_panel'] = True
                                 if data[2] == 'Яйцо':
-                                    pulled_card_title = egg_font.render('Вопросительное яйцо', False, 'black')
+                                    pulled_card_title = font.render('Вопросительное яйцо', False, 'black')
                                     pulled_card_title_rect = pulled_card_title.get_rect(center=egg_card_title_center)
                                     egg_card_position = int(data[3])
                                     pulled_card_strings = []
@@ -1737,7 +1825,7 @@ def handle_connection():
                                     text = text.split(' ')
 
                                 elif data[2] == 'Яйца':
-                                    pulled_card_title = egg_font.render('Груда вопросительных яиц', False, 'black')
+                                    pulled_card_title = font.render('Груда вопросительных яиц', False, 'black')
                                     pulled_card_title_rect = pulled_card_title.get_rect(center=egg_card_title_center)
                                     egg_card_position = int(data[3])
                                     pulled_card_strings = []
@@ -1753,13 +1841,13 @@ def handle_connection():
 
                                 while text:
                                     text_new = []
-                                    while egg_font.size(' '.join(text_new))[0] <= egg_card_text_width and text:
+                                    while font.size(' '.join(text_new))[0] <= egg_card_text_width and text:
                                         text_new.append(text[0])
                                         text.pop(0)
                                     text.insert(0, text_new[-1])
                                     text_new.pop(-1)
                                     pulled_card_strings.append(' '.join(text_new))
-                                    if egg_font.size(' '.join(text))[0] <= egg_card_text_width:
+                                    if font.size(' '.join(text))[0] <= egg_card_text_width:
                                         pulled_card_strings.append(' '.join(text))
                                         text.clear()
 
@@ -1808,8 +1896,14 @@ def handle_connection():
                                 player.bankrupt = True
                                 player.timer_bar.set_percentage(1)
 
+                                for tile in all_tiles:
+                                    if tile.owner == player.color:
+                                        tile.reset_tile()
+
                             elif data[0] == 'value':
-                                player_dict[data[1]].value = int(data[2])
+                                player = player_dict[data[1]]
+                                player.value = int(data[2])
+                                player.rendered_value = player.font.render(f'{player.value}~', False, 'black')
 
                             elif data[0] == 'timer':
                                 player = player_dict[data[1]]
@@ -1919,7 +2013,16 @@ def process_file_command(cmd):
     elif parts[0] == 'image message':
         image_bytes_decoded = base64.b64decode(parts[1])
         image_decoded = Image.open(io.BytesIO(image_bytes_decoded))
-        image_decoded = image_decoded.resize(log_image_size)
+
+        width, height = image_decoded.size
+        if height > max_log_image_size[1]:
+            width = round(max_log_image_size[1] * width / height)
+            height = max_log_image_size[1]
+        if width > max_log_image_size[0]:
+            height = round(max_log_image_size[0] * height / width)
+            width = max_log_image_size[0]
+        image_decoded = image_decoded.resize((width, height))
+
         image_bytes = io.BytesIO()
         image_decoded.save(image_bytes, format='PNG')
         image_bytes.seek(0)
@@ -1940,7 +2043,7 @@ def delta_time(old_time):
 
 
 def event_handler():
-    global color_picker
+    global color_picker, FPS
 
     events = pg.event.get()
     for event in events:
@@ -1968,6 +2071,13 @@ def event_handler():
             elif log_entry_textbox.is_focused:
                 if event.key == pg.K_RETURN:
                     send_message()
+
+        if minimize_window_fps_optimize:
+            if event.type in (pg.WINDOWHIDDEN, pg.WINDOWFOCUSLOST):
+                FPS = minimize_window_fps
+            elif event.type in (pg.WINDOWRESTORED, pg.WINDOWFOCUSGAINED):
+                FPS = max_fps
+
 
         manager_initiated = False
         while not manager_initiated:
@@ -2001,7 +2111,7 @@ def event_handler():
                     elif event_type == redeem_button:
                         redeem()
                     elif event_type == avatar_choose_button:
-                        choose_avatar()
+                        threading.Thread(target=choose_avatar, daemon=True).start()
                     elif event_type == connect_button:
                         connect()
                     elif event_type == debug_button:
@@ -2025,11 +2135,11 @@ def event_handler():
                     elif event_type == log_text_send_button:
                         send_message()
                     elif event_type == log_audio_send_button:
-                        send_audio()
+                        threading.Thread(target=send_audio, daemon=True).start()
                     elif event_type == log_voice_message_send_button:
                         send_voice_message()
                     elif event_type == log_image_send_button:
-                        send_image()
+                        threading.Thread(target=send_image, daemon=True).start()
                     elif event_type == dn_btn:
                         dn_activate()
                     elif event_type == surrender_button:
@@ -2079,12 +2189,12 @@ def event_handler():
 
                 case pygame_gui.UI_CHECK_BOX_CHECKED:
                     if event.ui_element == fullscreen_checkbox:
-                        sharp_scale_checkbox.enable()
+                        scale_checkbox.enable()
 
                 case pygame_gui.UI_CHECK_BOX_UNCHECKED:
                     if event.ui_element == fullscreen_checkbox:
-                        sharp_scale_checkbox.disable()
-                        sharp_scale_checkbox.set_state(False)
+                        scale_checkbox.disable()
+                        scale_checkbox.set_state(False)
 
                 case pygame_gui.UI_DROP_DOWN_MENU_CHANGED:
                     resolution_to_index = {'1280x720': 1,
@@ -2111,61 +2221,61 @@ def buttons():
         relative_rect=pg.Rect(btn_coordinates['throw_cubes']),
         text='Бросить кубы',
         manager=manager,
-        tool_tip_text=f'<font face="BulBulPoly" pixel_size={font_size} color="#000000">Просто бросить кубы</font>')
+        tool_tip_text=f'<font face="BulBulPoly" pixel_size={1} color="#000000">Просто бросить кубы</font>')
 
     buy_button = pygame_gui.elements.UIButton(
         relative_rect=pg.Rect(btn_coordinates['buy']),
         text='Купить',
         manager=manager,
-        tool_tip_text=f'<font face="BulBulPoly" pixel_size={font_size} color="#000000">Купить поле</font>')
+        tool_tip_text=f'<font face="BulBulPoly" pixel_size={1} color="#000000">Купить поле</font>')
 
     pay_button = pygame_gui.elements.UIButton(
         relative_rect=pg.Rect(btn_coordinates['pay']),
         text='Оплатить',
         manager=manager,
-        tool_tip_text=f'<font face="BulBulPoly" pixel_size={font_size} color="#000000">Оплатить свой долг</font>')
+        tool_tip_text=f'<font face="BulBulPoly" pixel_size={1} color="#000000">Оплатить свой долг</font>')
 
     shove_penis_button = pygame_gui.elements.UIButton(
         relative_rect=pg.Rect(btn_coordinates['shove_penis']),
         text='Сунуть пЭнис',
         manager=manager,
-        tool_tip_text=f'<font face="BulBulPoly" pixel_size={font_size} color="#000000">Сувание пЭнисов повышает ценность поля</font>')
+        tool_tip_text=f'<font face="BulBulPoly" pixel_size={1} color="#000000">Сувание пЭнисов повышает ценность поля</font>')
 
     remove_penis_button = pygame_gui.elements.UIButton(
         relative_rect=pg.Rect(btn_coordinates['remove_penis']),
         text='Убрать пЭнис',
         manager=manager,
-        tool_tip_text=f'<font face="BulBulPoly" pixel_size={font_size} color="#000000">Убирание пЭнисов возвращает стоимость пЭниса полностью</font>')
+        tool_tip_text=f'<font face="BulBulPoly" pixel_size={1} color="#000000">Убирание пЭнисов возвращает стоимость пЭниса полностью</font>')
 
     exchange_button = pygame_gui.elements.UIButton(
         relative_rect=pg.Rect(btn_coordinates['exchange']),
         text='Обмен',
         manager=manager,
-        tool_tip_text=f'<font face="BulBulPoly" pixel_size={font_size} color="#000000">Обмен с другим игроком</font>')
+        tool_tip_text=f'<font face="BulBulPoly" pixel_size={1} color="#000000">Обмен с другим игроком</font>')
 
     auction_button = pygame_gui.elements.UIButton(
         relative_rect=pg.Rect(btn_coordinates['auction']),
         text='Аукцион',
         manager=manager,
-        tool_tip_text=f'<font face="BulBulPoly" pixel_size={font_size} color="#000000">Выставить поле, которое вы не хотите покупать, на аукцион</font>')
+        tool_tip_text=f'<font face="BulBulPoly" pixel_size={1} color="#000000">Выставить поле, которое вы не хотите покупать, на аукцион</font>')
 
     mortgage_button = pygame_gui.elements.UIButton(
         relative_rect=pg.Rect(btn_coordinates['mortgage']),
         text='Заложить',
         manager=manager,
-        tool_tip_text=f'<font face="BulBulPoly" pixel_size={font_size} color="#000000">Заложить купленное поле за половину стоимости</font>')
+        tool_tip_text=f'<font face="BulBulPoly" pixel_size={1} color="#000000">Заложить купленное поле за половину стоимости</font>')
 
     redeem_button = pygame_gui.elements.UIButton(
         relative_rect=pg.Rect(btn_coordinates['redeem']),
         text='Выкупить',
         manager=manager,
-        tool_tip_text=f'<font face="BulBulPoly" pixel_size={font_size} color="#000000">Выкупить заложенное поле за полную стоимость</font>')
+        tool_tip_text=f'<font face="BulBulPoly" pixel_size={1} color="#000000">Выкупить заложенное поле за полную стоимость</font>')
 
     surrender_button = pygame_gui.elements.UIButton(
         relative_rect=pg.Rect(btn_coordinates['surrender']),
         text='Сдаться',
         manager=manager,
-        tool_tip_text=f'<font face="BulBulPoly" pixel_size={font_size} color="#000000">Просто сдаться</font>')
+        tool_tip_text=f'<font face="BulBulPoly" pixel_size={1} color="#000000">Просто сдаться</font>')
 
 
     name_textbox = pygame_gui.elements.UITextEntryBox(
@@ -2190,7 +2300,7 @@ def buttons():
         relative_rect=pg.Rect(start_btn_textboxes_coordinates['choose_avatar']),
         text='Выбрать аватар',
         manager=manager,
-        tool_tip_text=f'<font face="BulBulPoly" pixel_size={font_size} color="#000000">Только после начала игры</font>')
+        tool_tip_text=f'<font face="BulBulPoly" pixel_size={1} color="#000000">Только после начала игры</font>')
 
     connect_button = pygame_gui.elements.UIButton(
         relative_rect=pg.Rect(start_btn_textboxes_coordinates['connect']),
@@ -2257,7 +2367,7 @@ def buttons():
         visible=False,
         object_id=pygame_gui.core.ObjectID(class_id='@transparent_buttons', object_id='#egg_button'),
         manager=manager,
-        tool_tip_text=f'<font face="BulBulPoly" pixel_size={font_size} color="#000000">Выйти из тюрьмы</font>')
+        tool_tip_text=f'<font face="BulBulPoly" pixel_size={1} color="#000000">Выйти из тюрьмы</font>')
 
     exit_prison_eggs_btn = pygame_gui.elements.UIButton(
         relative_rect=pg.Rect(egg_btns_coordinates[0]),
@@ -2265,7 +2375,7 @@ def buttons():
         visible=False,
         object_id=pygame_gui.core.ObjectID(class_id='@transparent_buttons', object_id='#eggs_button'),
         manager=manager,
-        tool_tip_text=f'<font face="BulBulPoly" pixel_size={font_size} color="#000000">Выйти из тюрьмы</font>')
+        tool_tip_text=f'<font face="BulBulPoly" pixel_size={1} color="#000000">Выйти из тюрьмы</font>')
 
     dn_btn = pygame_gui.elements.UIButton(
         relative_rect=pg.Rect(egg_btns_coordinates[0]),
@@ -2273,7 +2383,7 @@ def buttons():
         visible=False,
         object_id=pygame_gui.core.ObjectID(class_id='@transparent_buttons', object_id='#dn_button'),
         manager=manager,
-        tool_tip_text=f'<font face="BulBulPoly" pixel_size={font_size} color="#000000">Удвоить или обнулить свой долг</font>')
+        tool_tip_text=f'<font face="BulBulPoly" pixel_size={1} color="#000000">Удвоить или обнулить свой долг</font>')
 
     log_entry_textbox = pygame_gui.elements.UITextEntryBox(
         relative_rect=pg.Rect(log_textbox_coordinates['user_input_box']),
@@ -2285,7 +2395,7 @@ def buttons():
         text='',
         object_id=pygame_gui.core.ObjectID(class_id='@transparent_buttons', object_id='#text_send_button'),
         manager=manager,
-        tool_tip_text=f'<font face="BulBulPoly" pixel_size={font_size} color="#000000">Отправить текст</font>')
+        tool_tip_text=f'<font face="BulBulPoly" pixel_size={1} color="#000000">Отправить текст</font>')
     log_text_send_button.disable()
 
     log_audio_send_button = pygame_gui.elements.UIButton(
@@ -2293,7 +2403,7 @@ def buttons():
         text='',
         object_id=pygame_gui.core.ObjectID(class_id='@transparent_buttons', object_id='#audio_send_button'),
         manager=manager,
-        tool_tip_text=f'<font face="BulBulPoly" pixel_size={font_size} color="#000000">Отправить аудио</font>')
+        tool_tip_text=f'<font face="BulBulPoly" pixel_size={1} color="#000000">Отправить аудио</font>')
     log_audio_send_button.disable()
 
     log_voice_message_send_button = pygame_gui.elements.UIButton(
@@ -2301,7 +2411,7 @@ def buttons():
         text='',
         object_id=pygame_gui.core.ObjectID(class_id='@transparent_buttons', object_id='#voice_message_send_button'),
         manager=manager,
-        tool_tip_text=f'<font face="BulBulPoly" pixel_size={font_size} color="#000000">Отправить голосовое сообщение</font>')
+        tool_tip_text=f'<font face="BulBulPoly" pixel_size={1} color="#000000">Отправить голосовое сообщение</font>')
     log_voice_message_send_button.disable()
 
     log_image_send_button = pygame_gui.elements.UIButton(
@@ -2309,7 +2419,7 @@ def buttons():
         text='',
         object_id=pygame_gui.core.ObjectID(class_id='@transparent_buttons', object_id='#image_send_button'),
         manager=manager,
-        tool_tip_text=f'<font face="BulBulPoly" pixel_size={font_size} color="#000000">Отправить изображение</font>')
+        tool_tip_text=f'<font face="BulBulPoly" pixel_size={1} color="#000000">Отправить изображение</font>')
     log_image_send_button.disable()
 
     message_panel = pygame_gui.elements.UIPanel(relative_rect=pg.Rect(tile_info_coordinates, tile_info_coordinates),
@@ -2357,7 +2467,8 @@ def forbidden_characters_check(text, forbidden_characters):
     new_text = text
     for character in text:
         if character in forbidden_characters:
-            new_text = new_text.replace(character, '')
+            pass
+            # new_text = new_text.replace(character, '')
     return new_text
 
 
@@ -2459,7 +2570,6 @@ monopoly_init()
 past_second_fps = []
 prev_fps_time = time.time()
 average_fps = 0
-all_fps = []
 
 while running and not game_started:
     clock.tick(FPS)
@@ -2467,11 +2577,16 @@ while running and not game_started:
     screen.fill(settings_data['background color converted'])
     event_handler()
 
-    screen.blit(settings_font.render('Введите максимальный FPS:', False, 'black'), settings_buttons_coordinates['fps_text'])
-    screen.blit(settings_font.render('Оптимизация движения:', False, 'black'), settings_buttons_coordinates['optimization_text'])
-    screen.blit(settings_font.render('debug mode:', False, 'black'), settings_buttons_coordinates['debug_text'])
-    screen.blit(settings_font.render('Полноэкранный режим:', False, 'black'), settings_buttons_coordinates['fullscreen_text'])
-    screen.blit(settings_font.render('Чёткое растяжение экрана:', False, 'black'), settings_buttons_coordinates['sharp_scale_text'])
+    screen.blit(font.render('Введите максимальный FPS:', False, 'black'), settings_buttons_coordinates['fps_text'])
+    screen.blit(font.render('Уменьшать FPS при сворачивании:', False, 'black'), settings_buttons_coordinates['minimize_window_fps_optimization_text_1'])
+    screen.blit(font.render('до:', False, 'black'), settings_buttons_coordinates['minimize_window_fps_optimization_text_2'])
+    screen.blit(font.render('Уменьшать FPS при бездействии:', False, 'black'), settings_buttons_coordinates['inactivity_fps_optimization_text_1'])
+    screen.blit(font.render('до:', False, 'black'), settings_buttons_coordinates['inactivity_fps_optimization_text_2'])
+    screen.blit(font.render('Полноэкранный режим:', False, 'black'), settings_buttons_coordinates['fullscreen_text'])
+    screen.blit(font.render('Растяжение экрана:', False, 'black'), settings_buttons_coordinates['scale_text'])
+    screen.blit(font.render('debug mode:', False, 'black'), settings_buttons_coordinates['debug_text'])
+
+    screen.blit(font.render(settings_message, False, 'black'), settings_buttons_coordinates['message'])
 
     try:
         manager.update(dt)
@@ -2501,7 +2616,7 @@ while running:
     blit_board_above_interface()
 
     average_fps = clock.get_fps()
-    all_fps.append(average_fps)
+
     average_fps_text = font.render(str(round(average_fps)), False, 'black')
     screen.blit(average_fps_text, fps_coordinates)
 
@@ -2511,15 +2626,14 @@ if log_textbox:
     del log_textbox
     if os.path.exists(f'resources/temp/audios'):
         for file in os.listdir('resources/temp/audios'):
-            os.remove(f'resources/temp/audios/{file}')
+            try:
+                os.remove(f'resources/temp/audios/{file}')
+            except:
+                pass
 
 print('\nПрограмма завершена')
 
-pr.disable()
 if debug_mode:
-    if all_fps:
-        print(f'Средний FPS: {sum(all_fps) / len(all_fps)}')
-
     is_commanded = False
     for i in command_counter:
         if command_counter[i] > 0:
@@ -2534,8 +2648,3 @@ if debug_mode:
         with open(f'logs/commands_log_{formatted_date}.json', 'w') as file:
             json.dump(sorted_dict, file, indent=4, ensure_ascii=False)
 
-    s = io.StringIO()
-    sort_by = 'cumulative'
-    ps = pstats.Stats(pr, stream=s).sort_stats(sort_by)
-    ps.print_stats()
-    print(s.getvalue())

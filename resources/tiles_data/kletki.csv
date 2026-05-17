@@ -13,7 +13,7 @@ position,buyable,type,family,name,price,color,angle,max_family_members,special_p
 11,True,buildable,Доминика,Доминика Негреску 1,140,black,-90,3,False
 12,True,infrastructure,Варя,Варвара Репина 1,150,black,-90,2,False
 13,True,buildable,Доминика,Доминика Негреску 2,140,black,-90,3,False
-14,True,buildable,Доминика,Доминика Негреску 3,160,black,-90,3,True
+14,True,buildable,Доминика,Доминика Негреску 3,140,black,-90,3,True
 15,True,train,Легенда,Z,200,black,-90,4,False
 16,True,buildable,Артём,Артём Жигунов 1,180,black,-90,3,False
 17,False,nonbuildable,Яйцо,Вопросительное яйцо,9999,black,-90,-1,False

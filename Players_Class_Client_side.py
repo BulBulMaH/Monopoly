@@ -1,7 +1,7 @@
 import pygame as pg
 
 class Player:
-    def __init__(self, color, positions, resolution_folder):
+    def __init__(self, color, positions, resolution_folder, font: pg.Font):
         self.piece_position = 0
         self.name = ''
         self.color = color
@@ -22,6 +22,10 @@ class Player:
         self.avatar = pg.image.load(f'resources/{resolution_folder}/profile/avatar_placeholder.png').convert()
         self.player_piece = pg.image.load(f'resources/{resolution_folder}/pieces/{self.color}_piece.png').convert_alpha()
         self.player_piece_rect = self.player_piece.get_rect(center=(self.x, self.y))
+        self.font = font
+        self.rendered_money = self.font.render(f'{self.money}~', False, 'black')
+        self.rendered_value = self.font.render(f'{self.value}~', False, 'black')
+        self.rendered_name = self.font.render(f'{self.name}~', False, 'black')
 
     def main_color(self, main_color):
         self.color = main_color

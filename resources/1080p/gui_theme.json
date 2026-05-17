@@ -24,7 +24,7 @@
 			"size": "25",
 			"bold": "0",
 			"italic": "0",
-			"regular_path": "resources/fonts/bulbulpoly-4.ttf"
+			"regular_path": "resources/fonts/BulBulPoly 4 1x.bdf"
 		},
 		"misc":
 		{
@@ -116,7 +116,7 @@
 			"size": "51",
 			"bold": "0",
 			"italic": "0",
-			"regular_path": "resources/fonts/bulbulpoly-4.ttf"
+			"regular_path": "resources/fonts/BulBulPoly 4 1x.bdf"
 		}
 	},
 	"#audio_send_button":
@@ -235,7 +235,7 @@
 			"size": "25",
 			"bold": "0",
 			"italic": "0",
-			"regular_path": "resources/fonts/bulbulpoly-4.ttf"
+			"regular_path": "resources/fonts/BulBulPoly 4 1x.bdf"
 		}
 	},
 	"check_box":
@@ -276,7 +276,7 @@
 			"size": "51",
 			"bold": "0",
 			"italic": "0",
-			"regular_path": "resources/fonts/bulbulpoly-4.ttf"
+			"regular_path": "resources/fonts/BulBulPoly 4 1x.bdf"
 		}
 	},
 	"drop_down_menu":
@@ -312,7 +312,7 @@
 			"size": "51",
 			"bold": "0",
 			"italic": "0",
-			"regular_path": "resources/fonts/bulbulpoly-4.ttf"
+			"regular_path": "resources/fonts/BulBulPoly 4 1x.bdf"
 		}
 	},
 	"drop_down_menu.button":
@@ -323,7 +323,7 @@
 			"size": "51",
 			"bold": "0",
 			"italic": "0",
-			"regular_path": "resources/fonts/bulbulpoly-4.ttf"
+			"regular_path": "resources/fonts/BulBulPoly 4 1x.bdf"
 		}
 	},
     "drop_down_menu.#drop_down_options_list.button":
@@ -334,7 +334,7 @@
 			"size": "51",
 			"bold": "0",
 			"italic": "0",
-			"regular_path": "resources/fonts/bulbulpoly-4.ttf"
+			"regular_path": "resources/fonts/BulBulPoly 4 1x.bdf"
 		}
     },
 	"text_box":

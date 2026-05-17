@@ -74,8 +74,7 @@ class Tiles:
             self.income = self.price
         return self.income
 
-
-    def text_defining(self, font):
+    def text_defining(self, font: pygame.Font):
         self.penis_income_calculation()
         if self.type == 'buildable' or self.type == 'train' or self.type == 'minus':
             text = f'{self.income}~'
@@ -92,26 +91,11 @@ class Tiles:
         else:
             text = ''
 
-        if font.get_point_size() == 25:
-            offset_coefficients = (31, 29)
-        else:
-            offset_coefficients = (64, 60)
 
-        if self.angle == -90:
-            offset = (font.size(text)[0] - offset_coefficients[0]) / 2
-            # offset = round((font.size(text)[0] - font.get_point_size() * (31 / 25)) / 2)
-            # offset = 0
-        elif self.angle == 90:
-            offset = (font.size(text)[0] - offset_coefficients[1]) / 2
-            # offset = round((font.size(text)[0] - font.get_point_size() * (29 / 25)) / 2)
-            # offset = 0
-        else:
-            offset = 0
-        # print(offset, math.ceil(offset), font.size(text)[0], self.name)
         text = font.render(text, False, self.color)
         self.prerendered_text = pygame.transform.rotate(text, self.angle).convert()
 
-        self.text_rect = text.get_rect(center=(self.xText + math.ceil(offset), self.yText - math.ceil(offset))) # + round(offset) - round(offset) math.ceil
+        self.text_rect = self.prerendered_text.get_rect(center=(self.xText, self.yText))
 
 
     def reset_tile(self):

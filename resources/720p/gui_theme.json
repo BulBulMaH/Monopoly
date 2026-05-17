@@ -24,7 +24,7 @@
 			"size": "25",
 			"bold": "0",
 			"italic": "0",
-			"regular_path": "resources/fonts/bulbulpoly-4.ttf"
+			"regular_path": "resources/fonts/BulBulPoly 4 1x.bdf"
 		},
 		"misc":
 		{
@@ -133,7 +133,7 @@
 			"size": "25",
 			"bold": "0",
 			"italic": "0",
-			"regular_path": "resources/fonts/bulbulpoly-4.ttf"
+			"regular_path": "resources/fonts/BulBulPoly 4 1x.bdf"
 		},
 		"misc":
 		{
@@ -259,7 +259,7 @@
 			"size": "25",
 			"bold": "0",
 			"italic": "0",
-			"regular_path": "resources/fonts/bulbulpoly-4.ttf"
+			"regular_path": "resources/fonts/BulBulPoly 4 1x.bdf"
 		}
 	},
 	"check_box":
@@ -300,7 +300,7 @@
 			"size": "25",
 			"bold": "0",
 			"italic": "0",
-			"regular_path": "resources/fonts/bulbulpoly-4.ttf"
+			"regular_path": "resources/fonts/BulBulPoly 4 1x.bdf"
 		}
 	},
 	"drop_down_menu":

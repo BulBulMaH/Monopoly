@@ -1,22 +1,12 @@
 import os
 import json
-import pygame as pg
+import pygame
 
 
 def resolution_definition():
     if os.path.exists('settings.json'):
         f = open('settings.json')
         settings_data = json.load(f)
-        resolution_index = settings_data['resolution index']
-        fps = settings_data['fps']
-        optimized = settings_data['optimized movement']
-        debug_mode = settings_data['debug mode']
-        background_color = pg.Color(settings_data['background color'])
-        fullscreen = settings_data['fullscreen']
-        sharp_scale = settings_data['sharp fullscreen']
-        name = settings_data['name']
-        address = settings_data['address']
-        port = settings_data['port']
 
     else:
         settings_data = {'resolution index': 1,
@@ -30,29 +20,25 @@ def resolution_definition():
                          'address': '',
                          'port': ''}
 
-        resolution_index = settings_data['resolution index']
-        fps = settings_data['fps']
-        optimized = settings_data['optimized movement']
-        debug_mode = settings_data['debug mode']
-        background_color = pg.Color(settings_data['background color'])
-        fullscreen = settings_data['fullscreen']
-        sharp_scale = settings_data['sharp fullscreen']
-        name = settings_data['name']
-        address = settings_data['address']
-        port = settings_data['port']
-
         with open("settings.json", "w") as outfile:
             json.dump(settings_data, outfile, indent=4)
 
+    resolution_index = settings_data['resolution index']
+    fullscreen = settings_data['fullscreen']
+    scale = settings_data['scaled fullscreen']
+
     if resolution_index == 1:
         if fullscreen:
-            resolution = (1280, 720)
+            if scale:
+                resolution = (1280, 720)
+            else:
+                info = pygame.display.Info()
+                resolution = (info.current_w, info.current_h)
         else:
             resolution = (1280, 650)
         resolution_folder = '720p'
         fps_coordinates = (652, -5)
-        font_size = 25
-        settings_font_size = 25
+        font_path = 'resources/fonts/BulBulPoly 4 1x.bdf'
 
         btn_coordinates = {'throw_cubes':   (953,  20 , 136, 38),
                             'buy':          (953,  78,  136, 38),
@@ -65,10 +51,10 @@ def resolution_definition():
                             'redeem':       (1109, 194, 136, 38),
                             'surrender':    (1109, 252, 136, 38)}
 
-        profile_coordinates = [{'profile': (669, 20 ),  'avatar': (830, 46 ),  'money': (692, 38 ), 'value': (692, 56 ), 'name': (674, 18 ), 'timer_bar': (677, 85,  146, 10)},
-                               {'profile': (669, 169),  'avatar': (830, 195),  'money': (692, 187), 'value': (692, 205), 'name': (674, 167), 'timer_bar': (677, 234, 146, 10)},
-                               {'profile': (669, 318),  'avatar': (830, 344),  'money': (692, 336), 'value': (692, 354), 'name': (674, 316), 'timer_bar': (677, 383, 146, 10)},
-                               {'profile': (669, 467),  'avatar': (830, 493),  'money': (692, 485), 'value': (692, 503), 'name': (674, 465), 'timer_bar': (677, 532, 146, 10)}]
+        profile_coordinates = [{'profile': (669, 20 ),  'avatar': (830, 46 ),  'money': (692, 40 ), 'value': (692, 58 ), 'name': (674, 22 ), 'timer_bar': (677, 85,  146, 10)},
+                               {'profile': (669, 169),  'avatar': (830, 195),  'money': (692, 189), 'value': (692, 207), 'name': (674, 171), 'timer_bar': (677, 234, 146, 10)},
+                               {'profile': (669, 318),  'avatar': (830, 344),  'money': (692, 338), 'value': (692, 356), 'name': (674, 320), 'timer_bar': (677, 383, 146, 10)},
+                               {'profile': (669, 467),  'avatar': (830, 493),  'money': (692, 487), 'value': (692, 505), 'name': (674, 469), 'timer_bar': (677, 532, 146, 10)}]
 
         exchange_coordinates = {'exchange_screen':  (75,  75),
                                 'textbox_give':     (120, 160, 183, 30),
@@ -104,21 +90,30 @@ def resolution_definition():
                                 (1037, 310, 52, 38),
                                 (1121, 310, 52, 38))
 
-        settings_buttons_coordinates = {'dropdown':                       (10,  10,  230, 50),
-                                        'start_game_button':              (572, 602, 136, 38),
-                                        'fps_textbox':                    (266, 70,  60,  30),
-                                        'optimization_checkbox':          (226, 105, 25,  25),
-                                        'debug_checkbox':                 (120, 137, 25,  25),
-                                        'fullscreen_checkbox':            (222, 169, 25,  25),
-                                        'sharp_scale_checkbox':           (252, 201, 25,  25),
-                                        'pick_color_button':              (10,  272, 180, 38),
-                                        'apply_button':                   (10,  330, 180, 38),
-                                        'color_picker':                   (60,  120, 390, 390),
-                                        'fps_text':                       (10,  70),
-                                        'optimization_text':              (10,  102),
-                                        'debug_text':                     (10,  134),
-                                        'fullscreen_text':                (10,  166),
-                                        'sharp_scale_text':               (10,  198)}
+        settings_buttons_coordinates = {'dropdown':                                  (10,  10,   230, 50),
+                                        'start_game_button':                         (572, 602,  136, 38),
+                                        'fps_textbox':                               (266, 70,   60,  30),
+                                        'minimize_window_fps_optimization_checkbox': (319, 104,  25,  25),
+                                        'minimize_window_fps_optimization_textbox':  (382, 102,  60,  30),
+                                        'inactivity_fps_optimization_checkbox':      (309, 136,  25,  25),
+                                        'inactivity_fps_optimization_textbox':       (372, 134,  60,  30),
+                                        'debug_checkbox':                            (120, 232,  25,  25),
+                                        'fullscreen_checkbox':                       (222, 168,  25,  25),
+                                        'scale_checkbox':                            (188, 200,  25,  25),
+                                        'pick_color_button':                         (10,  272,  180, 38),
+                                        'apply_button':                              (10,  330,  180, 38),
+                                        'color_picker':                              (60,  120,  390, 390),
+
+                                        'fps_text':                                (10,  70),
+                                        'minimize_window_fps_optimization_text_1': (10,  102),
+                                        'minimize_window_fps_optimization_text_2': (353, 102),
+                                        'inactivity_fps_optimization_text_1':      (10,  134),
+                                        'inactivity_fps_optimization_text_2':      (343, 134),
+                                        'fullscreen_text':                         (10,  166),
+                                        'scale_text':                              (10,  198),
+                                        'debug_text':                              (10,  230),
+
+                                        'message':                                 (200, 10)}
 
         offset_horizontal = [[(0, 0)],
                             [(0,  -14), (0,  14)],
@@ -133,24 +128,26 @@ def resolution_definition():
         cubes_coordinates = [(959, 489), (959, 565)]
         avatar_side_size = 100
         tile_size = (55, 55)
-        log_image_size = (128, 128)
+        max_log_image_size = (423, 211)
         egg_card_coordinates = (85, 334)
         egg_card_text_center = (257, 464)
         egg_card_text_width = 342
         egg_card_title_center = (257, 362)
-        egg_title_font_size = 25
         tile_info_coordinates = (95,  95)
         speed = 0.003
 
     elif resolution_index == 2:
         if fullscreen:
-            resolution = (1920, 1080)
+            if scale:
+                resolution = (1920, 1080)
+            else:
+                info = pygame.display.Info()
+                resolution = (info.current_w, info.current_h)
         else:
             resolution = (1920, 1001)
         resolution_folder = '1080p'
         fps_coordinates = (1006, 0)
-        font_size = 25
-        settings_font_size = 51
+        font_path = 'resources/fonts/BulBulPoly 4 1x.bdf'
 
         btn_coordinates = {'throw_cubes':   (1455, 30 , 204, 57),
                             'buy':          (1455, 117, 204, 57),
@@ -202,21 +199,30 @@ def resolution_definition():
                                 (1581, 465, 78, 57),
                                 (1707, 465, 78, 57))
 
-        settings_buttons_coordinates = {'dropdown':              (20,  20,  230, 50),
+        settings_buttons_coordinates = {'dropdown': (10, 10, 230, 50),
                                         'start_game_button':     (835, 934, 250, 57),
-                                        'fps_textbox':           (534, 81,  120, 55),
-                                        'optimization_checkbox': (451, 144, 45,  45),
-                                        'debug_checkbox':        (238, 198, 45,  45),
-                                        'fullscreen_checkbox':   (443, 252, 45,  45),
-                                        'sharp_scale_checkbox':  (507, 306, 45,  45),
-                                        'pick_color_button':     (20,  424, 250, 57),
-                                        'apply_button':          (20,  511, 250, 57),
-                                        'color_picker':          (60,  120, 390, 390),
-                                        'fps_text':              (20,  80),
-                                        'optimization_text':     (20,  134),
-                                        'debug_text':            (20,  188),
-                                        'fullscreen_text':       (20,  242),
-                                        'sharp_scale_text':      (20,  296)}
+                                        'fps_textbox': (266, 70, 60, 30),
+                                        'minimize_window_fps_optimization_checkbox': (319, 104, 25, 25),
+                                        'minimize_window_fps_optimization_textbox': (382, 102, 60, 30),
+                                        'inactivity_fps_optimization_checkbox': (309, 136, 25, 25),
+                                        'inactivity_fps_optimization_textbox': (372, 134, 60, 30),
+                                        'debug_checkbox': (120, 232, 25, 25),
+                                        'fullscreen_checkbox': (222, 168, 25, 25),
+                                        'scale_checkbox': (188, 200, 25, 25),
+                                        'pick_color_button': (10, 272, 180, 38),
+                                        'apply_button': (10, 330, 180, 38),
+                                        'color_picker': (60, 120, 390, 390),
+
+                                        'fps_text': (10, 70),
+                                        'minimize_window_fps_optimization_text_1': (10, 102),
+                                        'minimize_window_fps_optimization_text_2': (353, 102),
+                                        'inactivity_fps_optimization_text_1': (10, 134),
+                                        'inactivity_fps_optimization_text_2': (343, 134),
+                                        'fullscreen_text': (10, 166),
+                                        'scale_text': (10, 198),
+                                        'debug_text': (10, 230),
+
+                                        'message': (200, 10)}
 
         offset_horizontal = [[(0, 0)],
                              [(0, -21),  (0, 21)],
@@ -231,24 +237,26 @@ def resolution_definition():
         cubes_coordinates = [(1499, 906), (1594, 906)]
         avatar_side_size = 150
         tile_size = (85, 85)
-        log_image_size = (192, 192)
+        max_log_image_size = (685, 342)
         egg_card_coordinates = (123, 514)
         egg_card_text_center = (393, 720)
         egg_card_text_width = 536
         egg_card_title_center = (393, 555)
-        egg_title_font_size = 51
         tile_info_coordinates = (138, 138)
         speed = 0.00182
 
     elif resolution_index == 3:
         if fullscreen:
-            resolution = (2560, 1440)
+            if scale:
+                resolution = (2560, 1440)
+            else:
+                info = pygame.display.Info()
+                resolution = (info.current_w, info.current_h)
         else:
             resolution = (2560, 1360)
         resolution_folder = '1440p'
         fps_coordinates = (1360, -10)
-        font_size = 51
-        settings_font_size = 51
+        font_path = 'resources/fonts/BulBulPoly 4 2x.bdf'
 
         btn_coordinates = {'throw_cubes':  (1935, 40 , 272, 76),
                            'buy':          (1935, 156, 272, 76),
@@ -296,21 +304,30 @@ def resolution_definition():
                                    'image_send_button':         (1035, 1098, 63, 60),
                                    'text_send_button':          (1095, 1098, 63, 60)}
 
-        settings_buttons_coordinates = {'dropdown':              (20,   20,   230, 50),
-                                        'start_game_button':     (1155, 1273, 250, 57),
-                                        'fps_textbox':           (534,  81,   120, 55),
-                                        'optimization_checkbox': (451,  144,  45,  45),
-                                        'debug_checkbox':        (238,  198,  45,  45),
-                                        'fullscreen_checkbox':   (443,  252,  45,  45),
-                                        'sharp_scale_checkbox':  (507,  306,  45,  45),
-                                        'pick_color_button':     (20,   424,  250, 57),
-                                        'apply_button':          (20,   511,  250, 57),
-                                        'color_picker':          (60,   120,  390, 390),
-                                        'fps_text':              (20,   80),
-                                        'optimization_text':     (20,   134),
-                                        'debug_text':            (20,   188),
-                                        'fullscreen_text':       (20,   242),
-                                        'sharp_scale_text':      (20,   296)}
+        settings_buttons_coordinates = {'dropdown':                                  (20,   20,   230, 50),
+                                        'start_game_button':                         (1155, 1273, 250, 57),
+                                        'fps_textbox':                               (534,  75,   120, 55),
+                                        'minimize_window_fps_optimization_checkbox': (636,  139,  45,  45),
+                                        'minimize_window_fps_optimization_textbox':  (767,  129,  120, 55),
+                                        'inactivity_fps_optimization_checkbox':      (617,  193,  45,  45),
+                                        'inactivity_fps_optimization_textbox':       (748,  183,  120, 55),
+                                        'fullscreen_checkbox':                       (443, 247, 45, 45),
+                                        'scale_checkbox':                            (374, 301, 45, 45),
+                                        'debug_checkbox':                            (239, 355, 45, 45),
+                                        'pick_color_button':                         (20,   424,  250, 57),
+                                        'apply_button':                              (20,   511,  250, 57),
+                                        'color_picker':                              (60,   120,  390, 390),
+
+                                        'fps_text':                                  (20, 80),
+                                        'minimize_window_fps_optimization_text_1':   (20, 134),
+                                        'minimize_window_fps_optimization_text_2':   (698, 134),
+                                        'inactivity_fps_optimization_text_1':        (20, 188),
+                                        'inactivity_fps_optimization_text_2':        (679, 188),
+                                        'fullscreen_text':                           (20, 242),
+                                        'scale_text':                                (20, 296),
+                                        'debug_text':                                (20, 350),
+
+                                        'message': (200, 10)}
 
         egg_btns_coordinates = ((1935, 620, 106, 76),
                                 (2101, 620, 106, 76),
@@ -329,13 +346,12 @@ def resolution_definition():
         cubes_coordinates = [(1953, 1034), (1953, 1186)]
         avatar_side_size = 203
         tile_size = (115, 115)
-        log_image_size = (256, 256)
+        max_log_image_size = (925, 462)
         egg_card_coordinates = (177, 698)
         egg_card_text_center = (537, 973)
         egg_card_text_width = 714
         egg_card_title_center = (537, 758)
-        egg_title_font_size = 51
         tile_info_coordinates = (197, 197)
         speed = 0.0015
 
-    return resolution, resolution_folder, btn_coordinates, profile_coordinates, start_btn_textboxes_coordinates, cubes_coordinates, speed, avatar_side_size, exchange_coordinates, fps, auction_coordinates, tile_size, offset_horizontal, offset_vertical, debug_mode, fps_coordinates, font_size, egg_card_coordinates, egg_card_text_center, egg_card_title_center, egg_title_font_size, egg_card_text_width, egg_btns_coordinates, optimized, background_color, log_textbox_coordinates, tile_info_coordinates, fullscreen, sharp_scale, settings_buttons_coordinates, settings_font_size, log_image_size, name, address, port
+    return resolution, resolution_folder, btn_coordinates, profile_coordinates, start_btn_textboxes_coordinates, cubes_coordinates, speed, avatar_side_size, exchange_coordinates, auction_coordinates, tile_size, offset_horizontal, offset_vertical, fps_coordinates, font_path, egg_card_coordinates, egg_card_text_center, egg_card_title_center, egg_card_text_width, egg_btns_coordinates, log_textbox_coordinates, tile_info_coordinates, settings_buttons_coordinates, max_log_image_size
