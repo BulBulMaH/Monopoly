@@ -57,9 +57,6 @@ class Player:
                       'paid': False,
                       'refused_to_buy': False,
 
-                      'thinking_on_auction': [False],
-                      'thinking_on_exchange': False,
-
                       'throw_cubes_btn_active': False,
                       'buy_btn_active': [False, None],  # is_active, tile_position
                       'pay_btn_active': [False, None],  # is_active, command, ...
@@ -115,7 +112,7 @@ avatar_side_size = 100
 FPS = 30
 tile_size = (55, 55)
 max_log_image_size = (423, 211)
-debug_mode = True
+debug_mode = False
 ip = sck.gethostbyname(sck.gethostname())
 
 profile_coordinates = [{'profile': (669, 20 ),  'avatar': (830, 46 ),  'money': (692, 40 ), 'value': (692, 58 ), 'name': (674, 22 ), 'timer_bar': (677, 85,  146, 10)},
@@ -187,6 +184,64 @@ def receive_data():
     auction_players = []
     auction_players_who_are_wanting_to_buy = []
     eggs_players_who_need_to_pay_to_one_player = []
+
+    def auction_win():
+        for player in players:
+            if player == auction_players_who_are_wanting_to_buy[0]:
+                auction_players_who_are_wanting_to_buy.clear()
+                player.money -= price
+                all_tiles[tile_position].owner = player.color
+                all_tiles[tile_position].owned = True
+
+                price_update(all_tiles[tile_position])
+
+                for player2 in players:
+                    if player2 != player:
+                        if tile_position == player.piece_position:
+                            player.state['refused to buy'] = True
+
+                pay_btn_check(player.color)
+                buy_btn_check(player.color)
+                mortgage_btn_check(player.color)
+                redeem_btn_check(player.color)
+
+                send_player_state(player.color)
+
+                message = [{'type': 'text',
+                           'value': [
+                               {'text': f'{player.name}', 'color': player.color_value},
+                               {
+                                   'text': f'побеждает в аукционе и приобретает {all_tiles[tile_position].name} за {price}~',
+                                   'color': (0, 0, 0)}]}]
+                log_textbox_.append_messages(message)
+
+                message_data = f'message|{json.dumps(message)}%'
+                property_data = f'property|{player.color}|{tile_position}%'
+                money_data = f'money|{player.color}|{player.money}%'
+                player_value_calculation(player.color)
+
+                for player3 in players:
+                    player3.conn.send(property_data.encode())
+                    player3.conn.send(money_data.encode())
+                    player3.conn.send(message_data.encode())
+                    information_sent_to('Информация отправлена к', player3.color, property_data)
+                    information_sent_to('Информация отправлена к', player3.color, money_data)
+                    information_sent_to('Информация отправлена к', player3.color, message_data)
+                print('Аукцион прошёл успешно!')
+                moving_player_changing(not players[0].state['double'])
+
+    def price_update(tile):
+        tile_family_members = 0
+        for tile_ in all_tiles:
+            if tile_.family == tile.family:
+                if tile_.owner == tile.owner and not tile_.mortgaged:
+                    tile_family_members += 1
+
+        for tile_ in all_tiles:
+            if tile_.family == tile.family:
+                if tile_.owner == tile.owner and not tile_.mortgaged:
+                    tile_.family_members = tile_family_members
+                    # print(tile_.family_members, tile_.name)
 
     def number_to_bf(number):
         digits = [6]
@@ -1170,7 +1225,6 @@ def receive_data():
                             auction_players_who_are_wanting_to_buy = []
                             if len(auction_players) > 0:
                                 auction_information = f'auction bid|{tile_position}|{all_tiles[tile_position].price}%'
-                                auction_players[0].state['thinking_on_auction'] = [True, tile_position, all_tiles[tile_position].price]
                                 auction_players[0].conn.send(auction_information.encode())
 
                                 mortgage_btn_check(auction_players[0].color)
@@ -1222,10 +1276,9 @@ def receive_data():
                             auction_players_who_are_wanting_to_buy.pop(0)
 
                         if len(auction_players_who_are_wanting_to_buy) == 1:
-                            auction_win(tile_position, price)
+                            auction_win()
 
                         if auction_players:
-                            auction_players[0].state['thinking_on_auction'] = [True, tile_position, price]
                             auction_players[0].conn.send(auction_information.encode())
                             information_sent_to('Информация отправлена к', auction_players[0].color,
                                                 auction_information)
@@ -1261,9 +1314,61 @@ def receive_data():
                                 information_sent_to('Информация отправлена к', player2.color, message_data)
 
                     elif data[0] == 'auction reject':
+                        # global auction_players, auction_players_who_are_wanting_to_buy
                         tile_position = int(data[1])
                         price = int(data[2])
-                        reject_auction(player.color)
+                        auction_information = f'auction bid|{tile_position}|{price}%'
+
+                        mortgage_btn_check(player.color)
+                        redeem_btn_check(player.color)
+                        exchange_check(player.color)
+                        send_player_state(player.color)
+
+                        message = [{'type': 'text',
+                                    'value': [
+                                        {'text': player.name, 'color': player.color_value},
+                                        {'text': ' отказался от участия в аукционе', 'color': (0, 0, 0)}
+                                    ]}]
+                        message_data = f'message|{json.dumps(message)}%'
+                        log_textbox_.append_messages(message)
+                        for player2 in players:
+                            player2.conn.send(message_data.encode())
+                            information_sent_to('Информация отправлена к', player2.color, message_data)
+
+                        if auction_players:
+                            auction_players.pop(0)
+                        elif auction_players_who_are_wanting_to_buy:
+                            auction_players_who_are_wanting_to_buy.pop(0)
+
+                        if auction_players:
+                            auction_players[0].conn.send(auction_information.encode())
+                            information_sent_to('Информация отправлена к', auction_players[0].color,
+                                                auction_information)
+                            set_timer_on_player('to accept auction', auction_players[0].color, True)
+
+                        elif auction_players_who_are_wanting_to_buy:
+                            if len(auction_players_who_are_wanting_to_buy) > 1:
+                                auction_players_who_are_wanting_to_buy[0].conn.send(auction_information.encode())
+                                information_sent_to('Информация отправлена к',
+                                                    auction_players_who_are_wanting_to_buy[0].color,
+                                                    auction_information)
+                                set_timer_on_player('to accept auction', auction_players_who_are_wanting_to_buy[0].color, True)
+                            else:
+                                auction_win()
+                        else:
+                            moving_player_changing(not players[0].state['double'])
+                            print('Все игроки отказались от аукциона')
+
+                            message = [
+                                {'type': 'text', 'value': [
+                                    {'text': 'Все игроки отказались от участия в аукционе', 'color': (0, 0, 0)}]},
+                                {'type': 'text', 'value': [{'text': 'Аукцион не состоялся', 'color': (0, 0, 0)}]}
+                            ]
+                            message_data = f'message|{json.dumps(message)}%'
+                            log_textbox_.append_messages(message)
+                            for player2 in players:
+                                player2.conn.send(message_data.encode())
+                                information_sent_to('Информация отправлена к', player2.color, message_data)
 
                     elif data[0] == 'pay':
                         if player.state['pay_btn_active'][0] and not player.state['paid']:
@@ -1692,7 +1797,11 @@ def receive_data():
                     elif data[0] == 'penis remove':
                         tile = all_tiles[int(data[1])]
                         # print(all_tiles[tile_position].full_family, all_tiles[tile_position].penises, all_tiles[tile_position].type, all_tiles[tile_position].owner)
-                        if player.state['penis_remove_btn_active']:
+                        if (tile.full_family and
+                                tile.owner == player.color and
+                                tile.type == 'buildable' and
+                                1 <= tile.penises <= 5 and
+                                (player.state['on_move'] or player.state['pay_btn_active'][1])):
 
                             player.money += tile.penis_price
                             tile.penises -= 1
@@ -1735,7 +1844,6 @@ def receive_data():
                         log_textbox_.append_messages(message)
                         exchange_request = f'exchange request|{data[1]}|{data[2]}|{player.color}%'
                         player2.conn.send(exchange_request.encode())
-                        player2.state['thinking_on_exchange'] = True
                         information_sent_to('Информация отправлена к', player2.color, exchange_request)
                         set_timer_on_player('to accept exchange', player2[0].color, True)
                         for player3 in players:
@@ -1795,7 +1903,6 @@ def receive_data():
                         send_player_state(player.color)
 
                         player2 = player_dict[data[3]]
-                        player2.state['thinking_on_exchange'] = False
                         player2.money = player2.money + give_money - get_money
                         for tile_position in give_property:
                             if tile_position:
@@ -1869,7 +1976,6 @@ def receive_data():
                             information_sent_to('Информация отправлена к', player3.color, message_data)
 
                     elif data[0] == 'exchange request rejected':
-                        player.state['thinking_on_exchange'] = False
                         print(f'Игрок {player.color} отказался от обмена')
                         message = [{'type': 'text',
                                     'value': [
@@ -1888,12 +1994,6 @@ def receive_data():
                             player.money += int(tile.price / 2)
                             tile.mortgaged = True
                             tile.mortgaged_moves_count = 15
-
-                            for tile_ in all_tiles:
-                                if tile_.family == tile.family:
-                                    if tile_.owner == tile.owner:
-                                        tile_.family_members -= 1
-                                        tile_.text_defining(font)
 
                             try:
                                 pay_btn_check(player.color)
@@ -2173,7 +2273,7 @@ def message_send():
                     player2.conn.send(money_data.encode())
                     information_sent_to('Информация отправлена к', player2.color, money_data)
 
-            elif message_command[0] == 'set_state':
+            if message_command[0] == 'set_state':
                 player = player_dict[message_command[1]]
                 new_state_type = message_command[2]
 
@@ -2188,40 +2288,6 @@ def message_send():
                 if is_state_determined:
                     player.state[new_state_type] = new_state_value
                 send_player_state(player.color)
-
-            elif message_command[0] == 'buy':
-                player = player_dict[message_command[1]]
-                tile_position = int(message_command[2])
-                all_tiles[tile_position].owned = True
-                all_tiles[tile_position].owner = player.color
-                player.money -= int(all_tiles[tile_position].price)
-
-                price_update(all_tiles[tile_position])
-                mortgage_btn_check(player.color)
-                redeem_btn_check(player.color)
-                exchange_check(player.color)
-                send_player_state(player.color)
-
-                property_data = f'property|{player.color}|{tile_position}%'
-                message = [{'type': 'text',
-                            'value': [
-                                {'text': player.name, 'color': player.color_value},
-                                {
-                                    'text': f' приобретает {all_tiles[tile_position].name} за {int(all_tiles[tile_position].price)}~',
-                                    'color': (0, 0, 0)}
-                            ]}]
-                message_data = f'message|{json.dumps(message)}%'
-                log_textbox_.append_messages(message)
-                money_data = f'money|{player.color}|{player.money}%'
-                player_value_calculation(player.color)
-
-                for player2 in players:
-                    player2.conn.send(property_data.encode())
-                    player2.conn.send(money_data.encode())
-                    player2.conn.send(message_data.encode())
-                    information_sent_to('Информация отправлена к', player2.color, property_data)
-                    information_sent_to('Информация отправлена к', player2.color, money_data)
-                    information_sent_to('Информация отправлена к', player2.color, message_data)
 
 
 def connection():
@@ -2426,6 +2492,10 @@ def moving_player_changing(do_change):
                                     player2.conn.send(message_data.encode())
                                     information_sent_to('Информация отправлена к', player2.color, late_to_redeem_information)
                                     information_sent_to('Информация отправлена к', player2.color, message_data)
+                            for tile_ in all_tiles:
+                                if tile_.family == tile.family:
+                                    tile_.family_members -= 1
+                            tile.family_members = 0
             else:
                 message = [{'type': 'text',
                             'value': [
@@ -2455,125 +2525,6 @@ def moving_player_changing(do_change):
         set_timer_on_player('to move', players[0].color, True)
     except:
         print(f'{"\033[31m{}".format(traceback.format_exc())}{'\033[0m'}')
-
-
-def price_update(tile):
-    tile_family_members = 0
-    for tile_ in all_tiles:
-        if tile_.family == tile.family:
-            if tile_.owner == tile.owner and not tile_.mortgaged:
-                tile_family_members += 1
-
-    for tile_ in all_tiles:
-        if tile_.family == tile.family:
-            if tile_.owner == tile.owner and not tile_.mortgaged:
-                tile_.family_members = tile_family_members
-
-
-def auction_win(tile_position, price):
-    for player in players:
-        if player == auction_players_who_are_wanting_to_buy[0]:
-            player.state['thinking_on_auction'] = [False]
-            auction_players_who_are_wanting_to_buy.clear()
-            player.money -= price
-            all_tiles[tile_position].owner = player.color
-            all_tiles[tile_position].owned = True
-
-            price_update(all_tiles[tile_position])
-
-            for player2 in players:
-                if player2 != player:
-                    if tile_position == player.piece_position:
-                        player.state['refused to buy'] = True
-
-            pay_btn_check(player.color)
-            buy_btn_check(player.color)
-            mortgage_btn_check(player.color)
-            redeem_btn_check(player.color)
-
-            send_player_state(player.color)
-
-            message = [{'type': 'text',
-                       'value': [
-                           {'text': f'{player.name}', 'color': player.color_value},
-                           {
-                               'text': f'побеждает в аукционе и приобретает {all_tiles[tile_position].name} за {price}~',
-                               'color': (0, 0, 0)}]}]
-            log_textbox_.append_messages(message)
-
-            message_data = f'message|{json.dumps(message)}%'
-            property_data = f'property|{player.color}|{tile_position}%'
-            money_data = f'money|{player.color}|{player.money}%'
-            player_value_calculation(player.color)
-
-            for player3 in players:
-                player3.conn.send(property_data.encode())
-                player3.conn.send(money_data.encode())
-                player3.conn.send(message_data.encode())
-                information_sent_to('Информация отправлена к', player3.color, property_data)
-                information_sent_to('Информация отправлена к', player3.color, money_data)
-                information_sent_to('Информация отправлена к', player3.color, message_data)
-            print('Аукцион прошёл успешно!')
-            moving_player_changing(not players[0].state['double'])
-
-
-def reject_auction(player_color):
-    player = player_dict[player_color]
-    tile_position, price = player.state['thinking_on_auction'][1], player.state['thinking_on_auction'][2]
-    auction_information = f'auction bid|{tile_position}|{price}%'
-    player.state['thinking_on_auction'] = [False]
-
-    mortgage_btn_check(player.color)
-    redeem_btn_check(player.color)
-    exchange_check(player.color)
-    send_player_state(player.color)
-
-    message = [{'type': 'text',
-                'value': [
-                    {'text': player.name, 'color': player.color_value},
-                    {'text': ' отказался от участия в аукционе', 'color': (0, 0, 0)}
-                ]}]
-    message_data = f'message|{json.dumps(message)}%'
-    log_textbox_.append_messages(message)
-    for player2 in players:
-        player2.conn.send(message_data.encode())
-        information_sent_to('Информация отправлена к', player2.color, message_data)
-
-    if auction_players:
-        auction_players.pop(0)
-    elif auction_players_who_are_wanting_to_buy:
-        auction_players_who_are_wanting_to_buy.pop(0)
-
-    if auction_players:
-        auction_players[0].conn.send(auction_information.encode())
-        auction_players[0].state['thinking_on_auction'] = [True, tile_position, price]
-        information_sent_to('Информация отправлена к', auction_players[0].color,
-                            auction_information)
-        set_timer_on_player('to accept auction', auction_players[0].color, True)
-
-    elif auction_players_who_are_wanting_to_buy:
-        if len(auction_players_who_are_wanting_to_buy) > 1:
-            auction_players_who_are_wanting_to_buy[0].conn.send(auction_information.encode())
-            information_sent_to('Информация отправлена к',
-                                auction_players_who_are_wanting_to_buy[0].color,
-                                auction_information)
-            set_timer_on_player('to accept auction', auction_players_who_are_wanting_to_buy[0].color, True)
-        else:
-            auction_win()
-    else:
-        moving_player_changing(not players[0].state['double'])
-        print('Все игроки отказались от аукциона')
-
-        message = [
-            {'type': 'text', 'value': [
-                {'text': 'Все игроки отказались от участия в аукционе', 'color': (0, 0, 0)}]},
-            {'type': 'text', 'value': [{'text': 'Аукцион не состоялся', 'color': (0, 0, 0)}]}
-        ]
-        message_data = f'message|{json.dumps(message)}%'
-        log_textbox_.append_messages(message)
-        for player2 in players:
-            player2.conn.send(message_data.encode())
-            information_sent_to('Информация отправлена к', player2.color, message_data)
 
 
 def bankrupt_player(color):
@@ -2841,16 +2792,6 @@ def bankrupt_player(color):
     if player.state['on_move']:
         moving_player_changing(True)
 
-    if player.state['buy_btn_active'][1]:
-        moving_player_changing(True)
-
-    if player.state['thinking_on_auction'][0]:
-        reject_auction(player.color)
-        return
-
-    if player.state['thinking_on_exchange']:
-        return
-
     player.state['on_move'] = False
     player.state['double'] = False
     player.state['paid'] = False
@@ -2865,8 +2806,6 @@ def bankrupt_player(color):
     player.state['auction_btn_active'] = False
     player.state['exchange_btn_active'] = False
     player.state['surrender_btn_active'] = False
-    player.state['thinking_on_auction'] = [False]
-    player.state['thinking_on_exchange'] = False
     send_player_state(player.color)
 
     for tile in all_tiles:
@@ -3283,7 +3222,7 @@ def surrender_check(color):
         player = player_dict[color]
 
         temp_state = False
-        if (player.state['throw_cubes_btn_active'] or player.state['pay_btn_active'][1] or player.state['buy_btn_active'][1]) and not player.bankrupt:
+        if (player.state['throw_cubes_btn_active'] or player.state['pay_btn_active'][1]) and not player.bankrupt:
             temp_state = True
         player.state['surrender_btn_active'] = temp_state
 
