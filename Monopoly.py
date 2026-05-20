@@ -845,6 +845,7 @@ def exchange_commit():
             # del available_tiles_for_exchange, exchange_color, exchange_give, exchange_get\
 
             exchange_commit_button.hide()
+            exchange_cancel_button.hide()
             exchange_give_textbox.set_text('')
             exchange_give_textbox.hide()
             exchange_get_textbox.set_text('')
@@ -1774,12 +1775,14 @@ def handle_connection():
                                 auction_reject_button.show()
 
                             elif data[0] == 'mortgaged':
-                                all_tiles[int(data[1])].mortgaged = True
-                                all_tiles[int(data[1])].mortgaged_moves_count = 15
-                                for tile in all_tiles:
-                                    if tile.family == all_tiles[int(data[1])].family:
-                                        tile.family_members -= 1
-                                        tile.text_defining(font)
+                                tile = all_tiles[int(data[1])]
+                                tile.mortgaged = True
+                                tile.mortgaged_moves_count = 15
+                                for tile_ in all_tiles:
+                                    if tile_.family == tile.family:
+                                        if tile_.owner == tile.owner:
+                                            tile_.family_members -= 1
+                                            tile_.text_defining(font)
 
                             elif data[0] == 'redeemed':
                                 all_tiles[int(data[1])].mortgaged = False

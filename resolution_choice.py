@@ -4,21 +4,30 @@ import pygame
 
 
 def resolution_definition():
+    default_settings = {'resolution index': 1,
+                        'fps': 60,
+                        'minimize window fps optimize': False,
+                        'minimize window fps optimization value': 15,
+                        'inactive fps optimize': False,
+                        'inactive fps optimization value': 30,
+                        'background color': [128, 128, 128, 255],
+                        'fullscreen': False,
+                        'scaled fullscreen': False,
+                        'debug mode': False,
+                        'name': '',
+                        'address': '',
+                        'port': ''}
+
     if os.path.exists('settings.json'):
         f = open('settings.json')
         settings_data = json.load(f)
 
+        for key in default_settings.keys():
+            if key not in settings_data:
+                settings_data[key] = default_settings[key]
+
     else:
-        settings_data = {'resolution index': 1,
-                         'fps': 60,
-                         'optimized movement': False,
-                         'background color': [128, 128, 128, 255],
-                         'fullscreen': False,
-                         'sharp fullscreen': True,
-                         'debug mode': False,
-                         'name': '',
-                         'address': '',
-                         'port': ''}
+        settings_data = default_settings
 
         with open("settings.json", "w") as outfile:
             json.dump(settings_data, outfile, indent=4)
@@ -39,6 +48,14 @@ def resolution_definition():
         resolution_folder = '720p'
         fps_coordinates = (652, -5)
         font_path = 'resources/fonts/BulBulPoly 4 1x.bdf'
+
+        settings_rect = pygame.Rect(0, 0, 470, 370).topleft = (10, 10)
+        board_rect = pygame.Rect(0, 0, 649, 649).topleft = (0, 0)
+        profiles_rect = pygame.Rect(669, 0, 264, 576).top = 20
+        action_buttons_rect = pygame.Rect(0, 0, 292, 328).topright = (20, 20)
+        connection_buttons_rect = pygame.Rect(0, 0, 302, 246).bottomright = (20, 20)
+
+
 
         btn_coordinates = {'throw_cubes':   (953,  20 , 136, 38),
                             'buy':          (953,  78,  136, 38),
