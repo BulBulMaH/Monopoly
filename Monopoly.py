@@ -6,7 +6,9 @@ import gc
 import pprint
 import json
 import datetime
-# import objgraph
+# import cProfile, pstats
+# profiler = cProfile.Profile()
+# profiler.enable()
 
 os.environ['SDL_VIDEO_WINDOW_POS'] = '%d,%d' % (0, 31) # (0, 31)
 os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = '1'
@@ -30,14 +32,14 @@ import mimetypes
 import pygame_gui
 
 # классы
-from Players_Class_Client_side import Player
-from Recorder_Class import AudioRecorder
+from classes.Players_Class_Client_side import Player
+from classes.Recorder_Class import AudioRecorder
 
 # функции
-from all_tiles_extraction import all_tiles_get
-from colored_output import thread_open, information_sent, information_received, new_connection
-from resolution_choice import resolution_definition
-from ProgressBar_Class import ProgressBar
+from functions.all_tiles_extraction import all_tiles_get
+from functions.colored_output import thread_open, information_sent, information_received, new_connection
+from functions.resolution_choice import resolution_definition
+from classes.ProgressBar_Class import ProgressBar
 
 
 def settings_buttons(previous_values):
@@ -189,8 +191,8 @@ def monopoly_init():
 
     global screen, clock
 
-    global resolution, resolution_folder, btn_coordinates, profile_coordinates, start_btn_textboxes_coordinates, cubes_coordinates, speed, avatar_side_size, exchange_coordinates, auction_coordinates, tile_size, offset_horizontal, offset_vertical, fps_coordinates, font_path, egg_card_coordinates, egg_card_text_center, egg_card_title_center, egg_card_text_width, egg_btns_coordinates, log_textbox_coordinates, tile_info_coordinates, settings_buttons_coordinates, max_log_image_size
-    resolution, resolution_folder, btn_coordinates, profile_coordinates, start_btn_textboxes_coordinates, cubes_coordinates, speed, avatar_side_size, exchange_coordinates, auction_coordinates, tile_size, offset_horizontal, offset_vertical, fps_coordinates, font_path, egg_card_coordinates, egg_card_text_center, egg_card_title_center, egg_card_text_width, egg_btns_coordinates, log_textbox_coordinates, tile_info_coordinates, settings_buttons_coordinates, max_log_image_size = resolution_definition()
+    global resolution, resolution_folder, btn_coordinates, profile_coordinates, start_btn_textboxes_coordinates, cubes_coordinates, speed, avatar_side_size, exchange_coordinates, auction_coordinates, tile_size, offset_horizontal, offset_vertical, fps_coordinates, font_path, egg_card_coordinates, egg_card_text_center, egg_card_title_center, egg_card_text_width, egg_btns_coordinates, log_textbox_coordinates, tile_info_coordinates, settings_buttons_coordinates, max_log_image_size, default_offsets, choose_settings_buttons_coordinates
+    resolution, resolution_folder, btn_coordinates, profile_coordinates, start_btn_textboxes_coordinates, cubes_coordinates, speed, avatar_side_size, exchange_coordinates, auction_coordinates, tile_size, offset_horizontal, offset_vertical, fps_coordinates, font_path, egg_card_coordinates, egg_card_text_center, egg_card_title_center, egg_card_text_width, egg_btns_coordinates, log_textbox_coordinates, tile_info_coordinates, settings_buttons_coordinates, max_log_image_size, default_offsets, choose_settings_buttons_coordinates = resolution_definition()
 
     with open('settings.json') as f:
         settings_data_ = json.load(f)
@@ -202,13 +204,15 @@ def monopoly_init():
 
     screen = pg.display.set_mode((2560, 1360))
     screen = pg.display.set_mode(resolution, flags)
-    TITLE = 'Monopoly v1.1'
+    TITLE = 'Monopoly v1.3'
     icon = pg.image.load(f'resources/icon.png')
     pg.display.set_icon(icon)
     pg.display.set_caption(TITLE)
     clock = pg.time.Clock()
 
     load_settings()
+    global inactive_window
+    inactive_window = True
 
     global font, settings_font, manager, prev_time
     font = pg.font.Font(font_path)
@@ -259,8 +263,8 @@ def save_settings():
 
 
 def load_assets():
-    global resolution, resolution_folder, btn_coordinates, profile_coordinates, start_btn_textboxes_coordinates, cubes_coordinates, speed, avatar_side_size, exchange_coordinates, auction_coordinates, tile_size, offset_horizontal, offset_vertical, fps_coordinates, font_path, egg_card_coordinates, egg_card_text_center, egg_card_title_center, egg_card_text_width, egg_btns_coordinates, log_textbox_coordinates, tile_info_coordinates, settings_buttons_coordinates, max_log_image_size
-    resolution, resolution_folder, btn_coordinates, profile_coordinates, start_btn_textboxes_coordinates, cubes_coordinates, speed, avatar_side_size, exchange_coordinates, auction_coordinates, tile_size, offset_horizontal, offset_vertical, fps_coordinates, font_path, egg_card_coordinates, egg_card_text_center, egg_card_title_center, egg_card_text_width, egg_btns_coordinates, log_textbox_coordinates, tile_info_coordinates, settings_buttons_coordinates, max_log_image_size = resolution_definition()
+    global resolution, resolution_folder, btn_coordinates, profile_coordinates, start_btn_textboxes_coordinates, cubes_coordinates, speed, avatar_side_size, exchange_coordinates, auction_coordinates, tile_size, offset_horizontal, offset_vertical, fps_coordinates, font_path, egg_card_coordinates, egg_card_text_center, egg_card_title_center, egg_card_text_width, egg_btns_coordinates, log_textbox_coordinates, tile_info_coordinates, settings_buttons_coordinates, max_log_image_size, default_offsets, choose_settings_buttons_coordinates
+    resolution, resolution_folder, btn_coordinates, profile_coordinates, start_btn_textboxes_coordinates, cubes_coordinates, speed, avatar_side_size, exchange_coordinates, auction_coordinates, tile_size, offset_horizontal, offset_vertical, fps_coordinates, font_path, egg_card_coordinates, egg_card_text_center, egg_card_title_center, egg_card_text_width, egg_btns_coordinates, log_textbox_coordinates, tile_info_coordinates, settings_buttons_coordinates, max_log_image_size, default_offsets, choose_settings_buttons_coordinates = resolution_definition()
 
     global exchange_screen, auction_screen, darkening_full, darkening_tile, profile_picture, bars, player_bars, mortgaged_tile, font, eggs_card_uncovered, board_image, bankrupt_picture
     exchange_screen = pg.image.load(f'resources/{resolution_folder}/exchange.png').convert_alpha()
@@ -278,7 +282,7 @@ def load_assets():
     for penis in range(5):
         globals()[f'{penis + 1}_penises_image'] = pg.image.load(f'resources/{resolution_folder}/white penises/{penis + 1}.png').convert_alpha()
 
-    global all_tiles, all_players, all_egg, all_eggs, ideal_dt, screen, player_dict, all_question
+    global all_tiles, all_players, all_egg, all_eggs, screen, player_dict, all_question
     all_tiles, all_egg, all_eggs, all_question = all_tiles_get(resolution_folder, tile_size)
     for tile in all_tiles:
         tile.text_defining(font)
@@ -292,8 +296,6 @@ def load_assets():
     player_dict = {}
     for player in all_players:
         player_dict[player.color] = player
-
-    ideal_dt = 1 / FPS
 
     flags = pg.HWSURFACE
     if fullscreen:
@@ -355,7 +357,7 @@ def load_assets():
 
 
 def load_game():
-    from Textbox_Class import Textbox, AudioPlayer
+    from classes.Textbox_Class import Textbox, AudioPlayer
 
     global sock, CLEAR_UPDATE_LIST, log_textbox, test_audio_player
     start_game_button.kill()
@@ -378,8 +380,8 @@ def load_game():
     sock.setblocking(True)
 
     buttons()
-    test_audio_player = AudioPlayer((-100, -100, 1, 1), 0, (0, 0, 0), (0, 0, 0), font)
-    log_textbox = Textbox(log_textbox_coordinates['main_box'], 2, 6, 1, font, (0, 0, 0), (200, 200, 200), manager)
+    test_audio_player = AudioPlayer((-100, -100, 1, 1), 0, (0, 0, 0), (0, 0, 0), font, 'resources/temp/audios/client')
+    log_textbox = Textbox(log_textbox_coordinates['main_box'], 2, 6, 1, font, (0, 0, 0), (200, 200, 200), 'resources/temp/audios/client', manager)
 
     theme = manager.create_new_theme(f'resources/{resolution_folder}/gui_theme.json')
     manager.set_ui_theme(theme)
@@ -389,6 +391,7 @@ def load_game():
 
     global game_started
     game_started = True
+    update_static_layer()
 
 
 def load_settings():
@@ -426,7 +429,14 @@ def load_settings():
 
     global name, address, port, FPS, debug_mode, background_color, fullscreen, scale, minimize_window_fps_optimize, minimize_window_fps, inactive_fps_optimize, inactive_fps, max_fps
     max_fps = settings_data['fps']
-    FPS = settings_data['inactive fps optimization value']
+    minimize_window_fps_optimize = settings_data['minimize window fps optimize']
+    minimize_window_fps = settings_data['minimize window fps optimization value']
+    inactive_fps_optimize = settings_data['inactive fps optimize']
+    inactive_fps = settings_data['inactive fps optimization value']
+    if inactive_fps_optimize:
+        FPS = inactive_fps
+    else:
+        FPS = max_fps
     debug_mode = settings_data['debug mode']
     background_color = pg.Color(settings_data['background color'])
     fullscreen = settings_data['fullscreen']
@@ -434,10 +444,6 @@ def load_settings():
     name = settings_data['name']
     address = settings_data['address']
     port = settings_data['port']
-    minimize_window_fps_optimize = settings_data['minimize window fps optimize']
-    minimize_window_fps = settings_data['minimize window fps optimization value']
-    inactive_fps_optimize = settings_data['inactive fps optimize']
-    inactive_fps = settings_data['inactive fps optimization value']
 
     global settings_message
     settings_message = ''
@@ -446,7 +452,7 @@ def load_settings():
 def throw_cubes():
     exchange_screen_reset()
     if state['throw_cubes_btn_active'] and state['is_game_started']:
-        move_command = 'move%'
+        move_command = 'move¥'
         sock.send(move_command.encode())
         information_sent('Команда отправлена', move_command)
         player_dict['main'].timer_bar.set_percentage(1)
@@ -454,7 +460,7 @@ def throw_cubes():
 
 def buy():
     if state['is_game_started'] and state['buy_btn_active'][0]:
-        buy_command = f'buy|{state['buy_btn_active'][1]}%'
+        buy_command = f'buy¦{state['buy_btn_active'][1]}¥'
         sock.send(buy_command.encode())
         information_sent('Команда отправлена', buy_command)
         player_dict['main'].timer_bar.set_percentage(1)
@@ -464,20 +470,20 @@ def pay():
     if state['is_game_started']:
         if state['pay_btn_active'][1] == 'minus':
             player = player_dict['main']
-            pay_command = f'pay|{player.piece_position}%'
+            pay_command = f'pay¦{player.piece_position}¥'
             sock.send(pay_command.encode())
             information_sent('Команда отправлена', pay_command)
             player_dict['main'].timer_bar.set_percentage(1)
 
         elif state['pay_btn_active'][1] == 'pay sum':
-            pay_command = f'pay sum|{state['pay_btn_active'][2]}%'
+            pay_command = f'pay sum¦{state['pay_btn_active'][2]}¥'
             sock.send(pay_command.encode())
             information_sent('Команда отправлена', pay_command)
             player_dict['main'].timer_bar.set_percentage(1)
 
         elif state['pay_btn_active'][1] == 'color':
             player = player_dict['main']
-            pay_command = f'payToColor|{player.piece_position}|{state['pay_btn_active'][2]}%'
+            pay_command = f'payToColor¦{player.piece_position}¦{state['pay_btn_active'][2]}¥'
             sock.send(pay_command.encode())
             information_sent('Команда отправлена', pay_command)
             player_dict['main'].timer_bar.set_percentage(1)
@@ -485,7 +491,7 @@ def pay():
         elif state['pay_btn_active'][1] == 'player':
             player = player_dict['main']
             if player.money >= state['pay_btn_active'][3] * player.pay_multiplier:
-                pay_command = f'pay to player|{state['pay_btn_active'][2]}|{state['pay_btn_active'][3]}%' # 'pay to player|{color}|{sum}%'
+                pay_command = f'pay to player¦{state['pay_btn_active'][2]}¦{state['pay_btn_active'][3]}¥' # 'pay to player¦{color}¦{sum}¥'
                 sock.send(pay_command.encode())
                 information_sent('Команда отправлена', pay_command)
             player_dict['main'].timer_bar.set_percentage(1)
@@ -493,13 +499,13 @@ def pay():
         elif state['pay_btn_active'][1] == 'players':
             player = player_dict['main']
             if player.money >= state['pay_btn_active'][2] * (len(players) - 1) * player.pay_multiplier:
-                pay_command = f'pay to players|{state['pay_btn_active'][2]}%' # 'pay to players|{sum}%'
+                pay_command = f'pay to players¦{state['pay_btn_active'][2]}¥' # 'pay to players¦{sum}¥'
                 sock.send(pay_command.encode())
                 information_sent('Команда отправлена', pay_command)
             player_dict['main'].timer_bar.set_percentage(1)
 
         elif state['pay_btn_active'][1] == 'prison':
-            pay_command = f'pay for prison%'
+            pay_command = f'pay for prison¥'
             sock.send(pay_command.encode())
             information_sent('Команда отправлена', pay_command)
             player_dict['main'].timer_bar.set_percentage(1)
@@ -530,10 +536,10 @@ def connect():
             port_ = port_textbox.get_text()
             port_ = int(port_)
             name_ = name_textbox.get_text()
-            if '%' not in name_ and '|' not in name_:
+            if '¥' not in name_ and '¦' not in name_:
                 if name_:
                     sock.connect((ip_, port_))
-                    sock.send(f'name|{name_}%'.encode())
+                    sock.send(f'name¦{name_}¥'.encode())
                     state['connected'] = True
 
                     with open("settings.json", "r") as read_file:
@@ -561,9 +567,9 @@ def connect():
                                                   'value': f'Ваше имя не должно быть пустым',
                                                   'color': (208, 57, 42)}])
             else:
-                print(f'{"\033[31m{}".format('Ваше имя не должно содержать символов "|" и "%"')}{'\033[0m'}')
+                print(f'{"\033[31m{}".format('Ваше имя не должно содержать символов "¦" и "¥"')}{'\033[0m'}')
                 log_textbox.append_messages([{'type': 'text',
-                                              'value': f'Ваше имя не должно содержать символов "|" и "%"',
+                                              'value': f'Ваше имя не должно содержать символов "¦" и "¥"',
                                               'color': (208, 57, 42)}])
         except:
             log_textbox.append_messages([{'type': 'text',
@@ -584,8 +590,7 @@ def tile_button(tile_position):
               f'{tile.color = }\n'
               f'{tile.angle = }\n'
               f'{tile.max_family_members = }\n'
-              f'{tile.x_position = }\n'
-              f'{tile.y_position = }\n'
+              f'{tile.rect = }\n'
               f'{tile.xText = }\n'
               f'{tile.yText = }\n'
               f'{tile.x_center = }\n'
@@ -610,7 +615,7 @@ def tile_button(tile_position):
                 all_tiles[tile_position].type == 'buildable' and
                 all_tiles[tile_position].owner == player.color):
             state['all_penises_build_btns_active'] = False
-            penis_command = f'penis build|{tile_position}%'
+            penis_command = f'penis build¦{tile_position}¥'
             sock.send(penis_command.encode())
             information_sent('Информация отправлена', penis_command)
             active_buttons_check()
@@ -622,7 +627,7 @@ def tile_button(tile_position):
                 all_tiles[tile_position].type == 'buildable' and
                 all_tiles[tile_position].owner == player.color):
             state['all_penises_remove_btns_active'] = False
-            penis_command = f'penis remove|{tile_position}%'
+            penis_command = f'penis remove¦{tile_position}¥'
             sock.send(penis_command.encode())
             information_sent('Информация отправлена', penis_command)
 
@@ -646,7 +651,7 @@ def tile_button(tile_position):
 
     elif state['is_game_started'] and state['mortgage_tile_btn_active']:
         if not all_tiles[tile_position].mortgaged and not all_tiles[tile_position].penised_family:
-            mortgage_command = f'mortgage|{tile_position}%'
+            mortgage_command = f'mortgage¦{tile_position}¥'
             sock.send(mortgage_command.encode())
             information_sent('Команда отправлена', mortgage_command)
             state['mortgage_tile_btn_active'] = False
@@ -654,7 +659,7 @@ def tile_button(tile_position):
     elif state['is_game_started'] and state['redeem_tile_btn_active']:
         player = player_dict['main']
         if all_tiles[tile_position].mortgaged and player.money >= all_tiles[tile_position].price / 2 * 1.1:
-            redeem_command = f'redeem|{tile_position}%'
+            redeem_command = f'redeem¦{tile_position}¥'
             sock.send(redeem_command.encode())
             information_sent('Команда отправлена', redeem_command)
             state['redeem_tile_btn_active'] = False
@@ -672,29 +677,29 @@ def tile_button(tile_position):
                 coef = 8
                 coef2 = 2
             message = [f'{tile.name}:',
-                       f'Базовая стоимость: {            math.ceil(tile.price / coef * (coef2 ** -1))}~',
-                       f'Стоимость при полной семье: {   math.ceil(tile.price / coef * (coef2 ** 0))}~',
-                       f'Стоимость при 1 белом пЭнисе: { math.ceil(tile.price / coef * (coef2 ** 1))}~',
-                       f'Стоимость при 2 белых пЭнисах: {math.ceil(tile.price / coef * (coef2 ** 2))}~',
-                       f'Стоимость при 3 белых пЭнисах: {math.ceil(tile.price / coef * (coef2 ** 3))}~',
-                       f'Стоимость при 4 белых пЭнисах: {math.ceil(tile.price / coef * (coef2 ** 4))}~',
-                       f'Стоимость при 5 белых пЭнисах: {math.ceil(tile.price / coef * (coef2 ** 5))}~',
-                       f'Стоимость белого пЭниса: {      tile.penis_price}~']
+                       f'Базовая стоимость: {            math.ceil(tile.price / coef * (coef2 ** -1))}¤',
+                       f'Стоимость при полной семье: {   math.ceil(tile.price / coef * (coef2 ** 0))}¤',
+                       f'Стоимость при 1 белом пЭнисе: { math.ceil(tile.price / coef * (coef2 ** 1))}¤',
+                       f'Стоимость при 2 белых пЭнисах: {math.ceil(tile.price / coef * (coef2 ** 2))}¤',
+                       f'Стоимость при 3 белых пЭнисах: {math.ceil(tile.price / coef * (coef2 ** 3))}¤',
+                       f'Стоимость при 4 белых пЭнисах: {math.ceil(tile.price / coef * (coef2 ** 4))}¤',
+                       f'Стоимость при 5 белых пЭнисах: {math.ceil(tile.price / coef * (coef2 ** 5))}¤',
+                       f'Стоимость белого пЭниса: {      tile.penis_price}¤']
         elif tile.type == 'train':
             coef = 8
             coef2 = 2
             message = [f'{tile.name}:',
-                       f'Стоимость при 1 поле: { math.ceil(tile.price / coef * (coef2 ** 0))}~',
-                       f'Стоимость при 2 полях: {math.ceil(tile.price / coef * (coef2 ** 1))}~',
-                       f'Стоимость при 3 полях: {math.ceil(tile.price / coef * (coef2 ** 2))}~',
-                       f'Стоимость при 4 полях: {math.ceil(tile.price / coef * (coef2 ** 3))}~']
+                       f'Стоимость при 1 поле: { math.ceil(tile.price / coef * (coef2 ** 0))}¤',
+                       f'Стоимость при 2 полях: {math.ceil(tile.price / coef * (coef2 ** 1))}¤',
+                       f'Стоимость при 3 полях: {math.ceil(tile.price / coef * (coef2 ** 2))}¤',
+                       f'Стоимость при 4 полях: {math.ceil(tile.price / coef * (coef2 ** 3))}¤']
         elif tile.type == 'infrastructure':
             message = [f'{tile.name}:',
                        f'Стоимость при 1 поле: сумма кубов * 4',
                        f'Стоимость при 2 полях: сумма кубов * 10']
         elif tile.type == 'minus':
             message = [f'{tile.name}:',
-                       f'Это {tile.family}, он украдёт ваши {-tile.price}~, хе-хе',]
+                       f'Это {tile.family}, он украдёт ваши {-tile.price}¤, хе-хе',]
         else:
             message = [f'{tile.name}:',
                        f'Не знаю, что тут пошло не так,',
@@ -740,7 +745,7 @@ def player_button(color):
                     exchange_cancel_button.show()
                     exchange_give_textbox.show()
                     exchange_get_textbox.show()
-                    log_textbox.hide()# todo: dobavit
+                    log_textbox.hide()
                     log_text_send_button.hide()
                     log_audio_send_button.hide()
                     log_voice_message_send_button.hide()
@@ -822,19 +827,19 @@ def exchange_commit():
                     incorrect_values = True
 
         if -50 <= exchange_value <= 50 and not incorrect_values and (exchange_give or exchange_get):
-            exchange_command = f'exchange request|{exchange_money_give_sum}_'
+            exchange_command = f'exchange request¦{exchange_money_give_sum}_'
 
             for give_tile in exchange_give:
                 exchange_command += f'{all_tiles[give_tile].position}-'
             if exchange_give:
                 exchange_command = exchange_command[:-1]
-            exchange_command = exchange_command + f'|{exchange_money_get_sum}_'
+            exchange_command = exchange_command + f'¦{exchange_money_get_sum}_'
 
             for get_tile in exchange_get:
                 exchange_command += f'{all_tiles[get_tile].position}-'
             if exchange_get:
                 exchange_command = exchange_command[:-1]
-            exchange_command = exchange_command + f'|{exchange_color}%'
+            exchange_command = exchange_command + f'¦{exchange_color}¥'
 
             sock.send(exchange_command.encode())
             information_sent('Команда отправлена', exchange_command)
@@ -918,7 +923,7 @@ def exchange_request_confirm():
             get_property = state['show_exchange_request_screen'][4]
             color = state['show_exchange_request_screen'][5]
 
-            exchange_command = f'exchange|{give_money}_'
+            exchange_command = f'exchange¦{give_money}_'
             for give_tile in give_property:
                 try:
                     exchange_command += f'{all_tiles[int(give_tile)].position}-'
@@ -926,7 +931,7 @@ def exchange_request_confirm():
                     pass
             if give_property:
                 exchange_command = exchange_command[:-1]
-            exchange_command = exchange_command + f'|{get_money}_'
+            exchange_command = exchange_command + f'¦{get_money}_'
 
             for get_tile in get_property:
                 try:
@@ -935,7 +940,7 @@ def exchange_request_confirm():
                     pass
             if get_property:
                 exchange_command = exchange_command[:-1]
-            exchange_command = exchange_command + f'|{color}%'
+            exchange_command = exchange_command + f'¦{color}¥'
 
             sock.send(exchange_command.encode())
             information_sent('Команда отправлена', exchange_command)
@@ -954,7 +959,7 @@ def exchange_request_confirm():
 
 def exchange_request_reject():
     if state['is_game_started'] and state['show_exchange_request_screen'][0]:
-        reject_command = 'exchange request rejected%'
+        reject_command = 'exchange request rejected¥'
         sock.send(reject_command.encode())
         information_sent('Информация отправлена', reject_command)
         state['show_exchange_request_screen'] = [False]
@@ -1007,7 +1012,7 @@ def choose_avatar():
             image_bytes = image_bytes.getvalue()
 
             image_bytes_encoded_bytes_base64 = base64.b64encode(image_bytes)
-            sendable_data = b'avatar|' + image_bytes_encoded_bytes_base64 + b'%'
+            sendable_data = 'avatar¦'.encode() + image_bytes_encoded_bytes_base64 + '¥'.encode()
             file_sock.send(sendable_data)
 
 
@@ -1015,7 +1020,7 @@ def auction():
     if state['is_game_started'] and state['auction_btn_active']:
         player = player_dict['main']
         if all_tiles[player.piece_position].buyable:
-            auction_command = f'auction initiate|{player.piece_position}%'
+            auction_command = f'auction initiate¦{player.piece_position}¥'
             sock.send(auction_command.encode())
             information_sent('Команда отправлена', auction_command)
             player_dict['main'].timer_bar.set_percentage(1)
@@ -1025,7 +1030,7 @@ def auction_buy():
     if state['show_auction_screen'][0]:
         player = player_dict['main']
         if player.money >= int(state['show_auction_screen'][2]) + 20:
-            auction_command = f'auction accept|{state['show_auction_screen'][1]}|{int(state['show_auction_screen'][2]) + 20}%'
+            auction_command = f'auction accept¦{state['show_auction_screen'][1]}¦{int(state['show_auction_screen'][2]) + 20}¥'
             sock.send(auction_command.encode())
             information_sent('Команда отправлена', auction_command)
             state['show_auction_screen'] = [False]
@@ -1042,7 +1047,7 @@ def auction_buy():
 
 def auction_reject():
     if state['show_auction_screen'][0]:
-        auction_command = f'auction reject|{state['show_auction_screen'][1]}|{state['show_auction_screen'][2]}%'
+        auction_command = f'auction reject¦{state['show_auction_screen'][1]}¦{state['show_auction_screen'][2]}¥'
         sock.send(auction_command.encode())
         information_sent('Команда отправлена', auction_command)
         state['show_auction_screen'] = [False]
@@ -1087,7 +1092,7 @@ def redeem():  # выкупить
 
 def surrender():
     if state['is_game_started'] and state['surrender_btn_active']:
-        surrender_command = f'surrender%'
+        surrender_command = f'surrender¥'
         sock.send(surrender_command.encode())
         information_sent('Команда отправлена', surrender_command)
 
@@ -1098,11 +1103,11 @@ def exit_prison_by_egg_s(egg_type):
     if player.imprisoned:
         state['bonus_buttons'].remove(egg_type)
         if player.egg_prison_exit_card and egg_type == 'Яйцо':
-            prison_exit_information = f'prison exit by eggs|Яйцо%'
+            prison_exit_information = f'prison exit by eggs¦Яйцо¥'
             player.egg_prison_exit_card = False
             exit_prison_egg_btn.hide()
         elif player.eggs_prison_exit_card and egg_type == 'Яйца':
-            prison_exit_information = f'prison exit by eggs|Яйца%'
+            prison_exit_information = f'prison exit by eggs¦Яйца¥'
             player.eggs_prison_exit_card = False
             exit_prison_eggs_btn.hide()
         sock.send(prison_exit_information.encode())
@@ -1114,7 +1119,7 @@ def dn_activate():
     if state['pay_btn_active'][1]:
         state['bonus_buttons'].remove('dn')
         if player.dn_card:
-            dn_information = f'double or nothing%'
+            dn_information = f'double or nothing¥'
             player.dn_card = False
             dn_btn.hide()
 
@@ -1154,7 +1159,7 @@ def send_message():
     if state['connected']:
         message = log_entry_textbox.get_text()
         if message:
-            message_information = f'message|{message}%'
+            message_information = f'message¦{message}¥'
             log_entry_textbox.set_text('')
             sock.send(message_information.encode())
             information_sent('Команда отправлена', message_information)
@@ -1182,27 +1187,35 @@ def send_audio():
                 return
             encoding = zlib.compress(audio_bytes, level=9)
             audio_bytes_encoded_base64 = base64.b64encode(encoding)
-            sendable_data = b'sound message|' + audio_bytes_encoded_base64 + '%'.encode()
+            sendable_data = 'sound message¦'.encode() + audio_bytes_encoded_base64 + '¥'.encode()
 
             file_sock.send(sendable_data)
             information_sent('Информация отправлена', 'sound message')
 
 
-def send_voice_message():
+def send_voice_message(button: str):
     if state['connected']:
-        state['audio_recording'] = not state['audio_recording']
-        if state['audio_recording']:
-            log_textbox.append_messages([{'type': 'text',
-                                          'value': f'Началась запись голоса. Чтобы остановить и отправить запись, нажмите на кнопку ещё раз',
-                                          'color': (0, 0, 0)}])
-            recorder.start_recording()
-        else:
-            audio_bytes = recorder.stop_recording()
-            encoding = zlib.compress(audio_bytes, level=9)
-            audio_bytes_encoded_base64 = base64.b64encode(encoding)
-            sendable_data = b'voice message|' + audio_bytes_encoded_base64 + '%'.encode()
+        if button == 'left':
+            state['audio_recording'] = not state['audio_recording']
+            if state['audio_recording']:
+                log_textbox.append_messages([{'type': 'text',
+                                              'value': f'Началась запись голоса. Чтобы остановить и отправить запись, нажмите на кнопку ещё раз. Чтобы остановить запись без отправки нажмите на кнопку правой кнопкой мыши',
+                                              'color': (0, 0, 0)}])
+                recorder.start_recording()
+            else:
+                audio_bytes = recorder.stop_recording()
+                encoding = zlib.compress(audio_bytes, level=9)
+                audio_bytes_encoded_base64 = base64.b64encode(encoding)
+                sendable_data = 'voice message¦'.encode() + audio_bytes_encoded_base64 + '¥'.encode()
 
-            file_sock.send(sendable_data)
+                file_sock.send(sendable_data)
+        elif button == 'right':
+            if state['audio_recording']:
+                state['audio_recording'] = False
+                recorder.stop_recording()
+                log_textbox.append_messages([{'type': 'text',
+                                              'value': f'Запись голоса остановлена',
+                                              'color': (0, 0, 0)}])
 
 
 def send_image():
@@ -1239,13 +1252,35 @@ def send_image():
         image_bytes = image_bytes.getvalue()
         image_bytes_encoded_bytes_base64 = base64.b64encode(image_bytes)
 
-        sendable_data = b'image message|' + image_bytes_encoded_bytes_base64 + b'%'
+        sendable_data = 'image message¦'.encode() + image_bytes_encoded_bytes_base64 + '¥'.encode()
         file_sock.send(sendable_data)
 
 
 # ^
-# |
+# ¦
 # Функционал кнопок и текст боксов
+
+
+def update_static_layer():
+    global board_static
+    board_static = board_image.copy()
+    board_static.blit(board_image, (0,0))
+
+    for tile in all_tiles:
+        if tile.owned:
+            board_static.blit(globals()[f'{tile.owner}_property_image'], tile.rect)
+
+        if 1 <= tile.penises <= 5:
+            board_static.blit(globals()[f'{tile.penises}_penises_image'], tile.rect)
+
+        if tile.mortgaged:
+            board_static.blit(mortgaged_tile, tile.rect)
+            text = font.render(str(tile.mortgaged_moves_count), False, 'white')
+            text_rect = text.get_rect(center=(tile.x_center, tile.y_center))
+            board_static.blit(text, text_rect)
+
+        if tile.prerendered_text:
+            board_static.blit(tile.prerendered_text, tile.text_rect)
 
 
 def render_multiline_text(text, x, y, font_, line_height, align):
@@ -1260,21 +1295,7 @@ def render_multiline_text(text, x, y, font_, line_height, align):
 
 
 def blit_board():
-    screen.blit(board_image)
-
-    for tile in all_tiles:
-        if tile.owned:
-            screen.blit(globals()[f'{tile.owner}_property_image'], (tile.x_position, tile.y_position))
-
-        if 1 <= tile.penises <= 5:
-            screen.blit(globals()[f'{tile.penises}_penises_image'], (tile.x_position, tile.y_position))
-
-        if tile.mortgaged:
-            screen.blit(mortgaged_tile, (tile.x_position, tile.y_position))
-
-            text = font.render(str(tile.mortgaged_moves_count), False, 'white')
-            text_rect = text.get_rect(center=(tile.x_center, tile.y_center))
-            screen.blit(text, text_rect)
+    screen.blit(board_static)
 
     if state['cube_animation_playing']:
         screen.blit(cube_1_picture, cubes_coordinates[0])
@@ -1286,8 +1307,7 @@ def blit_board_above_prices():
         screen.blit(darkening_full, (0, 0))
         for tile in all_tiles:
             if tile.position not in available_tiles_for_exchange and tile.buyable:
-                screen.blit(darkening_tile,
-                            (tile.x_position, tile.y_position))
+                screen.blit(darkening_tile, tile.rect)
 
         screen.blit(exchange_screen, exchange_coordinates['exchange_screen'])
 
@@ -1326,7 +1346,7 @@ def blit_board_above_prices():
         screen.blit(darkening_full, (0, 0))
         for tile in all_tiles:
             if tile.position not in exchange_property and tile.buyable:
-                screen.blit(darkening_tile, (tile.x_position, tile.y_position))
+                screen.blit(darkening_tile, tile.rect)
 
         screen.blit(exchange_screen, exchange_coordinates['exchange_screen'])
 
@@ -1361,13 +1381,13 @@ def blit_board_above_prices():
         value_text_rect = value_text.get_rect(center=exchange_coordinates['value'])
         screen.blit(value_text, value_text_rect)
 
-        give_money_text = font.render(f'{give_money}~', False, 'black')
+        give_money_text = font.render(f'{give_money}¤', False, 'black')
         give_money_text_rect = give_money_text.get_rect(
             center=(exchange_coordinates['textbox_give'][0] + round(exchange_coordinates['textbox_give'][2] / 2),
                     exchange_coordinates['textbox_give'][1] + round(exchange_coordinates['textbox_give'][3] / 2)))
         screen.blit(give_money_text, give_money_text_rect)
 
-        get_money_text = font.render(f'{get_money}~', False, 'black')
+        get_money_text = font.render(f'{get_money}¤', False, 'black')
         get_money_text_rect = get_money_text.get_rect(
             center=(exchange_coordinates['textbox_get'][0] + round(exchange_coordinates['textbox_get'][2] / 2),
                     exchange_coordinates['textbox_get'][1] + round(exchange_coordinates['textbox_get'][3] / 2)))
@@ -1377,11 +1397,11 @@ def blit_board_above_prices():
         tile_position = int(state['show_auction_screen'][1])
         price = int(state['show_auction_screen'][2])
         tile = all_tiles[tile_position]
-        text = f'{price} + 20~'
+        text = f'{price} + 20¤'
         screen.blit(darkening_full, (0, 0))
         for tile_ in all_tiles:
             if tile_.buyable and tile_ != tile:
-                screen.blit(darkening_tile, (tile_.x_position, tile_.y_position))
+                screen.blit(darkening_tile, tile_.rect)
         screen.blit(auction_screen, auction_coordinates['auction_screen'])
         screen.blit(font.render(tile.name, False, 'black'), auction_coordinates['company_text'])
         screen.blit(font.render(text, False, 'black'), auction_coordinates['price_text'])
@@ -1407,7 +1427,7 @@ def blit_board_above_interface():
                 screen.blit(player.player_piece, player.player_piece_rect)
 
 
-    screen.blit(bars, (all_tiles[10].x_position, all_tiles[10].y_position))
+    screen.blit(bars, all_tiles[10].rect)
 
     if state['show_egg_panel']:
         screen.blit(eggs_card_uncovered, egg_card_coordinates)
@@ -1419,16 +1439,6 @@ def blit_board_above_interface():
         render_multiline_text(tile_info, tile_info_coordinates[0] + 10, tile_info_coordinates[1], font, font.get_linesize(), 'topleft')
 
 
-def price_printing():
-    for tile in all_tiles:
-        if tile.prerendered_text:
-
-
-            # screen.fill('green', tile.text_rect)
-            screen.blit(tile.prerendered_text, tile.text_rect)
-            # pg.draw.circle(screen, 'red', (tile.xText, tile.yText), 1)
-
-
 def position_update():
     global players
     for player in players:
@@ -1436,7 +1446,7 @@ def position_update():
         for player2 in players:
             if player2.piece_position == player.piece_position:
                 players_on_tile.append(player2)
-        end_positions = []#offset_horizontal, offset_vertical
+        end_positions = []
         for player3 in players_on_tile:
             if player.piece_position in (0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29):
                 end_positions.append((all_tiles[player3.piece_position].x_center + offset_horizontal[len(players_on_tile) - 1][players_on_tile.index(player3)][0],
@@ -1484,14 +1494,15 @@ def move_by_cubes(cube1, cube2, color):  # Не спрашивайте, как �
         position_update()
 
     if player.main:
-        sock.send('moved|cubes%'.encode())
-        information_sent('Информация отправлена', 'moved|cubes%')
+        sock.send('moved¦cubes¥'.encode())
+        information_sent('Информация отправлена', 'moved¦cubes¥')
 
 
 def move(players_on_tile, end_positions, cube_sum):
     if inactive_fps_optimize:
-        global FPS
+        global FPS, inactive_window
         FPS = max_fps
+        inactive_window = False
     if not players_on_tile:
         return
 
@@ -1535,6 +1546,7 @@ def move(players_on_tile, end_positions, cube_sum):
         time.sleep(0.01)
     if inactive_fps_optimize:
         FPS = inactive_fps
+        inactive_window = True
 
 
 def handle_connection():
@@ -1555,7 +1567,7 @@ def handle_connection():
 
     buffer = ''
     while running:
-        time.sleep(ideal_dt)
+        time.sleep(0.01)
         if game_started:
             if state['connected']:
                 try:
@@ -1563,9 +1575,9 @@ def handle_connection():
                     data_unsplit = data_undecoded.decode()
                     buffer += data_unsplit
 
-                    while '%' in buffer:
-                        single_command, buffer = buffer.split('%', 1)
-                        data = single_command.split('|')
+                    while '¥' in buffer:
+                        single_command, buffer = buffer.split('¥', 1)
+                        data = single_command.split('¦')
 
                         if data[0] != '':
 
@@ -1580,7 +1592,7 @@ def handle_connection():
                                 time_server = float(data[1])
                                 time_now = time.time()
                                 ping = int((time_now - time_server) * 1000)
-                                sock.send(f'pong|{ping}%'.encode())
+                                sock.send(f'pong¦{ping}¥'.encode())
 
                             elif data[0] == 'color main':
                                 allPlayer = player_dict[data[1]]
@@ -1633,8 +1645,8 @@ def handle_connection():
                                 player.money = int(data[2])
                                 player.piece_position = int(data[3])
                                 player.name = data[4]
-                                player.rendered_name = player.font.render(f'{player.name}~', False, 'black')
-                                player.rendered_money = player.font.render(f'{player.money}~', False, 'black')
+                                player.rendered_name = player.font.render(f'{player.name}', False, 'black')
+                                player.rendered_money = player.font.render(f'{player.money}¤', False, 'black')
                                 position_update()
 
                             elif data[0] == 'property':
@@ -1650,7 +1662,7 @@ def handle_connection():
                                 for i, player in enumerate(players):
                                     if data[1] == player.color:
                                         player.money = int(data[2])
-                                        player.rendered_money = player.font.render(f'{player.money}~', False, 'black')
+                                        player.rendered_money = player.font.render(f'{player.money}¤', False, 'black')
 
                             elif data[0] == 'playerDeleted':
                                 player = player_dict[data[1]]
@@ -1858,17 +1870,16 @@ def handle_connection():
                                 show_cubes(data[1], data[2])
 
                             elif data[0] == 'free prison escape card':
-                                player = player_dict[data[2]]
-                                if player.main:
-                                    state['bonus_buttons'].append(data[1])
-                                    if data[1] == 'Яйцо':
-                                        player.egg_prison_exit_card = True
-                                        exit_prison_egg_btn.relative_rect = egg_btns_coordinates[state['bonus_buttons'].index('Яйцо')]
-                                        exit_prison_egg_btn.show()
-                                    else:
-                                        player.eggs_prison_exit_card = True
-                                        exit_prison_eggs_btn.relative_rect = egg_btns_coordinates[state['bonus_buttons'].index('Яйца')]
-                                        exit_prison_eggs_btn.show()
+                                player = player_dict['main']
+                                state['bonus_buttons'].append(data[1])
+                                if data[1] == 'Яйцо':
+                                    player.egg_prison_exit_card = True
+                                    exit_prison_egg_btn.rect = egg_btns_coordinates[state['bonus_buttons'].index('Яйцо')]
+                                    exit_prison_egg_btn.show()
+                                else:
+                                    player.eggs_prison_exit_card = True
+                                    exit_prison_eggs_btn.rect = egg_btns_coordinates[state['bonus_buttons'].index('Яйца')]
+                                    exit_prison_eggs_btn.show()
 
                             elif data[0] == 'message':
                                 message = json.loads(data[1])
@@ -1883,12 +1894,11 @@ def handle_connection():
                                     state[player_state_key] = player_state[player_state_key]
 
                             elif data[0] == 'd/n card':
-                                player = player_dict[data[1]]
-                                if player.main:
-                                    state['bonus_buttons'].append('dn')
-                                    player.dn_card = True
-                                    dn_btn.relative_rect = egg_btns_coordinates[state['bonus_buttons'].index('dn')]
-                                    dn_btn.show()
+                                player = player_dict['main']
+                                state['bonus_buttons'].append('dn')
+                                player.dn_card = True
+                                dn_btn.rect = egg_btns_coordinates[state['bonus_buttons'].index('dn')]
+                                dn_btn.show()
 
                             elif data[0] == 'pay multiplier':
                                 player = player_dict[data[1]]
@@ -1906,7 +1916,7 @@ def handle_connection():
                             elif data[0] == 'value':
                                 player = player_dict[data[1]]
                                 player.value = int(data[2])
-                                player.rendered_value = player.font.render(f'{player.value}~', False, 'black')
+                                player.rendered_value = player.font.render(f'{player.value}¤', False, 'black')
 
                             elif data[0] == 'timer':
                                 player = player_dict[data[1]]
@@ -1918,6 +1928,7 @@ def handle_connection():
                                 print(f'Ошибка: {"\033[31m{}".format(f'Незарегистрированная команда на стороне клиента: {data[0]}')}{'\033[0m'}')
 
                             active_buttons_check()
+                            update_static_layer()
                             if debug_mode:
                                 # подсчёт команд по релевантности
                                 try:
@@ -1943,7 +1954,7 @@ def connect_file_socket(color):
         file_sock = sck.socket(sck.AF_INET, sck.SOCK_STREAM)
         file_sock.connect((ip_, file_port))
         # Отправляем привязку
-        bind_cmd = f"file_bind|{color}%".encode()
+        bind_cmd = f"file_bind¦{color}¥".encode()
         file_sock.send(bind_cmd)
         # Запускаем поток для приёма файлов от сервера (если нужно)
         threading.Thread(target=file_receiver, daemon=True).start()
@@ -1962,8 +1973,8 @@ def file_receiver():
             if not data:
                 break  # соединение закрыто сервером
             buffer += data
-            while '%' in buffer:
-                cmd, buffer = buffer.split('%', 1)
+            while '¥' in buffer:
+                cmd, buffer = buffer.split('¥', 1)
                 process_file_command(cmd)
         except BlockingIOError:#, socket.timeout):
             time.sleep(0.01)
@@ -1976,7 +1987,7 @@ def file_receiver():
 
 
 def process_file_command(cmd):
-    parts = cmd.split('|')
+    parts = cmd.split('¦')
     if parts[0] == 'avatar':
         state['avatar_chosen'] = True
         avatar = parts[2]
@@ -2059,6 +2070,11 @@ def event_handler():
                 egg_s_reset()
             elif state['tile_info_show'][0]:
                 tile_info_reset()
+            if game_started:
+                for i, tile in enumerate(all_tiles):
+                    if tile.rect.collidepoint(event.pos):
+                        tile_button(i)
+                        break
 
         elif event.type == pg.KEYUP and game_started:
             if not ip_textbox.is_focused and not port_textbox.is_focused and not name_textbox.is_focused and not exchange_give_textbox.is_focused and not exchange_get_textbox.is_focused and not log_entry_textbox.is_focused:
@@ -2079,7 +2095,11 @@ def event_handler():
             if event.type in (pg.WINDOWHIDDEN, pg.WINDOWFOCUSLOST):
                 FPS = minimize_window_fps
             elif event.type in (pg.WINDOWRESTORED, pg.WINDOWFOCUSGAINED):
-                FPS = max_fps
+                if inactive_fps_optimize:
+                    if inactive_window:
+                        FPS = inactive_fps
+                    else:
+                        FPS = max_fps
 
 
         manager_initiated = False
@@ -2140,7 +2160,11 @@ def event_handler():
                     elif event_type == log_audio_send_button:
                         threading.Thread(target=send_audio, daemon=True).start()
                     elif event_type == log_voice_message_send_button:
-                        send_voice_message()
+                        print(event)
+                        if event.mouse_button == 1:
+                            send_voice_message('left')
+                        elif event.mouse_button == 3:
+                            send_voice_message('right')
                     elif event_type == log_image_send_button:
                         threading.Thread(target=send_image, daemon=True).start()
                     elif event_type == dn_btn:
@@ -2152,10 +2176,7 @@ def event_handler():
                             for player in players:
                                 if event_type == globals()[f'{player.color}_player_button']:
                                     player_button(player.color)
-                        for i in range(40):
-                            if event_type == globals()[f'tile_{i}_button']:
-                                tile_button(i)
-    
+
                 case pygame_gui.UI_TEXT_ENTRY_CHANGED:
                     event_type = event.ui_element
                     if event_type == name_textbox:
@@ -2414,7 +2435,9 @@ def buttons():
         text='',
         object_id=pygame_gui.core.ObjectID(class_id='@transparent_buttons', object_id='#voice_message_send_button'),
         manager=manager,
-        tool_tip_text=f'<font face="BulBulPoly" pixel_size={1} color="#000000">Отправить голосовое сообщение</font>')
+        tool_tip_text=f'<font face="BulBulPoly" pixel_size={1} color="#000000">Отправить голосовое сообщение</font>',
+        generate_click_events_from=frozenset([pg.BUTTON_LEFT, pg.BUTTON_RIGHT]))
+
     log_voice_message_send_button.disable()
 
     log_image_send_button = pygame_gui.elements.UIButton(
@@ -2432,12 +2455,6 @@ def buttons():
     # time_bar = pygame_gui.elements.UIStatusBar(relative_rect=pg.Rect(676, 66, 148, 12),
     #                                            manager=manager)
     # print(time_bar.status_text())
-    for i in range(40):
-        globals()[f'tile_{i}_button'] = pygame_gui.elements.UIButton(
-            relative_rect=pg.Rect((all_tiles[i].x_position, all_tiles[i].y_position), tile_size),
-            text='',
-            manager=manager,
-            object_id=pygame_gui.core.ObjectID(class_id='@transparent_buttons', object_id='#tile_button'))
 
     if not debug_mode:
         debug_button.hide()
@@ -2454,7 +2471,7 @@ def show_cubes(cube1, cube2):
 
 
 # Проверки
-# |
+# ¦
 # V
 
 
@@ -2470,14 +2487,13 @@ def forbidden_characters_check(text, forbidden_characters):
     new_text = text
     for character in text:
         if character in forbidden_characters:
-            pass
-            # new_text = new_text.replace(character, '')
+            new_text = new_text.replace(character, '')
     return new_text
 
 
 def name_check():
     name = name_textbox.get_text()
-    name = forbidden_characters_check(name, ['|', '%', '[1foe_S]', '\n'])
+    name = forbidden_characters_check(name, ['¦', '¥', '\n'])
     while font.size(name)[0] >= profile_picture.width - 10:
         name = name[:-1]
     if name_textbox.get_text() != name:
@@ -2486,7 +2502,7 @@ def name_check():
 
 def log_entry_check():
     log_text = log_entry_textbox.get_text()
-    log_text = forbidden_characters_check(log_text, ['|', '%', '[1foe_S]', '\n'])
+    log_text = forbidden_characters_check(log_text, ['¦', '¥', '\n'])
     if log_entry_textbox.get_text() != log_text:
         log_entry_textbox.set_text(log_text)
 
@@ -2592,7 +2608,7 @@ while running and not game_started:
     screen.blit(font.render(settings_message, False, 'black'), settings_buttons_coordinates['message'])
 
     try:
-        manager.update(dt)
+        manager.update(max(dt, 0.016))
         manager.draw_ui(screen)
     except:
         pass
@@ -2601,6 +2617,7 @@ while running and not game_started:
 
 gc.collect()
 
+
 while running:
     clock.tick(FPS)
     dt, prev_time = delta_time(prev_time)
@@ -2608,11 +2625,10 @@ while running:
     event_handler()
 
     blit_board()
-    price_printing()
     blit_board_above_prices()
     log_textbox.render(screen)
     try:
-        manager.update(dt)
+        manager.update(max(dt, 0.016))
         manager.draw_ui(screen)
     except:
         pass
@@ -2627,10 +2643,10 @@ while running:
 
 if log_textbox:
     del log_textbox
-    if os.path.exists(f'resources/temp/audios'):
-        for file in os.listdir('resources/temp/audios'):
+    if os.path.exists(f'resources/temp/audios/client'):
+        for file in os.listdir('resources/temp/audios/client'):
             try:
-                os.remove(f'resources/temp/audios/{file}')
+                os.remove(f'resources/temp/audios/client/{file}')
             except:
                 pass
 
@@ -2647,7 +2663,12 @@ if debug_mode:
         sorted_dict = dict(sorted(command_counter.items(), key=lambda item: item[1], reverse=True))
         sorted_dict['unknown_commands'] = unknown_commands
         time = datetime.datetime.now()
-        formatted_date = time.strftime("%d.%m.%Y_%H-%M-%S")
+        formatted_date = time.strftime("¥d.¥m.¥Y_¥H-¥M-¥S")
         with open(f'logs/commands_log_{formatted_date}.json', 'w') as file:
             json.dump(sorted_dict, file, indent=4, ensure_ascii=False)
 
+# profiler.disable()
+# s = io.StringIO()
+# ps = pstats.Stats(profiler, stream=s).sort_stats('cumulative')
+# ps.print_stats(20)
+# print(s.getvalue())
