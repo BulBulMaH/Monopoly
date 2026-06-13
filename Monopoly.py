@@ -576,6 +576,7 @@ def connect():
                                           'value': f'Не удалось подключиться',
                                           'color': (208, 57, 42)}])
             print(f'{"\033[31m{}".format('Не удалось подключиться')}{'\033[0m'}')  # красный
+            print(f'{"\033[31m{}".format(traceback.format_exc())}{'\033[0m'}')
 
 
 def tile_button(tile_position):
@@ -1047,7 +1048,7 @@ def auction_buy():
 
 def auction_reject():
     if state['show_auction_screen'][0]:
-        auction_command = f'auction reject¦{state['show_auction_screen'][1]}¦{state['show_auction_screen'][2]}¥'
+        auction_command = f'auction reject¥'
         sock.send(auction_command.encode())
         information_sent('Команда отправлена', auction_command)
         state['show_auction_screen'] = [False]

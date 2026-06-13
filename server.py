@@ -93,68 +93,81 @@ class Player:
         self.money = 1500
 
 
-# замена файлов библиотек на модифицированные
-if os.path.exists('lib/modified_library_files/magic/__init__.py'):
-    os.replace('lib/modified_library_files/magic/__init__.py', '.venv/Lib/site-packages/magic/__init__.py')
-if os.path.exists('lib/modified_library_files/pygame-gui/html_parser.py'):
-    os.replace('lib/modified_library_files/pygame-gui/html_parser.py',
-               '.venv/Lib/site-packages/pygame_gui/core/text/html_parser.py')
-if os.path.exists('lib/modified_library_files/pygame-gui/ui_font_dictionary.py'):
-    os.replace('lib/modified_library_files/pygame-gui/ui_font_dictionary.py',
-               '.venv/Lib/site-packages/pygame_gui/core/ui_font_dictionary.py')
-
-pg.init()
-pg.mixer.init(frequency=22050, size=16, channels=1)
-
-background_color = pg.Color(128, 128, 128)
-resolution = (1280, 650)
-resolution_folder = '720p'
-fps_coordinates = (652, -5)
-font_size = 25
-avatar_side_size = 100
-FPS = 30
-tile_size = (55, 55)
-max_log_image_size = (423, 211)
-debug_mode = True
-ip = sck.gethostbyname(sck.gethostname())
-
-profile_coordinates = [{'profile': (669, 20 ),  'avatar': (830, 46 ),  'money': (692, 40 ), 'value': (692, 58 ), 'name': (674, 22 ), 'timer_bar': (677, 85,  146, 10)},
-                       {'profile': (669, 169),  'avatar': (830, 195),  'money': (692, 189), 'value': (692, 207), 'name': (674, 171), 'timer_bar': (677, 234, 146, 10)},
-                       {'profile': (669, 318),  'avatar': (830, 344),  'money': (692, 338), 'value': (692, 356), 'name': (674, 320), 'timer_bar': (677, 383, 146, 10)},
-                       {'profile': (669, 467),  'avatar': (830, 493),  'money': (692, 487), 'value': (692, 505), 'name': (674, 469), 'timer_bar': (677, 532, 146, 10)}]
-start_btn_textboxes_coordinates = {'name': (1040, 442, 217, 35),
-                                   'IP': (1040, 483, 150, 35),
-                                   'port': (1196, 483, 65, 35),
-                                   'connect': (1040, 534, 217, 38),
-                                   'choose_avatar': (1040, 592, 217, 38),
-                                   'debug': (1040, 384, 140, 38)}
-log_textbox_coordinates = {'main_box': (95, 95, 459, 426),
-                           'user_input_box': (95, 519, 350, 35),
-                           'audio_send_button': (411, 519, 38, 35),
-                           'voice_message_send_button': (446, 519, 38, 35),
-                           'image_send_button': (481, 519, 38, 35),
-                           'text_send_button': (516, 519, 38, 35)}
-
-piece_color_coefficient = 28
-TITLE = 'Monopoly Server'
-screen = pg.display.set_mode(resolution)
-manager = pygame_gui.UIManager(resolution, theme_path=f'resources/{resolution_folder}/gui_theme.json',
-                               enable_live_theme_updates=False)
-manager.add_font_paths('BulBulPoly', "resources/fonts/BulBulPoly 4 1x.bdf")
-manager.preload_fonts([{'name': 'BulBulPoly', 'point_size': f'{font_size}', 'style': 'regular', 'antialiased': '0'}])
-pg.display.set_caption(TITLE)
-clock = pg.time.Clock()
-
-play_with_timer = True
-timer_duration = {'to move': 60,
-                  'to pay': 60,
-                  'to buy': 60,
-                  'to accept exchange': 30,
-                  'to accept auction': 30,
-                  'placeholder': 10800} # 3 часа
-
-
 def load_assets():
+    # замена файлов библиотек на модифицированные
+    if os.path.exists('lib/modified_library_files/magic/__init__.py'):
+        os.replace('lib/modified_library_files/magic/__init__.py', '.venv/Lib/site-packages/magic/__init__.py')
+    if os.path.exists('lib/modified_library_files/pygame-gui/html_parser.py'):
+        os.replace('lib/modified_library_files/pygame-gui/html_parser.py',
+                   '.venv/Lib/site-packages/pygame_gui/core/text/html_parser.py')
+    if os.path.exists('lib/modified_library_files/pygame-gui/ui_font_dictionary.py'):
+        os.replace('lib/modified_library_files/pygame-gui/ui_font_dictionary.py',
+                   '.venv/Lib/site-packages/pygame_gui/core/ui_font_dictionary.py')
+
+    pg.init()
+    pg.mixer.init(frequency=22050, size=16, channels=1)
+
+    with open('server config.json') as f:
+        config_data = json.load(f)
+
+    global background_color, fps_coordinates, avatar_side_size, FPS, max_log_image_size, debug_mode, cheats, ip, port, resolution_folder
+    background_color = pg.Color(128, 128, 128)
+    resolution = (1280, 650)
+    resolution_folder = '720p'
+    fps_coordinates = (652, -5)
+    font_size = 25
+    avatar_side_size = 100
+    FPS = config_data['fps']
+    tile_size = (55, 55)
+    max_log_image_size = (423, 211)
+    debug_mode = config_data['debug mode']
+    cheats = config_data['cheats']
+    ip = config_data['ip'] if config_data['ip'] is not None else sck.gethostbyname(sck.gethostname())
+    port = config_data['port']
+
+    global profile_coordinates, start_btn_textboxes_coordinates, log_textbox_coordinates
+    profile_coordinates = [
+        {'profile': (669, 20), 'avatar': (830, 46), 'money': (692, 40), 'value': (692, 58), 'name': (674, 22),
+         'timer_bar': (677, 85, 146, 10)},
+        {'profile': (669, 169), 'avatar': (830, 195), 'money': (692, 189), 'value': (692, 207), 'name': (674, 171),
+         'timer_bar': (677, 234, 146, 10)},
+        {'profile': (669, 318), 'avatar': (830, 344), 'money': (692, 338), 'value': (692, 356), 'name': (674, 320),
+         'timer_bar': (677, 383, 146, 10)},
+        {'profile': (669, 467), 'avatar': (830, 493), 'money': (692, 487), 'value': (692, 505), 'name': (674, 469),
+         'timer_bar': (677, 532, 146, 10)}]
+    start_btn_textboxes_coordinates = {'name': (1040, 442, 217, 35),
+                                       'IP': (1040, 483, 150, 35),
+                                       'port': (1196, 483, 65, 35),
+                                       'connect': (1040, 534, 217, 38),
+                                       'choose_avatar': (1040, 592, 217, 38),
+                                       'debug': (1040, 384, 140, 38)}
+    log_textbox_coordinates = {'main_box': (95, 95, 459, 426),
+                               'user_input_box': (95, 519, 350, 35),
+                               'audio_send_button': (411, 519, 38, 35),
+                               'voice_message_send_button': (446, 519, 38, 35),
+                               'image_send_button': (481, 519, 38, 35),
+                               'text_send_button': (516, 519, 38, 35)}
+
+    global piece_color_coefficient, screen, manager, clock, play_with_timer, timer_duration
+    piece_color_coefficient = 28
+    TITLE = 'Monopoly Server'
+    screen = pg.display.set_mode(resolution)
+    manager = pygame_gui.UIManager(resolution, theme_path=f'resources/{resolution_folder}/gui_theme.json',
+                                   enable_live_theme_updates=False)
+    manager.add_font_paths('BulBulPoly', "resources/fonts/BulBulPoly 4 1x.bdf")
+    manager.preload_fonts(
+        [{'name': 'BulBulPoly', 'point_size': f'{font_size}', 'style': 'regular', 'antialiased': '0'}])
+    pg.display.set_caption(TITLE)
+    clock = pg.time.Clock()
+
+    play_with_timer = config_data['play with timer']
+    timer_duration = {'to move': 60,
+                      'to pay': 60,
+                      'to buy': 60,
+                      'to accept exchange': 30,
+                      'to accept auction': 30,
+                      'placeholder': 10800}  # 3 часа
+
     global all_tiles, all_egg, all_eggs, all_question, player_dict
     all_tiles, all_egg, all_eggs, all_question = all_tiles_get(resolution_folder, tile_size)
     random.shuffle(all_egg)
@@ -243,6 +256,7 @@ def receive_data():
                             player.state['penis_remove_btn_active'] = False
                             player.state['exchange_btn_active'] = False
                             player.state['mortgage_btn_active'] = False
+                            player.state['redeem_btn_active'] = False
                             player.state['buy_btn_active'] = [False, None]
                             player.state['pay_btn_active'] = [False, None]
                             player.state['surrender_btn_active'] = False
@@ -1270,8 +1284,6 @@ def receive_data():
                                 information_sent_to('Информация отправлена к', player2.color, message_data)
 
                     elif data[0] == 'auction reject':
-                        tile_position = int(data[1])
-                        price = int(data[2])
                         reject_auction(player.color)
 
                     elif data[0] == 'pay':
@@ -1953,7 +1965,7 @@ def receive_data():
                             message = [{'type': 'text',
                                         'value': [
                                             {'text': player.name, 'color': player.color_value},
-                                            {'text': f' закладывает {tile.name} и тратит {tile.price}¤',
+                                            {'text': f' выкупает {tile.name} и тратит {tile.price}¤',
                                              'color': (0, 0, 0)}
                                         ]}]
                             message_data = f'message¦{json.dumps(message)}¥'
@@ -2167,19 +2179,30 @@ def players_send():
 def message_send():
     msg_text = log_entry_textbox.get_text()
     if msg_text:
-        if msg_text[0] != '~':
-            message = [{'type': 'text', 'value': [{'text': f'server: {msg_text}', 'color': (0, 0, 0)}]}]
-            log_textbox_.append_messages(message)
-            message_data = f'message¦{json.dumps(message)}¥'
-            log_entry_textbox.set_text('')
-            for player in players:
-                player.conn.send(message_data.encode())
-                information_sent_to('Информация отправлена к', player.color, message_data)
+        message = [{'type': 'text', 'value': [{'text': f'server: {msg_text}', 'color': (0, 0, 0)}]}]
+        log_textbox_.append_messages(message)
+        message_data = f'message¦{json.dumps(message)}¥'
+        log_entry_textbox.set_text('')
+        for player in players:
+            player.conn.send(message_data.encode())
+            information_sent_to('Информация отправлена к', player.color, message_data)
 
-        elif debug_mode:
+        if cheats:
             message_command = msg_text[1:].split(' ')
             
             if message_command[0] == 'money':
+                if not (message_command[3].isdigit() or message_command[3][1:].isdigit()):
+                    log_textbox_.append_messages([{'type': 'text', 'value': [{'text': '(add|set) имеет недопустимое значение. Используйте ~help для подробностей', 'color': (0, 0, 0)}]}])
+                    return
+
+                if message_command[2] not in ('red', 'green', 'blue', 'yellow'):
+                    log_textbox_.append_messages([{'type': 'text', 'value': [{'text': '<color: str> имеет недопустимое значение. Используйте ~help для подробностей', 'color': (0, 0, 0)}]}])
+                    return
+
+                if not (message_command[3].isdigit() or message_command[3][1:].isdigit()):
+                    log_textbox_.append_messages([{'type': 'text', 'value': [{'text': '<value: int> имеет недопустимое значение. Используйте ~help для подробностей', 'color': (0, 0, 0)}]}])
+                    return
+
                 player = player_dict[message_command[2]]
                 if message_command[1] == 'add':
                     player.money += int(message_command[3])
@@ -2194,8 +2217,22 @@ def message_send():
                     information_sent_to('Информация отправлена к', player2.color, money_data)
 
             elif message_command[0] == 'set_state':
+                if message_command[1] not in ('red', 'green', 'blue', 'yellow'):
+                    log_textbox_.append_messages([{'type': 'text', 'value': [{'text': '<color: str> имеет недопустимое значение. Используйте ~help для подробностей', 'color': (0, 0, 0)}]}])
+                    return
+
+                if message_command[3] not in ('True', 'true', '1', 'False', 'false', '0'):
+                    log_textbox_.append_messages([{'type': 'text', 'value': [{'text': '<value: bool> имеет недопустимое значение. Используйте ~help для подробностей', 'color': (0, 0, 0)}]}])
+                    return
+
                 player = player_dict[message_command[1]]
                 new_state_type = message_command[2]
+                if new_state_type not in ["on_move", "double", "paid",
+                                            "refused_to_buy", "thinking_on_exchange", "throw_cubes_btn_active", "penis_build_btn_active",
+                                            "penis_remove_btn_active", "mortgage_btn_active", "redeem_btn_active", "auction_btn_active",
+                                            "exchange_btn_active", "surrender_btn_active"]:
+                    log_textbox_.append_messages([{'type': 'text', 'value': [{'text': '<state: str> имеет недопустимое значение. Используйте ~help для подробностей', 'color': (0, 0, 0)}]}])
+                    return
 
                 is_state_determined = False
                 if message_command[3] in ('True', 'true', '1'):
@@ -2210,8 +2247,17 @@ def message_send():
                 send_player_state(player.color)
 
             elif message_command[0] == 'buy':
+                if message_command[1] not in ('red', 'green', 'blue', 'yellow'):
+                    log_textbox_.append_messages([{'type': 'text', 'value': [{'text': '<color: str> имеет недопустимое значение. Используйте ~help для подробностей', 'color': (0, 0, 0)}]}])
+                    return
+
                 player = player_dict[message_command[1]]
                 tile_position = int(message_command[2])
+
+                if 0 > tile_position >= 40:
+                    log_textbox_.append_messages([{'type': 'text', 'value': [{'text': '<tile: int> имеет недопустимое значение. Используйте ~help для подробностей', 'color': (0, 0, 0)}]}])
+                    return
+
                 all_tiles[tile_position].owned = True
                 all_tiles[tile_position].owner = player.color
                 player.money -= int(all_tiles[tile_position].price)
@@ -2244,6 +2290,14 @@ def message_send():
                     information_sent_to('Информация отправлена к', player2.color, message_data)
 
             elif message_command[0] == 'give_card':
+                if message_command[1] not in ('red', 'green', 'blue', 'yellow'):
+                    log_textbox_.append_messages([{'type': 'text', 'value': [{'text': '<color: str> имеет недопустимое значение. Используйте ~help для подробностей', 'color': (0, 0, 0)}]}])
+                    return
+
+                if message_command[2] not in ('Яйцо', 'Яйца', 'dn'):
+                    log_textbox_.append_messages([{'type': 'text', 'value': [{'text': '<card: str> имеет недопустимое значение. Используйте ~help для подробностей', 'color': (0, 0, 0)}]}])
+                    return
+
                 player = player_dict[message_command[1]]
                 card = message_command[2]
                 if card == 'Яйцо' or card == 'Яйца':
@@ -2254,6 +2308,204 @@ def message_send():
             elif message_command[0] == 'timer':
                 global play_with_timer
                 play_with_timer = not play_with_timer
+
+            elif message_command[0] == 'help':
+                message = [
+                    {
+                        'type': 'text',
+                        'value':
+                            [
+                                {
+                                    'text': 'Помощь по командам:',
+                                    'color': (0, 0, 0)
+                                }
+                            ]
+                    },
+                    {
+                        'type': 'text',
+                        'value':
+                            [
+                                {
+                                    'text': '~money (add|set) <color: str> <value: int>',
+                                    'color': (0, 0, 0)
+                                }
+                            ]
+                    },
+                    {
+                        'type': 'text',
+                        'value':
+                            [
+                                {
+                                    'text': 'Добавить или установить определённому игроку количество валюты',
+                                    'color': (0, 0, 0)
+                                }
+                            ]
+                    },
+                    {
+                        'type': 'text',
+                        'value':
+                            [
+                                {
+                                    'text': '~set_state <color: str> <state: str> <value: bool>',
+                                    'color': (0, 0, 0)
+                                }
+                            ]
+                    },
+                    {
+                        'type': 'text',
+                        'value':
+                            [
+                                {
+                                    'text': 'Установить значение состояния определённому игроку',
+                                    'color': (0, 0, 0)
+                                }
+                            ]
+                    },
+                    {
+                        'type': 'text',
+                        'value':
+                            [
+                                {
+                                    'text': '~buy <color: str> <tile: int>',
+                                    'color': (0, 0, 0)
+                                }
+                            ]
+                    },
+                    {
+                        'type': 'text',
+                        'value':
+                            [
+                                {
+                                    'text': 'Купить за игрока определённое поле',
+                                    'color': (0, 0, 0)
+                                }
+                            ]
+                    },
+                    {
+                        'type': 'text',
+                        'value':
+                            [
+                                {
+                                    'text': '~give_card <color: str> <card: str>',
+                                    'color': (0, 0, 0)
+                                }
+                            ]
+                    },
+                    {
+                        'type': 'text',
+                        'value':
+                            [
+                                {
+                                    'text': 'Выдать игроку определённую карту',
+                                    'color': (0, 0, 0)
+                                }
+                            ]
+                    },
+                    {
+                        'type': 'text',
+                        'value':
+                            [
+                                {
+                                    'text': '~timer',
+                                    'color': (0, 0, 0)
+                                }
+                            ]
+                    },
+                    {
+                        'type': 'text',
+                        'value':
+                            [
+                                {
+                                    'text': 'Выключить таймер, если он включён, включить таймер, если он выключен',
+                                    'color': (0, 0, 0)
+                                }
+                            ]
+                    },
+                    {
+                        'type': 'text',
+                        'value':
+                            [
+                                {
+                                    'text': '='*50,
+                                    'color': (0, 0, 0)
+                                }
+                            ]
+                    },
+                    {
+                        'type': 'text',
+                        'value':
+                            [
+                                {
+                                    'text': 'Расшифровка аргументов:',
+                                    'color': (0, 0, 0)
+                                }
+                            ]
+                    },
+                    {
+                        'type': 'text',
+                        'value':
+                            [
+                                {
+                                    'text': '<color: str> - цвет игрока. <color: str> in {"red", "green", "blue", "yellow"}',
+                                    'color': (0, 0, 0)
+                                }
+                            ]
+                    },
+                    {
+                        'type': 'text',
+                        'value':
+                            [
+                                {
+                                    'text': '<value: int> - любое целое число.',
+                                    'color': (0, 0, 0)
+                                }
+                            ]
+                    },
+                    {
+                        'type': 'text',
+                        'value':
+                            [
+                                {
+                                    'text': '<state: str> - состояние игрока. <state: str> in {"on_move", "double", "paid", '
+                                            '"refused_to_buy", "thinking_on_exchange", "throw_cubes_btn_active", "penis_build_btn_active", '
+                                            '"penis_remove_btn_active", "mortgage_btn_active", "redeem_btn_active", "auction_btn_active", '
+                                            '"exchange_btn_active", "surrender_btn_active"}',
+                                    'color': (0, 0, 0)
+                                }
+                            ]
+                    },
+                    {
+                        'type': 'text',
+                        'value':
+                            [
+                                {
+                                    'text': '<value: bool> - булево значение. <value: bool> in {True, true, 1, False, false, 0}',
+                                    'color': (0, 0, 0)
+                                }
+                            ]
+                    },
+                    {
+                        'type': 'text',
+                        'value':
+                            [
+                                {
+                                    'text': '<tile: int> - номер поля. <tile: str> in {0, 1, ..., 39}',
+                                    'color': (0, 0, 0)
+                                }
+                            ]
+                    },
+                    {
+                        'type': 'text',
+                        'value':
+                            [
+                                {
+                                    'text': '<card: str> - вид карты. <card: str> in {"Яйцо", "Яйца", "dn"}',
+                                    'color': (0, 0, 0)
+                                }
+                            ]
+                    }
+                ]
+                log_textbox_.append_messages(message)
 
 
 def connection():
@@ -2325,17 +2577,16 @@ def start_server():
     if not state['is_server_started']:
         try:
             ip_ = ip_textbox.get_text()
-            port = port_textbox.get_text()
-            port = int(port)
+            port_ = int(port_textbox.get_text())
 
             main_sck = sck.socket(sck.AF_INET, sck.SOCK_STREAM)
             main_sck.setsockopt(sck.IPPROTO_TCP, sck.TCP_NODELAY, 1)
-            main_sck.bind((ip_, port))
+            main_sck.bind((ip_, port_))
             main_sck.setblocking(False)
             main_sck.listen(4)  # количество доступных подключений
 
             # Файловый сокет
-            FILE_PORT = port + 1
+            FILE_PORT = port_ + 1
             file_sck = sck.socket(sck.AF_INET, sck.SOCK_STREAM)
             file_sck.setsockopt(sck.IPPROTO_TCP, sck.TCP_NODELAY, 1)
             file_sck.bind((ip_, FILE_PORT))
@@ -2345,6 +2596,15 @@ def start_server():
             colors = ['red', 'blue', 'yellow', 'green']
             random.shuffle(colors)
             state['is_server_started'] = True
+
+            with open("server config.json", "r") as f:
+                config_data = json.load(f)
+            config_data['ip'] = ip_
+            config_data['port'] = str(port_)
+
+            with open("server config.json", "w") as f:
+                json.dump(config_data, f, indent=4, ensure_ascii=False)
+
             log_entry_button.enable()
 
             connection_handler = threading.Thread(target=connection, name='connection_handler', daemon=True)
@@ -2367,6 +2627,7 @@ def start_server():
 
         except:
             print(f'{"\033[31m{}".format('Не удалось создать сервер')}{'\033[0m'}')
+            print(f'{"\033[31m{}".format(traceback.format_exc())}{'\033[0m'}')
 
 
 def start_game():
@@ -2922,6 +3183,8 @@ def bankrupt_player(color):
                          {'text': f'объявлен банкротом', 'color': (0, 0, 0)}
                      ]})
     if active_players_count == 1:
+        global play_with_timer
+        play_with_timer = False
         messages.append({'type': 'text',
                          'value': [
                              {'text': last_active_player.name, 'color': last_active_player.color_value},
@@ -3026,6 +3289,10 @@ def event_handler():
         log_textbox_.process_events(event)
         if event.type == pg.QUIT:
             global running
+            for player in players:
+                message = [{'type': 'text', 'value': [{'text': 'Сервер был закрыт', 'color': (0, 0, 0)}]}]
+                message_data = f'message¦{json.dumps(message)}¥'
+                player.conn.send(message_data.encode())
             running = False
 
         elif event.type == pg.KEYUP and state['is_server_started']:
@@ -3087,7 +3354,7 @@ def buttons():
     port_textbox = pygame_gui.elements.UITextEntryBox(
         relative_rect=pg.Rect(start_btn_textboxes_coordinates['port']),
         placeholder_text='Порт',
-        initial_text='1247',
+        initial_text=port,
         manager=manager)
 
     start_server_button = pygame_gui.elements.UIButton(
