@@ -6,6 +6,9 @@ import gc
 import pprint
 import json
 import datetime
+import sys
+import subprocess
+
 # import cProfile, pstats
 # profiler = cProfile.Profile()
 # profiler.enable()
@@ -34,71 +37,83 @@ import pygame_gui
 # классы
 from classes.Players_Class_Client_side import Player
 from classes.Recorder_Class import AudioRecorder
+from classes.ProgressBar_Class import ProgressBar
+from classes.CurrencyDrawingButton_Class import CurrencyDrawingButton
+from classes.Settings_Class import Settings
 
 # функции
-from functions.all_tiles_extraction import all_tiles_get
+from functions.all_tiles_extraction import all_tiles_get, all_tiles_change_resolution
 from functions.colored_output import thread_open, information_sent, information_received, new_connection
 from functions.resolution_choice import resolution_definition
-from classes.ProgressBar_Class import ProgressBar
+from functions.character_checks import forbidden_characters_check, allowed_characters_check
+from functions.bmcf import write_bmcf, read_bmcf, change_currency_character
 
 
-def settings_buttons(previous_values):
-    global start_game_button, dropdown, fps_textbox, minimize_window_fps_optimization_checkbox, minimize_window_fps_optimization_textbox, inactivity_fps_optimization_checkbox, inactivity_fps_optimization_textbox, debug_checkbox, pick_color_button, color_picker, fullscreen_checkbox, scale_checkbox, apply_button
+def settings_buttons():
+    global start_game_button, dropdown, fps_textbox, minimize_window_fps_optimization_checkbox, minimize_window_fps_optimization_textbox, inactivity_fps_optimization_checkbox, inactivity_fps_optimization_textbox, debug_checkbox, pick_color_button, color_picker, fullscreen_checkbox, scale_checkbox, apply_button, currency_draw_button
+
+    if settings.resolution_index == 1:
+        resolution_ = '1280x720'
+    elif settings.resolution_index == 2:
+        resolution_ = '1920x1080'
+    elif settings.resolution_index == 3:
+        resolution_ = '2560x1440'
+
     dropdown = pygame_gui.elements.UIDropDownMenu(
         relative_rect=pg.Rect(settings_buttons_coordinates['dropdown']),
-        starting_option=previous_values['resolution'],
+        starting_option=resolution_,
         options_list=['1280x720', '1920x1080', '2560x1440'],
         manager=manager)
 
     fps_textbox = pygame_gui.elements.UITextEntryBox(
         relative_rect=pg.Rect(settings_buttons_coordinates['fps_textbox']),
         placeholder_text='',
-        initial_text=str(previous_values['fps']),
+        initial_text=str(settings.max_fps),
         object_id='#settings_font',
         manager=manager)
 
     minimize_window_fps_optimization_checkbox = pygame_gui.elements.UICheckBox(
         relative_rect=pg.Rect(settings_buttons_coordinates['minimize_window_fps_optimization_checkbox']),
         text='',
-        initial_state=previous_values['minimize window fps optimize'],
+        initial_state=settings.minimize_fps_optimize,
         manager=manager)
 
     minimize_window_fps_optimization_textbox = pygame_gui.elements.UITextEntryBox(
         relative_rect=pg.Rect(settings_buttons_coordinates['minimize_window_fps_optimization_textbox']),
         placeholder_text='',
-        initial_text=str(previous_values['minimize window fps optimization value']),
+        initial_text=str(settings.minimize_fps),
         object_id='#settings_font',
         manager=manager)
 
     inactivity_fps_optimization_checkbox = pygame_gui.elements.UICheckBox(
         relative_rect=pg.Rect(settings_buttons_coordinates['inactivity_fps_optimization_checkbox']),
         text='',
-        initial_state=previous_values['inactive fps optimize'],
+        initial_state=settings.inactive_fps_optimize,
         manager=manager)
 
     inactivity_fps_optimization_textbox = pygame_gui.elements.UITextEntryBox(
         relative_rect=pg.Rect(settings_buttons_coordinates['inactivity_fps_optimization_textbox']),
         placeholder_text='',
-        initial_text=str(previous_values['inactive fps optimization value']),
+        initial_text=str(settings.inactive_fps),
         object_id='#settings_font',
         manager=manager)
 
     debug_checkbox = pygame_gui.elements.UICheckBox(
         relative_rect=pg.Rect(settings_buttons_coordinates['debug_checkbox']),
         text='',
-        initial_state=previous_values['debug mode'],
+        initial_state=settings.debug,
         manager=manager)
 
     fullscreen_checkbox = pygame_gui.elements.UICheckBox(
         relative_rect=pg.Rect(settings_buttons_coordinates['fullscreen_checkbox']),
         text='',
-        initial_state=previous_values['fullscreen'],
+        initial_state=settings.fullscreen,
         manager=manager)
 
     scale_checkbox = pygame_gui.elements.UICheckBox(
         relative_rect=pg.Rect(settings_buttons_coordinates['scale_checkbox']),
         text='',
-        initial_state=previous_values['scaled fullscreen'],
+        initial_state=settings.scaled,
         manager=manager)
     if not fullscreen_checkbox.get_state():
         scale_checkbox.disable()
@@ -115,9 +130,15 @@ def settings_buttons(previous_values):
         object_id='#settings_font',
         manager=manager)
 
+    currency_draw_button = pygame_gui.elements.UIButton(
+        relative_rect=settings_buttons_coordinates['currency_draw_button'],
+        text='Изменить ¤',
+        object_id='#settings_font',
+        manager=manager)
+
     color_picker = pygame_gui.windows.UIColourPickerDialog(
         rect=pg.Rect(settings_buttons_coordinates['color_picker']),
-        initial_colour=previous_values['background color converted'],
+        initial_colour=settings.background_color_converted,
         manager=manager,
         visible=False)
 
@@ -126,6 +147,23 @@ def settings_buttons(previous_values):
         text='Начать игру',
         object_id='#settings_font',
         manager=manager)
+
+    screen_widgets['settings start'] = [
+        [dropdown, dropdown.visible],
+        [fps_textbox, fps_textbox.visible],
+        [minimize_window_fps_optimization_checkbox, minimize_window_fps_optimization_checkbox.visible],
+        [minimize_window_fps_optimization_textbox, minimize_window_fps_optimization_textbox.visible],
+        [inactivity_fps_optimization_checkbox, inactivity_fps_optimization_checkbox.visible],
+        [inactivity_fps_optimization_textbox, inactivity_fps_optimization_textbox.visible],
+        [debug_checkbox, debug_checkbox.visible],
+        [fullscreen_checkbox, fullscreen_checkbox.visible],
+        [scale_checkbox, scale_checkbox.visible],
+        [pick_color_button, pick_color_button.visible],
+        [currency_draw_button, currency_draw_button.visible],
+        [apply_button, apply_button.visible],
+        [color_picker, color_picker.visible],
+        [start_game_button, start_game_button.visible]
+    ]
 
 
 def monopoly_init():
@@ -139,7 +177,7 @@ def monopoly_init():
     if os.path.exists('lib/modified_library_files/pygame-gui/ui_appearance_theme.py'):
         os.replace('lib/modified_library_files/pygame-gui/ui_appearance_theme.py', '.venv/Lib/site-packages/pygame_gui/core/ui_appearance_theme.py')
 
-    global players, exchange_value, exchange_color, state, recorder, log_textbox
+    global all_tiles, players, player_dict, exchange_value, exchange_color, state, recorder, log_textbox
 
     gc.enable()
     pg.init()
@@ -147,6 +185,8 @@ def monopoly_init():
     mimetypes.init()
 
     players = []
+    all_tiles = []
+    player_dict = {}
 
     exchange_value = -100
     exchange_color = ''
@@ -187,45 +227,72 @@ def monopoly_init():
              'show_egg_panel': False,
              'tile_info_show': [False],
              'audio_recording': False,
-             'messages_count': 0}
+             'messages_count': 0,
+             'screen': 'settings start', # / 'board' / 'settings ingame' / 'currency drawing'
+             'currency_drawing_action': None, # / 'blacking' / 'whitening'
+             }
 
-    global screen, clock
+    global screen_widgets
+    screen_widgets = {
+        'settings start': [],
+        'board': [],
+        'settings ingame': [],
+        'currency drawing': []
+    }
 
-    global resolution, resolution_folder, btn_coordinates, profile_coordinates, start_btn_textboxes_coordinates, cubes_coordinates, speed, avatar_side_size, exchange_coordinates, auction_coordinates, tile_size, offset_horizontal, offset_vertical, fps_coordinates, font_path, egg_card_coordinates, egg_card_text_center, egg_card_title_center, egg_card_text_width, egg_btns_coordinates, log_textbox_coordinates, tile_info_coordinates, settings_buttons_coordinates, max_log_image_size, default_offsets, choose_settings_buttons_coordinates
-    resolution, resolution_folder, btn_coordinates, profile_coordinates, start_btn_textboxes_coordinates, cubes_coordinates, speed, avatar_side_size, exchange_coordinates, auction_coordinates, tile_size, offset_horizontal, offset_vertical, fps_coordinates, font_path, egg_card_coordinates, egg_card_text_center, egg_card_title_center, egg_card_text_width, egg_btns_coordinates, log_textbox_coordinates, tile_info_coordinates, settings_buttons_coordinates, max_log_image_size, default_offsets, choose_settings_buttons_coordinates = resolution_definition()
+    global settings, screen, clock
 
-    with open('settings.json') as f:
-        settings_data_ = json.load(f)
+    settings = Settings()
+    settings.load_settings()
+
+    global resolution, btn_coordinates, profile_coordinates, start_btn_textboxes_coordinates, cubes_coordinates, speed, avatar_side_size, exchange_coordinates, auction_coordinates, tile_size, offset_horizontal, offset_vertical, fps_coordinates, font_path, egg_card_coordinates, egg_card_text_center, egg_card_title_center, egg_card_text_width, egg_btns_coordinates, log_textbox_coordinates, tile_info_coordinates, settings_buttons_coordinates, max_log_image_size, default_offsets, currency_drawing_tile_size, currency_drawing_coordinates
+    resolution, btn_coordinates, profile_coordinates, start_btn_textboxes_coordinates, cubes_coordinates, speed, avatar_side_size, exchange_coordinates, auction_coordinates, tile_size, offset_horizontal, offset_vertical, fps_coordinates, font_path, egg_card_coordinates, egg_card_text_center, egg_card_title_center, egg_card_text_width, egg_btns_coordinates, log_textbox_coordinates, tile_info_coordinates, settings_buttons_coordinates, max_log_image_size, default_offsets, currency_drawing_tile_size, currency_drawing_coordinates = resolution_definition(settings)
+
     flags = pg.HWSURFACE
-    if settings_data_['fullscreen']:
+    if settings.fullscreen:
         flags = flags | pg.FULLSCREEN
         flags = flags | pg.SCALED
-    del settings_data_
 
-    screen = pg.display.set_mode((2560, 1360))
     screen = pg.display.set_mode(resolution, flags)
-    TITLE = 'Monopoly v1.3'
+    TITLE = 'Monopoly v1.4'
     icon = pg.image.load(f'resources/icon.png')
     pg.display.set_icon(icon)
     pg.display.set_caption(TITLE)
     clock = pg.time.Clock()
 
-    load_settings()
-    global inactive_window
+    global inactive_window, chosen_bmcf_to_set
     inactive_window = True
+    chosen_bmcf_to_set = 'default'
 
     global font, settings_font, manager, prev_time
     font = pg.font.Font(font_path)
-    manager = pygame_gui.UIManager(resolution, theme_path=f'resources/{resolution_folder}/gui_theme.json', enable_live_theme_updates=False, starting_language='ru')
+    manager = pygame_gui.UIManager(resolution, theme_path=f'resources/{settings.resolution_folder}/gui_theme.json', enable_live_theme_updates=False, starting_language='ru')
 
-    settings_buttons(settings_data)
+    settings_buttons()
 
-    theme = manager.create_new_theme(f'resources/{resolution_folder}/gui_theme.json')
+    theme = manager.create_new_theme(f'resources/{settings.resolution_folder}/gui_theme.json')
     manager.set_ui_theme(theme)
-    manager.add_font_paths('BulBulPoly', "resources/fonts/BulBulPoly 4 1x.bdf")
-    manager.preload_fonts([{'name': 'BulBulPoly', 'point_size': f'{1}', 'style': 'regular', 'antialiased': '0'}])
+    manager.add_font_paths('BulBulPoly', font_path)
+    manager.preload_fonts([{'name': 'BulBulPoly', 'point_size': '1', 'style': 'regular', 'antialiased': '0'}])
 
-    if debug_mode:
+    global settings_layout
+    settings_layout = [
+        [(dropdown,)],
+        [('Максимальный FPS:', fps_textbox)],
+        [('Уменьшать FPS при сворачивании:', minimize_window_fps_optimization_checkbox),
+         ('до:', minimize_window_fps_optimization_textbox)],
+        [('Уменьшать FPS при бездействии:', inactivity_fps_optimization_checkbox),
+         ('до:', inactivity_fps_optimization_textbox)],
+        [('Полноэкранный режим:', fullscreen_checkbox)],
+        [('Растяжение экрана:', scale_checkbox)],
+        [('Режим отладки:', debug_checkbox)],
+        [(currency_draw_button,)],
+        [(pick_color_button,)],
+        [(apply_button,)]
+    ]
+    update_settings_positions()
+
+    if settings.debug:
         global command_counter, unknown_commands
         command_counter = {}
         for command in ['color main', 'avatar', 'move', 'move diagonally', 'playersData', 'property', 'money',
@@ -243,79 +310,81 @@ def monopoly_init():
     prev_time = time.time()
 
 
-def save_settings():
-    settings_data_new = {'resolution index': settings_data['resolution index'],
-                         'fps': int(fps_textbox.get_text()),
-                         'minimize window fps optimize': minimize_window_fps_optimization_checkbox.get_state(),
-                         'minimize window fps optimization value': int(minimize_window_fps_optimization_textbox.get_text()),
-                         'inactive fps optimize': inactivity_fps_optimization_checkbox.get_state(),
-                         'inactive fps optimization value': int(inactivity_fps_optimization_textbox.get_text()),
-                         'background color': settings_data['background color'],
-                         'fullscreen': fullscreen_checkbox.get_state(),
-                         'scaled fullscreen': scale_checkbox.get_state(),
-                         'debug mode': debug_checkbox.get_state(),
-                         'name': name,
-                         'address': address,
-                         'port': port}
-
-    with open("settings.json", "w") as outfile:
-        json.dump(settings_data_new, outfile, indent=4, ensure_ascii=False)
-
-
 def load_assets():
-    global resolution, resolution_folder, btn_coordinates, profile_coordinates, start_btn_textboxes_coordinates, cubes_coordinates, speed, avatar_side_size, exchange_coordinates, auction_coordinates, tile_size, offset_horizontal, offset_vertical, fps_coordinates, font_path, egg_card_coordinates, egg_card_text_center, egg_card_title_center, egg_card_text_width, egg_btns_coordinates, log_textbox_coordinates, tile_info_coordinates, settings_buttons_coordinates, max_log_image_size, default_offsets, choose_settings_buttons_coordinates
-    resolution, resolution_folder, btn_coordinates, profile_coordinates, start_btn_textboxes_coordinates, cubes_coordinates, speed, avatar_side_size, exchange_coordinates, auction_coordinates, tile_size, offset_horizontal, offset_vertical, fps_coordinates, font_path, egg_card_coordinates, egg_card_text_center, egg_card_title_center, egg_card_text_width, egg_btns_coordinates, log_textbox_coordinates, tile_info_coordinates, settings_buttons_coordinates, max_log_image_size, default_offsets, choose_settings_buttons_coordinates = resolution_definition()
+    settings.load_settings()
+    global resolution, btn_coordinates, profile_coordinates, start_btn_textboxes_coordinates, cubes_coordinates, speed, avatar_side_size, exchange_coordinates, auction_coordinates, tile_size, offset_horizontal, offset_vertical, fps_coordinates, font_path, egg_card_coordinates, egg_card_text_center, egg_card_title_center, egg_card_text_width, egg_btns_coordinates, log_textbox_coordinates, tile_info_coordinates, settings_buttons_coordinates, max_log_image_size, default_offsets, currency_drawing_tile_size, currency_drawing_coordinates
+    resolution, btn_coordinates, profile_coordinates, start_btn_textboxes_coordinates, cubes_coordinates, speed, avatar_side_size, exchange_coordinates, auction_coordinates, tile_size, offset_horizontal, offset_vertical, fps_coordinates, font_path, egg_card_coordinates, egg_card_text_center, egg_card_title_center, egg_card_text_width, egg_btns_coordinates, log_textbox_coordinates, tile_info_coordinates, settings_buttons_coordinates, max_log_image_size, default_offsets, currency_drawing_tile_size, currency_drawing_coordinates = resolution_definition(settings)
 
     global exchange_screen, auction_screen, darkening_full, darkening_tile, profile_picture, bars, player_bars, mortgaged_tile, font, eggs_card_uncovered, board_image, bankrupt_picture
-    exchange_screen = pg.image.load(f'resources/{resolution_folder}/exchange.png').convert_alpha()
-    auction_screen = pg.image.load(f'resources/{resolution_folder}/auction.png').convert_alpha()
-    darkening_full = pg.image.load(f'resources/{resolution_folder}/darkening all.png').convert_alpha()
-    darkening_tile = pg.image.load(f'resources/{resolution_folder}/darkening tile.png').convert_alpha()
-    profile_picture = pg.image.load(f'resources/{resolution_folder}/profile/profile.png').convert_alpha()
-    bankrupt_picture = pg.image.load(f'resources/{resolution_folder}/profile/bankrupt.png').convert_alpha()
-    bars = pg.image.load(f'resources/{resolution_folder}/bars.png').convert_alpha()
-    player_bars = pg.image.load(f'resources/{resolution_folder}/profile/profile_bars.png').convert_alpha()
-    mortgaged_tile = pg.image.load(f'resources/{resolution_folder}/mortgaged.png').convert_alpha()
-    eggs_card_uncovered = pg.image.load(f'resources/{resolution_folder}/egg-s_card_uncovered.png').convert()
+    exchange_screen = pg.image.load(f'resources/{settings.resolution_folder}/exchange.png').convert_alpha()
+    auction_screen = pg.image.load(f'resources/{settings.resolution_folder}/auction.png').convert_alpha()
+    darkening_full = pg.image.load(f'resources/{settings.resolution_folder}/darkening all.png').convert_alpha()
+    darkening_tile = pg.image.load(f'resources/{settings.resolution_folder}/darkening tile.png').convert_alpha()
+    profile_picture = pg.image.load(f'resources/{settings.resolution_folder}/profile/profile.png').convert_alpha()
+    bankrupt_picture = pg.image.load(f'resources/{settings.resolution_folder}/profile/bankrupt.png').convert_alpha()
+    bars = pg.image.load(f'resources/{settings.resolution_folder}/bars.png').convert_alpha()
+    player_bars = pg.image.load(f'resources/{settings.resolution_folder}/profile/profile_bars.png').convert_alpha()
+    mortgaged_tile = pg.image.load(f'resources/{settings.resolution_folder}/mortgaged.png').convert_alpha()
+    eggs_card_uncovered = pg.image.load(f'resources/{settings.resolution_folder}/egg-s_card_uncovered.png').convert()
     font = pg.font.Font(font_path)
 
     for penis in range(5):
-        globals()[f'{penis + 1}_penises_image'] = pg.image.load(f'resources/{resolution_folder}/white penises/{penis + 1}.png').convert_alpha()
+        globals()[f'{penis + 1}_penises_image'] = pg.image.load(f'resources/{settings.resolution_folder}/white penises/{penis + 1}.png').convert_alpha()
 
     global all_tiles, all_players, all_egg, all_eggs, screen, player_dict, all_question
-    all_tiles, all_egg, all_eggs, all_question = all_tiles_get(resolution_folder, tile_size)
-    for tile in all_tiles:
-        tile.text_defining(font)
+    if not all_tiles:
+        all_tiles, all_egg, all_eggs, all_question = all_tiles_get(settings.resolution_folder, tile_size)
+        for tile in all_tiles:
+            tile.text_defining(font)
+    else: # изменяем разрешение отдельно, не перезаписывая данные
+        all_tiles_change_resolution(all_tiles, settings.resolution_folder, tile_size)
+        for tile in all_tiles:
+            tile.text_defining(font)
 
-    board_image = pg.image.load(f'resources/temp/images/{resolution_folder}/board image.png').convert()
+    board_image = pg.image.load(f'resources/temp/images/{settings.resolution_folder}/board image.png').convert()
 
-    all_players = [Player('red',    (all_tiles[0].x_center, all_tiles[0].y_center), resolution_folder, font),
-                   Player('blue',   (all_tiles[0].x_center, all_tiles[0].y_center), resolution_folder, font),
-                   Player('yellow', (all_tiles[0].x_center, all_tiles[0].y_center), resolution_folder, font),
-                   Player('green',  (all_tiles[0].x_center, all_tiles[0].y_center), resolution_folder, font)]
-    player_dict = {}
-    for player in all_players:
-        player_dict[player.color] = player
+    all_players = [Player('red',    (all_tiles[0].x_center, all_tiles[0].y_center), settings.resolution_folder, font),
+                   Player('blue',   (all_tiles[0].x_center, all_tiles[0].y_center), settings.resolution_folder, font),
+                   Player('yellow', (all_tiles[0].x_center, all_tiles[0].y_center), settings.resolution_folder, font),
+                   Player('green',  (all_tiles[0].x_center, all_tiles[0].y_center), settings.resolution_folder, font)]
+
+    if not player_dict:
+        for player in all_players:
+            player_dict[player.color] = player
+    else: # изменяем разрешение отдельно, не перезаписывая данные
+        for player in player_dict:
+            player_dict[player].change_resolution((all_tiles[player_dict[player].piece_position].x_center, all_tiles[player_dict[player].piece_position].y_center), settings.resolution_folder, (avatar_side_size, avatar_side_size), font)
+
+    for player in players:
+        player.change_resolution((all_tiles[player.piece_position].x_center, all_tiles[player.piece_position].y_center), settings.resolution_folder, (avatar_side_size, avatar_side_size), font)
+        globals()[f'{player.color}_profile'] = pg.image.load(
+            f'resources/{settings.resolution_folder}/profile/{player.color}_profile.png').convert_alpha()
+        globals()[f'{player.color}_property_image'] = pg.image.load(
+            f'resources/{settings.resolution_folder}/property/{player.color}_property.png').convert_alpha()
+
+        if player.color == 'red':
+            color_value = (255, 0, 0)
+        elif player.color == 'blue':
+            color_value = (0, 0, 255)
+        elif player.color == 'yellow':
+            color_value = (255, 255, 0)
+        elif player.color == 'green':
+            color_value = (10, 160, 10)
+
+        player.timer_bar = ProgressBar(profile_coordinates[len(players) - 1]['timer_bar'], color_value, 1)
+
+        player.rendered_name = font.render(f'{player.name}', False, 'black')
+        player.rendered_money = font.render(f'{player.money}¤', False, 'black')
+        player.rendered_value = font.render(f'{player.value}¤', False, 'black')
+        position_update()
 
     flags = pg.HWSURFACE
-    if fullscreen:
+    if settings.fullscreen:
         flags = flags | pg.FULLSCREEN
-    if scale:
         flags = flags | pg.SCALED
 
-    with open('settings.json') as f:
-        settings = json.load(f)
-    if settings['resolution index'] == 1:
-        settings['resolution'] = '1280x720'
-    elif settings['resolution index'] == 2:
-        settings['resolution'] = '1920x1080'
-    elif settings['resolution index'] == 3:
-        settings['resolution'] = '2560x1440'
-    settings['background color converted'] = pg.Color(settings['background color'])
-    if not settings['fullscreen']:
-        settings['sharp fullscreen'] = False
-
     screen = pg.display.set_mode(resolution, flags)
+    manager.set_window_resolution(resolution)
 
     start_game_button.kill()
     dropdown.kill()
@@ -330,14 +399,17 @@ def load_assets():
     fullscreen_checkbox.kill()
     scale_checkbox.kill()
     apply_button.kill()
+    currency_draw_button.kill()
 
     global theme
-    theme = manager.create_new_theme(f'resources/{resolution_folder}/gui_theme.json')
+    theme = manager.create_new_theme(f'resources/{settings.resolution_folder}/gui_theme.json')
     manager.set_ui_theme(theme)
     # manager.add_font_paths('BulBulPoly', "resources/fonts/bulbulpoly-4.ttf")
     # manager.preload_fonts([{'name': 'BulBulPoly', 'point_size': f'{font_size}', 'style': 'regular', 'antialiased': '0'}])
 
-    settings_buttons(settings)
+    update_settings_positions()
+
+    settings_buttons()
     start_game_button.rebuild()
     dropdown.rebuild()
     fps_textbox.rebuild()
@@ -351,8 +423,27 @@ def load_assets():
     fullscreen_checkbox.rebuild()
     scale_checkbox.rebuild()
     apply_button.rebuild()
+    currency_draw_button.rebuild()
 
-    theme = manager.create_new_theme(f'resources/{resolution_folder}/gui_theme.json')
+    global settings_layout
+    settings_layout = [
+        [(dropdown,)],
+        [('Максимальный FPS:', fps_textbox)],
+        [('Уменьшать FPS при сворачивании:', minimize_window_fps_optimization_checkbox),
+         ('до:', minimize_window_fps_optimization_textbox)],
+        [('Уменьшать FPS при бездействии:', inactivity_fps_optimization_checkbox),
+         ('до:', inactivity_fps_optimization_textbox)],
+        [('Полноэкранный режим:', fullscreen_checkbox)],
+        [('Растяжение экрана:', scale_checkbox)],
+        [('Режим отладки:', debug_checkbox)],
+        [(currency_draw_button,)],
+        [(pick_color_button,)],
+        [(apply_button,)]
+    ]
+
+    update_settings_positions()
+
+    theme = manager.create_new_theme(f'resources/{settings.resolution_folder}/gui_theme.json')
     manager.set_ui_theme(theme)
 
 
@@ -360,93 +451,25 @@ def load_game():
     from classes.Textbox_Class import Textbox, AudioPlayer
 
     global sock, CLEAR_UPDATE_LIST, log_textbox, test_audio_player
-    start_game_button.kill()
-    dropdown.kill()
-    fps_textbox.kill()
-    minimize_window_fps_optimization_checkbox.kill()
-    minimize_window_fps_optimization_textbox.kill()
-    inactivity_fps_optimization_checkbox.kill()
-    inactivity_fps_optimization_textbox.kill()
-    debug_checkbox.kill()
-    pick_color_button.kill()
-    color_picker.kill()
-    fullscreen_checkbox.kill()
-    scale_checkbox.kill()
-    apply_button.kill()
+    change_screen('board')
 
-    sock = sck.socket(sck.AF_INET, sck.SOCK_STREAM)
-    sock.setsockopt(sck.IPPROTO_TCP, sck.TCP_NODELAY, 1)
-    sock.settimeout(0)
-    sock.setblocking(True)
+    if not state['connected']:
+        sock = sck.socket(sck.AF_INET, sck.SOCK_STREAM)
+        sock.setsockopt(sck.IPPROTO_TCP, sck.TCP_NODELAY, 1)
+        sock.settimeout(0)
+        sock.setblocking(True)
 
     buttons()
     test_audio_player = AudioPlayer((-100, -100, 1, 1), 0, (0, 0, 0), (0, 0, 0), font, 'resources/temp/audios/client')
     log_textbox = Textbox(log_textbox_coordinates['main_box'], 2, 6, 1, font, (0, 0, 0), (200, 200, 200), 'resources/temp/audios/client', manager)
 
-    theme = manager.create_new_theme(f'resources/{resolution_folder}/gui_theme.json')
+    theme = manager.create_new_theme(f'resources/{settings.resolution_folder}/gui_theme.json')
     manager.set_ui_theme(theme)
-    manager.add_font_paths('BulBulPoly', "resources/fonts/BulBulPoly 4 1x.bdf")
-    manager.preload_fonts([{'name': 'BulBulPoly', 'point_size': f'{1}', 'style': 'regular', 'antialiased': '0'}])
+    manager.add_font_paths('BulBulPoly', font_path)
+    manager.preload_fonts([{'name': 'BulBulPoly', 'point_size': '1', 'style': 'regular', 'antialiased': '0'}])
     active_buttons_check()
 
-    global game_started
-    game_started = True
     update_static_layer()
-
-
-def load_settings():
-    global settings_data
-    with open('settings.json') as f:
-        settings_data = json.load(f)
-    default_settings = {'resolution index': 1,
-                        'fps': 60,
-                        'minimize window fps optimize': False,
-                        'minimize window fps optimization value': 15,
-                        'inactive fps optimize': False,
-                        'inactive fps optimization value': 30,
-                        'background color': [128, 128, 128, 255],
-                        'fullscreen': False,
-                        'scaled fullscreen': False,
-                        'debug mode': False,
-                        'name': '',
-                        'address': '',
-                        'port': ''}
-    for key in default_settings.keys():
-        if key not in settings_data:
-            settings_data[key] = default_settings[key]
-
-    if settings_data['resolution index'] == 1:
-        settings_data['resolution'] = '1280x720'
-    elif settings_data['resolution index'] == 2:
-        settings_data['resolution'] = '1920x1080'
-    elif settings_data['resolution index'] == 3:
-        settings_data['resolution'] = '2560x1440'
-
-    settings_data['background color converted'] = pg.Color(settings_data['background color'])
-
-    if not settings_data['fullscreen']:
-        settings_data['sharp fullscreen'] = False
-
-    global name, address, port, FPS, debug_mode, background_color, fullscreen, scale, minimize_window_fps_optimize, minimize_window_fps, inactive_fps_optimize, inactive_fps, max_fps
-    max_fps = settings_data['fps']
-    minimize_window_fps_optimize = settings_data['minimize window fps optimize']
-    minimize_window_fps = settings_data['minimize window fps optimization value']
-    inactive_fps_optimize = settings_data['inactive fps optimize']
-    inactive_fps = settings_data['inactive fps optimization value']
-    if inactive_fps_optimize:
-        FPS = inactive_fps
-    else:
-        FPS = max_fps
-    debug_mode = settings_data['debug mode']
-    background_color = pg.Color(settings_data['background color'])
-    fullscreen = settings_data['fullscreen']
-    scale = settings_data['scaled fullscreen']
-    name = settings_data['name']
-    address = settings_data['address']
-    port = settings_data['port']
-
-    global settings_message
-    settings_message = ''
 
 
 def throw_cubes():
@@ -526,6 +549,7 @@ def debug_output():
               f'       max_time: {player.max_time}\n')
 
     pprint.pp(state)
+    pprint.pp(screen_widgets)
     # objgraph.show_most_common_types(limit=15)
 
 
@@ -542,19 +566,13 @@ def connect():
                     sock.send(f'name¦{name_}¥'.encode())
                     state['connected'] = True
 
-                    with open("settings.json", "r") as read_file:
-                        settings = json.load(read_file)
-                        settings['name'] = name_
-                        settings['address'] = ip_
-                        settings['port'] = str(port_)
+                    settings.address = ip_
+                    settings.name = name_
+                    settings.port = str(port_)
+                    settings.save_settings()
 
-                    with open("settings.json", "w") as file:
-                        json.dump(settings, file, indent=4, ensure_ascii=False)
+                    active_buttons_check()
 
-                    log_text_send_button.enable()
-                    log_audio_send_button.enable()
-                    log_voice_message_send_button.enable()
-                    log_image_send_button.enable()
                     connection_handler = threading.Thread(target=handle_connection, name='connection_handler', daemon=True)
                     connection_handler.start()
                     thread_open('Поток открыт', connection_handler.name)
@@ -1258,7 +1276,7 @@ def send_image():
 
 
 # ^
-# ¦
+# |
 # Функционал кнопок и текст боксов
 
 
@@ -1447,25 +1465,24 @@ def position_update():
         for player2 in players:
             if player2.piece_position == player.piece_position:
                 players_on_tile.append(player2)
-        end_positions = []
-        for player3 in players_on_tile:
-            if player.piece_position in (0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29):
-                end_positions.append((all_tiles[player3.piece_position].x_center + offset_horizontal[len(players_on_tile) - 1][players_on_tile.index(player3)][0],
-                                      all_tiles[player3.piece_position].y_center + offset_horizontal[len(players_on_tile) - 1][players_on_tile.index(player3)][1]))
-            else:
-                end_positions.append((all_tiles[player3.piece_position].x_center + offset_vertical[len(players_on_tile) - 1][players_on_tile.index(player3)][0],
-                                      all_tiles[player3.piece_position].y_center + offset_vertical[len(players_on_tile) - 1][players_on_tile.index(player3)][1]))
-        move(players_on_tile, end_positions, 4)
-        for player4 in players:
-            player4.x = round(player4.x)
-            player4.y = round(player4.y)
+        if len(players_on_tile) > 1:
+            end_positions = []
+            for player3 in players_on_tile:
+                if player.piece_position in (0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29):
+                    end_positions.append((all_tiles[player3.piece_position].x_center + offset_horizontal[len(players_on_tile) - 1][players_on_tile.index(player3)][0],
+                                          all_tiles[player3.piece_position].y_center + offset_horizontal[len(players_on_tile) - 1][players_on_tile.index(player3)][1]))
+                else:
+                    end_positions.append((all_tiles[player3.piece_position].x_center + offset_vertical[len(players_on_tile) - 1][players_on_tile.index(player3)][0],
+                                          all_tiles[player3.piece_position].y_center + offset_vertical[len(players_on_tile) - 1][players_on_tile.index(player3)][1]))
+            move(players_on_tile, end_positions, 4, dt)
 
 
-def move_by_cubes(cube1, cube2, color):  # Не спрашивайте, как тут что работает, я сам не знаю
+def move_by_cubes(cube1, cube2, color):
     if cube1 >= 0:
         show_cubes(cube1, cube2)
     player = player_dict[color]
     # aver_time = []
+    start_dt = dt
     for i in range(abs(cube1 + cube2)):
         # now = time.time()
         players_on_tile = []
@@ -1490,63 +1507,58 @@ def move_by_cubes(cube1, cube2, color):  # Не спрашивайте, как �
             else:
                 end_positions.append((all_tiles[player3.piece_position].x_center + offset_vertical[len(players_on_tile) - 1][players_on_tile.index(player3)][0],
                                       all_tiles[player3.piece_position].y_center + offset_vertical[len(players_on_tile) - 1][players_on_tile.index(player3)][1]))
-        move(players_on_tile, end_positions, cube1 + cube2)
+        move(players_on_tile, end_positions, cube1 + cube2, start_dt)
 
         position_update()
+
+
 
     if player.main:
         sock.send('moved¦cubes¥'.encode())
         information_sent('Информация отправлена', 'moved¦cubes¥')
 
 
-def move(players_on_tile, end_positions, cube_sum):
-    if inactive_fps_optimize:
-        global FPS, inactive_window
-        FPS = max_fps
+def move(players_on_tile, end_positions, cube_sum, start_dt):
+    if settings.inactive_fps_optimize:
+        global inactive_window
+        settings.FPS = settings.max_fps
         inactive_window = False
     if not players_on_tile:
         return
 
-    start_positions = []
-    for player in players_on_tile:
-        start_positions.append((player.x, player.y))
+    steps = []
 
-    first_player = players_on_tile[0]
-    diff_x = end_positions[0][0] - first_player.x
-    diff_y = end_positions[0][1] - first_player.y
-    cube_speed = math.sqrt(abs(7 / cube_sum))
-    distance = math.hypot(diff_x, diff_y)
+    for i in range(len(players_on_tile)):
 
-    step_amount = round(distance * cube_speed * 10 * speed)
-    sleep_seconds = cube_speed * 25 * speed
+        start_position = (players_on_tile[i].x, players_on_tile[i].y)
+        diff_x = end_positions[i][0] - start_position[0]
+        diff_y = end_positions[i][1] - start_position[1]
+        print(diff_x, end_positions[i][0], start_position[0], '|||', diff_y, end_positions[i][1], start_position[1])
+        print(start_position, end_positions)
 
-    total_time = step_amount * sleep_seconds
-    start_time = time.time()
+        if i == 0:
+            step_amount = abs(round(math.hypot(diff_x, diff_y) * math.sqrt(abs(7 / cube_sum)) * speed / start_dt))
+            print(math.hypot(diff_x, diff_y) * math.sqrt(abs(7 / cube_sum)) * speed / start_dt, step_amount, start_dt)
 
-    while True:
-        elapsed = time.time() - start_time
-        if elapsed >= total_time:
-            for i, player in enumerate(players_on_tile):
-                player.x = end_positions[i][0]
-                player.y = end_positions[i][1]
-                player.player_piece_rect = player.player_piece.get_rect(center=(player.x, player.y))
-            break
-
-        if total_time > 0:
-            t = elapsed / total_time
+        if step_amount != 0:
+            steps.append((diff_x / step_amount, diff_y / step_amount))
         else:
-            t = 1
+            steps.append((0, 0))
 
-        for i, player in enumerate(players_on_tile):
-            sx, sy = start_positions[i]
-            ex, ey = end_positions[i]
-            player.x = sx + (ex - sx) * t
-            player.y = sy + (ey - sy) * t
-            player.player_piece_rect = player.player_piece.get_rect(center=(player.x, player.y))
+    for i in range(step_amount):
+        for player in players_on_tile:
+            for player2 in players:
+                if player == player2:
+                    time.sleep(dt)
+                    step_index = players_on_tile.index(player)
+                    print(steps[step_index][0] * start_dt / dt, player2.x, steps[step_index][1] * start_dt / dt, player2.y)
+                    player2.x += steps[step_index][0] * start_dt / dt
+                    player2.y += steps[step_index][1] * start_dt / dt
+                    player2.player_piece_rect = player2.player_piece.get_rect(center=(player2.x, player2.y))
+    print('='*100)
 
-        time.sleep(0.01)
-    if inactive_fps_optimize:
-        FPS = inactive_fps
+    if settings.inactive_fps_optimize:
+        settings.FPS = settings.inactive_fps
         inactive_window = True
 
 
@@ -1566,392 +1578,392 @@ def handle_connection():
                     tile_.family_members = tile_family_members
                     tile_.text_defining(font)
 
-    buffer = ''
+    buffer = b''
+    encoded_separator = '¥'.encode('utf-8')
     while running:
         time.sleep(0.01)
-        if game_started:
-            if state['connected']:
-                try:
-                    data_undecoded = sock.recv(1024)
-                    data_unsplit = data_undecoded.decode()
-                    buffer += data_unsplit
+        if state['connected']:
+            try:
+                data_undecoded = sock.recv(1024)
+                buffer += data_undecoded
 
-                    while '¥' in buffer:
-                        single_command, buffer = buffer.split('¥', 1)
-                        data = single_command.split('¦')
+                while encoded_separator in buffer:
+                    part, buffer = buffer.split(encoded_separator, 1)
+                    single_command = part.decode('utf-8')
+                    data = single_command.split('¦')
 
-                        if data[0] != '':
+                    if data[0] != '':
 
-                            if data[0] not in ('avatar', 'sound message', 'voice message', 'image message', 'timer', 'ping', 'ping by player'):
-                                information_received('Информация получена', data)
+                        if data[0] not in ('avatar', 'sound message', 'voice message', 'image message', 'timer', 'ping', 'ping by player'):
+                            information_received('Информация получена', data)
 
-                            if data[0] == 'ping by player':
-                                player = player_dict[data[1]]
-                                player.ping = int(data[2])
+                        if data[0] == 'ping by player':
+                            player = player_dict[data[1]]
+                            player.ping = int(data[2])
 
-                            elif data[0] == 'ping':
-                                time_server = float(data[1])
-                                time_now = time.time()
-                                ping = int((time_now - time_server) * 1000)
-                                sock.send(f'pong¦{ping}¥'.encode())
+                        elif data[0] == 'ping':
+                            time_server = float(data[1])
+                            time_now = time.time()
+                            ping = int((time_now - time_server) * 1000)
+                            sock.send(f'pong¦{ping}¥'.encode())
 
-                            elif data[0] == 'color main':
-                                allPlayer = player_dict[data[1]]
+                        elif data[0] == 'color main':
+                            allPlayer = player_dict[data[1]]
 
-                                allPlayer.main_color(data[1])
-                                player_dict['main'] = allPlayer
-                                connect_file_socket(data[1])
+                            allPlayer.main_color(data[1])
+                            player_dict['main'] = allPlayer
+                            connect_file_socket(data[1])
 
-                            elif data[0] == 'move':
+                        elif data[0] == 'move':
+                            move_by_cubes(int(data[2]), int(data[3]), data[1])
+
+                        elif data[0] == 'move diagonally':
+                            player = player_dict[data[1]]
+                            new_position = int(data[2])
+                            player.piece_position = new_position
+                            players_on_tile = []
+                            for player2 in players:
+                                if player2.piece_position == new_position:
+                                    players_on_tile.append(player2)
+                            end_positions = []
+                            for player3 in players_on_tile:
+                                if player.piece_position in (0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29): # только горизонтальные
+                                    end_positions.append((all_tiles[player3.piece_position].x_center + offset_horizontal[len(players_on_tile) - 1][players_on_tile.index(player3)][0],
+                                                          all_tiles[player3.piece_position].y_center + offset_horizontal[len(players_on_tile) - 1][players_on_tile.index(player3)][1]))
+                                else:
+                                    end_positions.append((all_tiles[player3.piece_position].x_center + offset_vertical[len(players_on_tile) - 1][players_on_tile.index(player3)][0],
+                                                          all_tiles[player3.piece_position].y_center + offset_vertical[len(players_on_tile) - 1][players_on_tile.index(player3)][1]))
+
+                            move([player], end_positions, 10, dt)
+
+                            position_update()
+
+                        elif data[0] == 'playersData':
+                            globals()[f'{data[1]}_profile'] = pg.image.load(f'resources/{settings.resolution_folder}/profile/{data[1]}_profile.png').convert_alpha()
+                            globals()[f'{data[1]}_property_image'] = pg.image.load(f'resources/{settings.resolution_folder}/property/{data[1]}_property.png').convert_alpha()
+                            player = player_dict[data[1]]
+                            if player not in players:
+                                if data[1] == 'red':
+                                    color_value = (255, 0, 0)
+                                elif data[1] == 'blue':
+                                    color_value = (0, 0, 255)
+                                elif data[1] == 'yellow':
+                                    color_value = (255, 255, 0)
+                                elif data[1] == 'green':
+                                    color_value = (10, 160, 10)
+
+                                player.timer_bar = ProgressBar(profile_coordinates[len(players) - 1]['timer_bar'], color_value, 1)
+                                players.append(player)
+
+                            player.money = int(data[2])
+                            player.piece_position = int(data[3])
+                            player.name = data[4]
+                            player.rendered_name = font.render(f'{player.name}', False, 'black')
+                            player.rendered_money = font.render(f'{player.money}¤', False, 'black')
+                            position_update()
+
+                        elif data[0] == 'property':
+                            for player in players:
+                                if data[1] == player.color:
+                                    tile_position = int(data[2])
+                                    all_tiles[tile_position].owner = data[1]
+                                    all_tiles[tile_position].owned = True
+                                    all_tiles[tile_position].family_members += 1
+                                    price_update(all_tiles[tile_position])
+
+                        elif data[0] == 'money':
+                            for i, player in enumerate(players):
+                                if data[1] == player.color:
+                                    player.money = int(data[2])
+                                    player.rendered_money = font.render(f'{player.money}¤', False, 'black')
+
+                        elif data[0] == 'playerDeleted':
+                            player = player_dict[data[1]]
+                            players.remove(player)
+
+                        elif data[0] == 'gameStarted':
+                            state['is_game_started'] = True
+                            players_queue = data[1].split('_')
+                            players_temp = []
+                            for new_color in players_queue:
+                                player = player_dict[new_color]
+                                players_temp.append(player)
+                            players = players_temp
+
+                            for player in players:
+                                globals()[f'{player.color}_player_button'] = pygame_gui.elements.UIButton(
+                                    relative_rect=pg.Rect(profile_coordinates[players.index(player)]['avatar'], (avatar_side_size, avatar_side_size)),
+                                    text='',
+                                    manager=manager,
+                                    object_id=pygame_gui.core.ObjectID(class_id='@transparent_buttons'))
+
+                        elif data[0] == 'error':
+                            print(f'Ошибка: {"\033[31m{}".format(data[1])}{'\033[0m'}')
+                            state['avatar_chosen'] = False
+
+                        elif data[0] == 'imprisoned':
+                            for i, player in enumerate(players):
+                                if data[1] == player.color:
+                                    player.imprisoned = True
+                                    player.piece_position = 10
+
+                        elif data[0] == 'unimprisoned':
+                            for i, player in enumerate(players):
+                                if data[1] == player.color:
+                                    player.imprisoned = False
+                            if len(data) > 2:
                                 move_by_cubes(int(data[2]), int(data[3]), data[1])
 
-                            elif data[0] == 'move diagonally':
-                                player = player_dict[data[1]]
-                                new_position = int(data[2])
-                                player.piece_position = new_position
-                                players_on_tile = []
-                                for player2 in players:
-                                    if player2.piece_position == new_position:
-                                        players_on_tile.append(player2)
-                                end_positions = []
-                                for player3 in players_on_tile:
-                                    if player.piece_position in (0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29): # только горизонтальные
-                                        end_positions.append((all_tiles[player3.piece_position].x_center + offset_horizontal[len(players_on_tile) - 1][players_on_tile.index(player3)][0],
-                                                              all_tiles[player3.piece_position].y_center + offset_horizontal[len(players_on_tile) - 1][players_on_tile.index(player3)][1]))
-                                    else:
-                                        end_positions.append((all_tiles[player3.piece_position].x_center + offset_vertical[len(players_on_tile) - 1][players_on_tile.index(player3)][0],
-                                                              all_tiles[player3.piece_position].y_center + offset_vertical[len(players_on_tile) - 1][players_on_tile.index(player3)][1]))
+                        elif data[0] == 'penis built':
+                            tile_position = int(data[1])
+                            all_tiles[tile_position].penises += 1
+                            all_tiles[tile_position].text_defining(font)
+                            for tile in all_tiles:
+                                if tile.family == all_tiles[tile_position].family:
+                                    tile.penised_family = True
 
-                                move([player], end_positions, 10)
+                        elif data[0] == 'penis removed':
+                            tile_position = int(data[1])
+                            all_tiles[tile_position].penises -= 1
+                            all_tiles[tile_position].text_defining(font)
+                            penised = False
+                            for tile in all_tiles:
+                                if tile.family == all_tiles[tile_position].family:
+                                    if tile.penises:
+                                        penised = True
+                            for tile in all_tiles:
+                                if tile.family == all_tiles[tile_position].family:
+                                    tile.penised_family = penised
 
-                                position_update()
+                        elif data[0] == 'imprisoned double failed':
+                            show_cubes(data[2], data[3])
 
-                            elif data[0] == 'playersData':
-                                globals()[f'{data[1]}_profile'] = pg.image.load(f'resources/{resolution_folder}/profile/{data[1]}_profile.png').convert_alpha()
-                                globals()[f'{data[1]}_property_image'] = pg.image.load(f'resources/{resolution_folder}/property/{data[1]}_property.png').convert_alpha()
-                                player = player_dict[data[1]]
-                                if player not in players:
-                                    if data[1] == 'red':
-                                        color_value = (255, 0, 0)
-                                    elif data[1] == 'blue':
-                                        color_value = (0, 0, 255)
-                                    elif data[1] == 'yellow':
-                                        color_value = (255, 255, 0)
-                                    elif data[1] == 'green':
-                                        color_value = (10, 160, 10)
+                            print(f'У игрока {data[1]} осталось {3 - int(data[4])} попытки чтобы выйти из тюрьмы')
 
-                                    player.timer_bar = ProgressBar(profile_coordinates[len(players) - 1]['timer_bar'], color_value, 1)
-                                    players.append(player)
+                        elif data[0] == 'all property':
+                            if data[2]:
+                                new_property = data[2].split('_')
+                                for i in new_property:
+                                    tile = int(i)
+                                    all_tiles[tile].owner = data[1]
+                                    price_update(all_tiles[tile])
 
-                                player.money = int(data[2])
-                                player.piece_position = int(data[3])
-                                player.name = data[4]
-                                player.rendered_name = player.font.render(f'{player.name}', False, 'black')
-                                player.rendered_money = player.font.render(f'{player.money}¤', False, 'black')
-                                position_update()
+                        elif data[0] == 'exchange request':
+                            global exchange_value
+                            get_data = data[1].split('_')
+                            give_data = data[2].split('_')
+                            give_money = int(give_data[0])
+                            get_money = int(get_data[0])
+                            give_property_temp = give_data[1].split('-')
+                            get_property_temp = get_data[1].split('-')
+                            give_property = []
+                            get_property = []
+                            color = data[3]
 
-                            elif data[0] == 'property':
-                                for player in players:
-                                    if data[1] == player.color:
-                                        tile_position = int(data[2])
-                                        all_tiles[tile_position].owner = data[1]
-                                        all_tiles[tile_position].owned = True
-                                        all_tiles[tile_position].family_members += 1
-                                        price_update(all_tiles[tile_position])
+                            value_give = 0
+                            value_get = 0
+                            for give_tile in give_property_temp:
+                                if give_tile:
+                                    give_property.append(int(give_tile))
+                                    value_give += all_tiles[int(give_tile)].price / 2
+                            value_give += give_money
 
-                            elif data[0] == 'money':
-                                for i, player in enumerate(players):
-                                    if data[1] == player.color:
-                                        player.money = int(data[2])
-                                        player.rendered_money = player.font.render(f'{player.money}¤', False, 'black')
+                            for get_tile in get_property_temp:
+                                if get_tile:
+                                    get_property.append(int(get_tile))
+                                    value_get += all_tiles[int(get_tile)].price / 2
+                            value_get += get_money
 
-                            elif data[0] == 'playerDeleted':
-                                player = player_dict[data[1]]
-                                players.remove(player)
+                            exchange_value = round((value_get - value_give) * 100 / max(value_give, value_get))
+                            print(exchange_value, value_give, value_get)
+                            state['show_exchange_request_screen'] = [True, give_money, give_property, get_money,
+                                                                     get_property, color]
+                            print(state['show_exchange_request_screen'])
+                            log_textbox.hide()
+                            log_text_send_button.hide()
+                            log_audio_send_button.hide()
+                            log_voice_message_send_button.hide()
+                            log_image_send_button.hide()
+                            log_entry_textbox.hide()
+                            exchange_request_confirm_button.show()
+                            exchange_request_reject_button.show()
 
-                            elif data[0] == 'gameStarted':
-                                state['is_game_started'] = True
-                                players_queue = data[1].split('_')
-                                players_temp = []
-                                for new_color in players_queue:
-                                    player = player_dict[new_color]
-                                    players_temp.append(player)
-                                players = players_temp
+                        elif data[0] == 'auction bid':
+                            state['show_auction_screen'] = [True, int(data[1]), int(data[2])]
+                            log_textbox.hide()
+                            log_text_send_button.hide()
+                            log_audio_send_button.hide()
+                            log_voice_message_send_button.hide()
+                            log_image_send_button.hide()
+                            log_entry_textbox.hide()
+                            auction_buy_button.show()
+                            auction_reject_button.show()
 
-                                for player in players:
-                                    globals()[f'{player.color}_player_button'] = pygame_gui.elements.UIButton(
-                                        relative_rect=pg.Rect(profile_coordinates[players.index(player)]['avatar'], (avatar_side_size, avatar_side_size)),
-                                        text='',
-                                        manager=manager,
-                                        object_id=pygame_gui.core.ObjectID(class_id='@transparent_buttons'))
+                        elif data[0] == 'mortgaged':
+                            tile = all_tiles[int(data[1])]
+                            tile.mortgaged = True
+                            tile.mortgaged_moves_count = 15
+                            for tile_ in all_tiles:
+                                if tile_.family == tile.family:
+                                    if tile_.owner == tile.owner:
+                                        tile_.family_members -= 1
+                                        tile_.text_defining(font)
 
-                            elif data[0] == 'error':
-                                print(f'Ошибка: {"\033[31m{}".format(data[1])}{'\033[0m'}')
-                                state['avatar_chosen'] = False
-
-                            elif data[0] == 'imprisoned':
-                                for i, player in enumerate(players):
-                                    if data[1] == player.color:
-                                        player.imprisoned = True
-                                        player.piece_position = 10
-
-                            elif data[0] == 'unimprisoned':
-                                for i, player in enumerate(players):
-                                    if data[1] == player.color:
-                                        player.imprisoned = False
-                                if len(data) > 2:
-                                    move_by_cubes(int(data[2]), int(data[3]), data[1])
-
-                            elif data[0] == 'penis built':
-                                tile_position = int(data[1])
-                                all_tiles[tile_position].penises += 1
-                                all_tiles[tile_position].text_defining(font)
-                                for tile in all_tiles:
-                                    if tile.family == all_tiles[tile_position].family:
-                                        tile.penised_family = True
-
-                            elif data[0] == 'penis removed':
-                                tile_position = int(data[1])
-                                all_tiles[tile_position].penises -= 1
-                                all_tiles[tile_position].text_defining(font)
-                                penised = False
-                                for tile in all_tiles:
-                                    if tile.family == all_tiles[tile_position].family:
-                                        if tile.penises:
-                                            penised = True
-                                for tile in all_tiles:
-                                    if tile.family == all_tiles[tile_position].family:
-                                        tile.penised_family = penised
-
-                            elif data[0] == 'imprisoned double failed':
-                                show_cubes(data[2], data[3])
-
-                                print(f'У игрока {data[1]} осталось {3 - int(data[4])} попытки чтобы выйти из тюрьмы')
-
-                            elif data[0] == 'all property':
-                                if data[2]:
-                                    new_property = data[2].split('_')
-                                    for i in new_property:
-                                        tile = int(i)
-                                        all_tiles[tile].owner = data[1]
-                                        price_update(all_tiles[tile])
-
-                            elif data[0] == 'exchange request':
-                                global exchange_value
-                                get_data = data[1].split('_')
-                                give_data = data[2].split('_')
-                                give_money = int(give_data[0])
-                                get_money = int(get_data[0])
-                                give_property_temp = give_data[1].split('-')
-                                get_property_temp = get_data[1].split('-')
-                                give_property = []
-                                get_property = []
-                                color = data[3]
-
-                                value_give = 0
-                                value_get = 0
-                                for give_tile in give_property_temp:
-                                    if give_tile:
-                                        give_property.append(int(give_tile))
-                                        value_give += all_tiles[int(give_tile)].price / 2
-                                value_give += give_money
-
-                                for get_tile in get_property_temp:
-                                    if get_tile:
-                                        get_property.append(int(get_tile))
-                                        value_get += all_tiles[int(get_tile)].price / 2
-                                value_get += get_money
-
-                                exchange_value = round((value_get - value_give) * 100 / max(value_give, value_get))
-                                print(exchange_value, value_give, value_get)
-                                state['show_exchange_request_screen'] = [True, give_money, give_property, get_money,
-                                                                         get_property, color]
-                                print(state['show_exchange_request_screen'])
-                                log_textbox.hide()
-                                log_text_send_button.hide()
-                                log_audio_send_button.hide()
-                                log_voice_message_send_button.hide()
-                                log_image_send_button.hide()
-                                log_entry_textbox.hide()
-                                exchange_request_confirm_button.show()
-                                exchange_request_reject_button.show()
-
-                            elif data[0] == 'auction bid':
-                                state['show_auction_screen'] = [True, int(data[1]), int(data[2])]
-                                log_textbox.hide()
-                                log_text_send_button.hide()
-                                log_audio_send_button.hide()
-                                log_voice_message_send_button.hide()
-                                log_image_send_button.hide()
-                                log_entry_textbox.hide()
-                                auction_buy_button.show()
-                                auction_reject_button.show()
-
-                            elif data[0] == 'mortgaged':
-                                tile = all_tiles[int(data[1])]
-                                tile.mortgaged = True
-                                tile.mortgaged_moves_count = 15
-                                for tile_ in all_tiles:
-                                    if tile_.family == tile.family:
-                                        if tile_.owner == tile.owner:
-                                            tile_.family_members -= 1
-                                            tile_.text_defining(font)
-
-                            elif data[0] == 'redeemed':
-                                all_tiles[int(data[1])].mortgaged = False
-                                for tile in all_tiles:
-                                    if tile.family == all_tiles[int(data[1])].family:
-                                        tile.family_members += 1
-                                        tile.text_defining(font)
-
-                            elif data[0] == 'late to redeem':
-                                for tile in all_tiles:
-                                    if tile.position == int(data[1]):
-                                        tile.mortgaged = False
-                                        tile.owned = False
-                                        tile.owner = ''
-                                        tile.family_members = 0
-                                    if tile.family == all_tiles[int(data[1])].family:
-                                        tile.family_members -= 1
+                        elif data[0] == 'redeemed':
+                            all_tiles[int(data[1])].mortgaged = False
+                            for tile in all_tiles:
+                                if tile.family == all_tiles[int(data[1])].family:
+                                    tile.family_members += 1
                                     tile.text_defining(font)
 
-                            elif data[0] == 'need to pay to player':
-                                global pulled_card_strings
-                                if state['show_egg_panel']:
+                        elif data[0] == 'late to redeem':
+                            for tile in all_tiles:
+                                if tile.position == int(data[1]):
+                                    tile.mortgaged = False
+                                    tile.owned = False
+                                    tile.owner = ''
+                                    tile.family_members = 0
+                                if tile.family == all_tiles[int(data[1])].family:
+                                    tile.family_members -= 1
+                                tile.text_defining(font)
+
+                        elif data[0] == 'need to pay to player':
+                            global pulled_card_strings
+                            if state['show_egg_panel']:
+                                player = player_dict[data[1]]
+                                for i in pulled_card_strings:
+                                    i.replace('{player_name}', player.name)
+
+                        elif data[0] == 'pulled card position':
+                            global pulled_card_text,  pulled_card_title, pulled_card_title_rect
+                            state['show_egg_panel'] = True
+                            if data[2] == 'Яйцо':
+                                pulled_card_title = font.render('Вопросительное яйцо', False, 'black')
+                                pulled_card_title_rect = pulled_card_title.get_rect(center=egg_card_title_center)
+                                egg_card_position = int(data[3])
+                                pulled_card_strings = []
+                                text = all_egg[egg_card_position].description
+                                if '{value}' in text:
+                                    text = text.replace('{value}', f'{all_egg[egg_card_position].value}')
+                                if '{tile_name}' in text:
+                                    text = text.replace('{tile_name}', all_tiles[all_egg[egg_card_position].value].name)
+                                if '{player_name}' in text:
                                     player = player_dict[data[1]]
-                                    for i in pulled_card_strings:
-                                        i.replace('{player_name}', player.name)
+                                    text = text.replace('{player_name}', player.name)
+                                text = text.split(' ')
 
-                            elif data[0] == 'pulled card position':
-                                global pulled_card_text,  pulled_card_title, pulled_card_title_rect
-                                state['show_egg_panel'] = True
-                                if data[2] == 'Яйцо':
-                                    pulled_card_title = font.render('Вопросительное яйцо', False, 'black')
-                                    pulled_card_title_rect = pulled_card_title.get_rect(center=egg_card_title_center)
-                                    egg_card_position = int(data[3])
-                                    pulled_card_strings = []
-                                    text = all_egg[egg_card_position].description
-                                    if '{value}' in text:
-                                        text = text.replace('{value}', f'{all_egg[egg_card_position].value}')
-                                    if '{tile_name}' in text:
-                                        text = text.replace('{tile_name}', all_tiles[all_egg[egg_card_position].value].name)
-                                    if '{player_name}' in text:
-                                        player = player_dict[data[1]]
-                                        text = text.replace('{player_name}', player.name)
-                                    text = text.split(' ')
+                            elif data[2] == 'Яйца':
+                                pulled_card_title = font.render('Груда вопросительных яиц', False, 'black')
+                                pulled_card_title_rect = pulled_card_title.get_rect(center=egg_card_title_center)
+                                egg_card_position = int(data[3])
+                                pulled_card_strings = []
+                                text = all_eggs[egg_card_position].description
+                                if '{value}' in text:
+                                    text = text.replace('{value}', f'{all_eggs[egg_card_position].value}')
+                                if '{tile_name}' in text:
+                                    text = text.replace('{tile_name}', all_tiles[all_eggs[egg_card_position].value].name)
+                                if '{player_name}' in text:
+                                    player = player_dict[data[1]]
+                                    text = text.replace('{player_name}', player.name)
+                                text = text.split(' ')
 
-                                elif data[2] == 'Яйца':
-                                    pulled_card_title = font.render('Груда вопросительных яиц', False, 'black')
-                                    pulled_card_title_rect = pulled_card_title.get_rect(center=egg_card_title_center)
-                                    egg_card_position = int(data[3])
-                                    pulled_card_strings = []
-                                    text = all_eggs[egg_card_position].description
-                                    if '{value}' in text:
-                                        text = text.replace('{value}', f'{all_eggs[egg_card_position].value}')
-                                    if '{tile_name}' in text:
-                                        text = text.replace('{tile_name}', all_tiles[all_eggs[egg_card_position].value].name)
-                                    if '{player_name}' in text:
-                                        player = player_dict[data[1]]
-                                        text = text.replace('{player_name}', player.name)
-                                    text = text.split(' ')
+                            while text:
+                                text_new = []
+                                while font.size(' '.join(text_new))[0] <= egg_card_text_width and text:
+                                    text_new.append(text[0])
+                                    text.pop(0)
+                                text.insert(0, text_new[-1])
+                                text_new.pop(-1)
+                                pulled_card_strings.append(' '.join(text_new))
+                                if font.size(' '.join(text))[0] <= egg_card_text_width:
+                                    pulled_card_strings.append(' '.join(text))
+                                    text.clear()
 
-                                while text:
-                                    text_new = []
-                                    while font.size(' '.join(text_new))[0] <= egg_card_text_width and text:
-                                        text_new.append(text[0])
-                                        text.pop(0)
-                                    text.insert(0, text_new[-1])
-                                    text_new.pop(-1)
-                                    pulled_card_strings.append(' '.join(text_new))
-                                    if font.size(' '.join(text))[0] <= egg_card_text_width:
-                                        pulled_card_strings.append(' '.join(text))
-                                        text.clear()
+                        elif data[0] == 'show cubes':
+                            show_cubes(data[1], data[2])
 
-                            elif data[0] == 'show cubes':
-                                show_cubes(data[1], data[2])
-
-                            elif data[0] == 'free prison escape card':
-                                player = player_dict['main']
-                                state['bonus_buttons'].append(data[1])
-                                if data[1] == 'Яйцо':
-                                    player.egg_prison_exit_card = True
-                                    exit_prison_egg_btn.rect = egg_btns_coordinates[state['bonus_buttons'].index('Яйцо')]
-                                    exit_prison_egg_btn.show()
-                                else:
-                                    player.eggs_prison_exit_card = True
-                                    exit_prison_eggs_btn.rect = egg_btns_coordinates[state['bonus_buttons'].index('Яйца')]
-                                    exit_prison_eggs_btn.show()
-
-                            elif data[0] == 'message':
-                                message = json.loads(data[1])
-                                log_textbox.append_messages(message)
-
-                            elif data[0] == 'mortgaged_moves_count':
-                                all_tiles[int(data[1])].mortgaged_moves_count = int(data[2])
-
-                            elif data[0] == 'player state':
-                                player_state = json.loads(data[1])
-                                for player_state_key in player_state:
-                                    state[player_state_key] = player_state[player_state_key]
-
-                            elif data[0] == 'd/n card':
-                                player = player_dict['main']
-                                state['bonus_buttons'].append('dn')
-                                player.dn_card = True
-                                dn_btn.rect = egg_btns_coordinates[state['bonus_buttons'].index('dn')]
-                                dn_btn.show()
-
-                            elif data[0] == 'pay multiplier':
-                                player = player_dict[data[1]]
-                                player.pay_multiplier = float(data[2])
-
-                            elif data[0] == 'surrendered':
-                                player = player_dict[data[1]]
-                                player.bankrupt = True
-                                player.timer_bar.set_percentage(1)
-
-                                for tile in all_tiles:
-                                    if tile.owner == player.color:
-                                        tile.reset_tile()
-
-                            elif data[0] == 'value':
-                                player = player_dict[data[1]]
-                                player.value = int(data[2])
-                                player.rendered_value = player.font.render(f'{player.value}¤', False, 'black')
-
-                            elif data[0] == 'timer':
-                                player = player_dict[data[1]]
-                                player.time_left = int(data[2])
-                                player.max_time = int(data[3])
-                                player.timer_bar.set_percentage(player.time_left / player.max_time)
-
+                        elif data[0] == 'free prison escape card':
+                            player = player_dict['main']
+                            state['bonus_buttons'].append(data[1])
+                            if data[1] == 'Яйцо':
+                                player.egg_prison_exit_card = True
+                                exit_prison_egg_btn.rect = egg_btns_coordinates[state['bonus_buttons'].index('Яйцо')]
+                                exit_prison_egg_btn.show()
                             else:
-                                print(f'Ошибка: {"\033[31m{}".format(f'Незарегистрированная команда на стороне клиента: {data[0]}')}{'\033[0m'}')
+                                player.eggs_prison_exit_card = True
+                                exit_prison_eggs_btn.rect = egg_btns_coordinates[state['bonus_buttons'].index('Яйца')]
+                                exit_prison_eggs_btn.show()
 
-                            active_buttons_check()
-                            update_static_layer()
-                            if debug_mode:
-                                # подсчёт команд по релевантности
-                                try:
-                                    command_counter[data[0]] += 1
-                                except KeyError:
-                                    unknown_commands.append(data[0])
+                        elif data[0] == 'message':
+                            message = json.loads(data[1])
+                            log_textbox.append_messages(message)
 
-                        if not running:
-                            break
-                except OSError:
-                    pass
-                except UnicodeDecodeError:
-                    print(data_undecoded)
-                except:
-                    print(f'{"\033[31m{}".format(traceback.format_exc())}{'\033[0m'}')
+                        elif data[0] == 'mortgaged_moves_count':
+                            all_tiles[int(data[1])].mortgaged_moves_count = int(data[2])
+
+                        elif data[0] == 'player state':
+                            player_state = json.loads(data[1])
+                            for player_state_key in player_state:
+                                state[player_state_key] = player_state[player_state_key]
+
+                        elif data[0] == 'd/n card':
+                            player = player_dict['main']
+                            state['bonus_buttons'].append('dn')
+                            player.dn_card = True
+                            dn_btn.rect = egg_btns_coordinates[state['bonus_buttons'].index('dn')]
+                            dn_btn.show()
+
+                        elif data[0] == 'pay multiplier':
+                            player = player_dict[data[1]]
+                            player.pay_multiplier = float(data[2])
+
+                        elif data[0] == 'surrendered':
+                            player = player_dict[data[1]]
+                            player.bankrupt = True
+                            player.timer_bar.set_percentage(1)
+
+                            for tile in all_tiles:
+                                if tile.owner == player.color:
+                                    tile.reset_tile()
+
+                        elif data[0] == 'value':
+                            player = player_dict[data[1]]
+                            player.value = int(data[2])
+                            player.rendered_value = font.render(f'{player.value}¤', False, 'black')
+
+                        elif data[0] == 'timer':
+                            player = player_dict[data[1]]
+                            player.time_left = int(data[2])
+                            player.max_time = int(data[3])
+                            player.timer_bar.set_percentage(player.time_left / player.max_time)
+
+                        else:
+                            print(f'Ошибка: {"\033[31m{}".format(f'Незарегистрированная команда на стороне клиента: {data[0]}')}{'\033[0m'}')
+
+                        active_buttons_check()
+                        update_static_layer()
+                        if settings.debug:
+                            # подсчёт команд по релевантности
+                            try:
+                                command_counter[data[0]] += 1
+                            except KeyError:
+                                unknown_commands.append(data[0])
+
+                    if not running:
+                        break
+            except OSError:
+                pass
+            except UnicodeDecodeError:
+                print(data_undecoded)
+            except:
+                print(f'{"\033[31m{}".format(traceback.format_exc())}{'\033[0m'}')
 
 
 def connect_file_socket(color):
     global file_sock
     try:
         ip_ = ip_textbox.get_text()
-        file_port = int(port) + 1
+        file_port = int(settings.port) + 1
         file_sock = sck.socket(sck.AF_INET, sck.SOCK_STREAM)
         file_sock.connect((ip_, file_port))
         # Отправляем привязку
@@ -1965,7 +1977,6 @@ def connect_file_socket(color):
 
 
 def file_receiver():
-    """Принимает файлы от сервера через выделенный сокет."""
     global running
     buffer = ''
     while running and file_sock:
@@ -2058,50 +2069,21 @@ def delta_time(old_time):
 
 
 def event_handler():
-    global color_picker, FPS
+    global color_picker, chosen_bmcf_to_set
 
     events = pg.event.get()
     for event in events:
-        if event.type == pg.QUIT:
-            global running
-            running = False
-
-        elif event.type == pg.MOUSEBUTTONUP and event.button == 1:
-            if state['show_egg_panel']:
-                egg_s_reset()
-            elif state['tile_info_show'][0]:
-                tile_info_reset()
-            if game_started:
-                for i, tile in enumerate(all_tiles):
-                    if tile.rect.collidepoint(event.pos):
-                        tile_button(i)
-                        break
-
-        elif event.type == pg.KEYUP and game_started:
-            if not ip_textbox.is_focused and not port_textbox.is_focused and not name_textbox.is_focused and not exchange_give_textbox.is_focused and not exchange_get_textbox.is_focused and not log_entry_textbox.is_focused:
-                if event.key == pg.K_c:
-                    connect()
-                elif event.key == pg.K_t:
-                    throw_cubes()
-                elif event.key == pg.K_d:
-                    debug_output()
-            elif name_textbox.is_focused:
-                if event.key == pg.K_RETURN:
-                    connect()
-            elif log_entry_textbox.is_focused:
-                if event.key == pg.K_RETURN:
-                    send_message()
-
-        if minimize_window_fps_optimize:
+        if settings.minimize_fps_optimize:
             if event.type in (pg.WINDOWHIDDEN, pg.WINDOWFOCUSLOST):
-                FPS = minimize_window_fps
+                settings.FPS = settings.minimize_fps
             elif event.type in (pg.WINDOWRESTORED, pg.WINDOWFOCUSGAINED):
-                if inactive_fps_optimize:
+                if settings.inactive_fps_optimize:
                     if inactive_window:
-                        FPS = inactive_fps
+                        settings.FPS = settings.inactive_fps
                     else:
-                        FPS = max_fps
-
+                        settings.FPS = settings.max_fps
+                else:
+                    settings.FPS = settings.max_fps
 
         manager_initiated = False
         while not manager_initiated:
@@ -2111,7 +2093,42 @@ def event_handler():
             except:
                 print(f'{"\033[32m{}".format(f'Не беспокойтесь. Эта ошибка не вредит игре:\n{traceback.format_exc()}')}{'\033[0m'}')
 
-        if game_started:
+        if event.type == pg.QUIT:
+            global running
+            running = False
+
+        if event.type == pg.KEYUP:
+            if event.key == pg.K_d:
+                debug_output()
+
+        if state['screen'] == 'board':
+            if event.type == pg.MOUSEBUTTONUP and event.button == 1:
+                if state['show_egg_panel']:
+                    egg_s_reset()
+                elif state['tile_info_show'][0]:
+                    tile_info_reset()
+                for i, tile in enumerate(all_tiles):
+                    if tile.rect.collidepoint(event.pos):
+                        tile_button(i)
+                        break
+
+            elif event.type == pg.KEYUP :
+                if settings.debug and not ip_textbox.is_focused and not port_textbox.is_focused and not name_textbox.is_focused and not exchange_give_textbox.is_focused and not exchange_get_textbox.is_focused and not log_entry_textbox.is_focused:
+                    if event.key == pg.K_c:
+                        connect()
+                    elif event.key == pg.K_t:
+                        throw_cubes()
+                    elif event.key == pg.K_s:
+                        change_screen('settings start')
+                    elif event.key == pg.K_d:
+                        debug_output()
+                elif name_textbox.is_focused:
+                    if event.key == pg.K_RETURN:
+                        connect()
+                elif log_entry_textbox.is_focused:
+                    if event.key == pg.K_RETURN:
+                        send_message()
+
             log_textbox.process_events(event)
             match event.type:
                 case pygame_gui.UI_BUTTON_PRESSED:
@@ -2138,8 +2155,8 @@ def event_handler():
                         threading.Thread(target=choose_avatar, daemon=True).start()
                     elif event_type == connect_button:
                         connect()
-                    elif event_type == debug_button:
-                        debug_output()
+                    elif event_type == settings_button:
+                        change_screen('settings start')
                     elif event_type == exchange_commit_button:
                         exchange_commit()
                     elif event_type == exchange_cancel_button:
@@ -2197,20 +2214,33 @@ def event_handler():
                     elif event_type == exchange_give_textbox or event_type == exchange_get_textbox:
                         exchange_value_calculation()
     
-        else:
+        elif state['screen'] == 'settings start':
             match event.type:
                 case pygame_gui.UI_BUTTON_PRESSED:
+
                     if event.ui_element == start_game_button:
-                        save_settings()
-                        monopoly_init()
+                        settings.minimize_fps_optimize = minimize_window_fps_optimization_checkbox.get_state()
+                        settings.inactive_fps_optimize = inactivity_fps_optimization_checkbox.get_state()
+                        settings.debug = debug_checkbox.get_state()
+                        settings.fullscreen = fullscreen_checkbox.get_state()
+                        settings.scaled = scale_checkbox.get_state()
+
+                        settings.save_settings()
                         load_assets()
                         load_game()
                     elif event.ui_element == pick_color_button:
                         color_picker.show()
                     elif event.ui_element == apply_button:
-                        save_settings()
-                        monopoly_init()
+                        settings.minimize_fps_optimize = minimize_window_fps_optimization_checkbox.get_state()
+                        settings.inactive_fps_optimize = inactivity_fps_optimization_checkbox.get_state()
+                        settings.debug = debug_checkbox.get_state()
+                        settings.fullscreen = fullscreen_checkbox.get_state()
+                        settings.scaled = scale_checkbox.get_state()
+
+                        settings.save_settings()
                         load_assets()
+                    elif event.ui_element == currency_draw_button:
+                        change_screen_to_draw_currency()
 
                 case pygame_gui.UI_CHECK_BOX_CHECKED:
                     if event.ui_element == fullscreen_checkbox:
@@ -2225,22 +2255,80 @@ def event_handler():
                     resolution_to_index = {'1280x720': 1,
                                            '1920x1080': 2,
                                            '2560x1440': 3}
-                    settings_data['resolution index'] = resolution_to_index[event.text]
+                    settings.resolution_index = resolution_to_index[event.text]
 
                 case pygame_gui.UI_COLOUR_PICKER_COLOUR_PICKED:
                     if event.ui_element == color_picker:
-                        settings_data['background color converted'] = event.colour
-                        settings_data['background color'] = list(event.colour)
+                        settings.background_color_converted = event.colour
+                        settings.background_color = list(event.colour)
                         color_picker.kill()
                         color_picker = pygame_gui.windows.UIColourPickerDialog(
                             rect=pg.Rect(60, 120, 390, 390),
-                            initial_colour=settings_data['background color converted'],
+                            initial_colour=settings.background_color_converted,
                             manager=manager,
                             visible=0)
 
+                case pygame_gui.UI_TEXT_ENTRY_CHANGED:
+                    if event.ui_element == fps_textbox:
+                        fps_check(fps_textbox)
+                        str_fps = fps_textbox.get_text()
+                        if ',' in str_fps:
+                            str_fps.replace(',', '.')
+                        if '.' in str_fps:
+                            settings.max_fps = float(str_fps)
+                        else:
+                            settings.max_fps = int(str_fps)
+
+                    elif event.ui_element == minimize_window_fps_optimization_textbox:
+                        fps_check(minimize_window_fps_optimization_textbox)
+                        str_fps = minimize_window_fps_optimization_textbox.get_text()
+                        if ',' in str_fps:
+                            str_fps.replace(',', '.')
+                        if '.' in str_fps:
+                            settings.minimize_fps = float(str_fps)
+                        else:
+                            settings.minimize_fps = int(str_fps)
+
+                    elif event.ui_element == inactivity_fps_optimization_textbox:
+                        fps_check(inactivity_fps_optimization_textbox)
+                        str_fps = inactivity_fps_optimization_textbox.get_text()
+                        if ',' in str_fps:
+                            str_fps.replace(',', '.')
+                        if '.' in str_fps:
+                            settings.inactive_fps = float(str_fps)
+                        else:
+                            settings.inactive_fps = int(str_fps)
+
+        elif state['screen'] == 'currency drawing':
+            for row in currency_drawing_widget_list:
+                for button in row:
+                    state['currency_drawing_action'] = button.process_events(event, state['currency_drawing_action'])
+
+            match event.type:
+                case pygame_gui.UI_BUTTON_PRESSED:
+                    if event.ui_element == save_button:
+                        save_character()
+                    elif event.ui_element == back_button:
+                        change_screen('settings start')
+                    elif event.ui_element == set_char_button:
+                        change_currency_character(font_path, f'resources/currency/{settings.resolution_folder}/{chosen_bmcf_to_set}.bmcf')
+                        settings.save_settings()
+                    elif event.ui_element == restart_button:
+                        restart_game()
+
+                case pygame_gui.UI_DROP_DOWN_MENU_CHANGED:
+                    if event.ui_element == dropdown_load:
+                        load_bmcf(f'resources/currency/{settings.resolution_folder}/{event.text}.bmcf')
+                    elif event.ui_element == dropdown_save:
+                        chosen_bmcf_to_set = event.text
+                        settings.currency = chosen_bmcf_to_set
+
 
 def buttons():
-    global cube_button, buy_button, pay_button, name_textbox, ip_textbox, port_textbox, connect_button, debug_button, avatar_choose_button, shove_penis_button, remove_penis_button, exchange_button, exchange_commit_button, exchange_cancel_button, exchange_give_textbox, exchange_get_textbox, exchange_request_confirm_button, exchange_request_reject_button, auction_button, auction_buy_button, auction_reject_button, mortgage_button, redeem_button, surrender_button, exit_prison_egg_btn, exit_prison_eggs_btn, log_entry_textbox, log_text_send_button, log_audio_send_button, log_voice_message_send_button, log_image_send_button, message_panel, dn_btn
+    global cube_button, buy_button, pay_button, name_textbox, ip_textbox, port_textbox, connect_button, settings_button, avatar_choose_button, shove_penis_button, remove_penis_button, exchange_button, exchange_commit_button, exchange_cancel_button, exchange_give_textbox, exchange_get_textbox, exchange_request_confirm_button, exchange_request_reject_button, auction_button, auction_buy_button, auction_reject_button, mortgage_button, redeem_button, surrender_button, exit_prison_egg_btn, exit_prison_eggs_btn, log_entry_textbox, log_text_send_button, log_audio_send_button, log_voice_message_send_button, log_image_send_button, message_panel, dn_btn
+
+    for element_list in screen_widgets['board']:
+        element_list[0].kill()
 
     cube_button = pygame_gui.elements.UIButton(
         relative_rect=pg.Rect(btn_coordinates['throw_cubes']),
@@ -2306,19 +2394,19 @@ def buttons():
     name_textbox = pygame_gui.elements.UITextEntryBox(
         relative_rect=pg.Rect(start_btn_textboxes_coordinates['name']),
         placeholder_text='Введите имя',
-        initial_text=name,
+        initial_text=settings.name,
         manager=manager)
 
     ip_textbox = pygame_gui.elements.UITextEntryBox(
         relative_rect=pg.Rect(start_btn_textboxes_coordinates['IP']),
         placeholder_text='IP адрес',
-        initial_text=address,
+        initial_text=settings.address,
         manager=manager)
 
     port_textbox = pygame_gui.elements.UITextEntryBox(
         relative_rect=pg.Rect(start_btn_textboxes_coordinates['port']),
         placeholder_text='Порт',
-        initial_text=port,
+        initial_text=settings.port,
         manager=manager)
 
     avatar_choose_button = pygame_gui.elements.UIButton(
@@ -2332,9 +2420,9 @@ def buttons():
         text='Подключиться',
         manager=manager)
 
-    debug_button = pygame_gui.elements.UIButton(
-        relative_rect=pg.Rect(start_btn_textboxes_coordinates['debug']),
-        text='debug',
+    settings_button = pygame_gui.elements.UIButton(
+        relative_rect=pg.Rect(start_btn_textboxes_coordinates['settings']),
+        text='Настройки',
         manager=manager)
 
 
@@ -2457,39 +2545,408 @@ def buttons():
     #                                            manager=manager)
     # print(time_bar.status_text())
 
-    if not debug_mode:
-        debug_button.hide()
+    screen_widgets['board'] = [
+        [cube_button, cube_button.visible],
+        [buy_button, buy_button.visible],
+        [pay_button, pay_button.visible],
+        [shove_penis_button, shove_penis_button.visible],
+        [remove_penis_button, remove_penis_button.visible],
+        [exchange_button, exchange_button.visible],
+        [auction_button, auction_button.visible],
+        [mortgage_button, mortgage_button.visible],
+        [redeem_button, redeem_button.visible],
+        [surrender_button, surrender_button.visible],
+        [name_textbox, name_textbox.visible],
+        [ip_textbox, ip_textbox.visible],
+        [port_textbox, port_textbox.visible],
+        [avatar_choose_button, avatar_choose_button.visible],
+        [connect_button, connect_button.visible],
+        [settings_button, settings_button.visible],
+        [exchange_commit_button, exchange_commit_button.visible],
+        [exchange_cancel_button, exchange_cancel_button.visible],
+        [exchange_give_textbox, exchange_give_textbox.visible],
+        [exchange_get_textbox, exchange_get_textbox.visible],
+        [exchange_request_confirm_button, exchange_request_confirm_button.visible],
+        [exchange_request_reject_button, exchange_request_reject_button.visible],
+        [auction_buy_button, auction_buy_button.visible],
+        [auction_reject_button, auction_reject_button.visible],
+        [exit_prison_egg_btn, exit_prison_egg_btn.visible],
+        [exit_prison_eggs_btn, exit_prison_eggs_btn.visible],
+        [dn_btn, dn_btn.visible],
+        [log_entry_textbox, log_entry_textbox.visible],
+        [log_text_send_button, log_text_send_button.visible],
+        [log_audio_send_button, log_audio_send_button.visible],
+        [log_voice_message_send_button, log_voice_message_send_button.visible],
+        [log_image_send_button, log_image_send_button.visible],
+        [message_panel, message_panel.visible]
+    ]
 
 
 def show_cubes(cube1, cube2):
     global cube_1_picture, cube_2_picture, state
-    cube_1_picture = pg.image.load(f'resources/{resolution_folder}/cubes/{cube1}.png').convert()
-    cube_2_picture = pg.image.load(f'resources/{resolution_folder}/cubes/{cube2}.png').convert()
+    cube_1_picture = pg.image.load(f'resources/{settings.resolution_folder}/cubes/{cube1}.png').convert()
+    cube_2_picture = pg.image.load(f'resources/{settings.resolution_folder}/cubes/{cube2}.png').convert()
 
     state['cube_animation_playing'] = True
     time.sleep(1.5)
     state['cube_animation_playing'] = False
 
 
+def get_row_height():
+    fixed = settings_buttons_coordinates.get('row_height', 0)
+    if fixed > 0:
+        return fixed
+    max_h = 0
+    for row in settings_layout:
+        for item in row:
+            if isinstance(item, tuple) and len(item) == 2:
+                _, widget = item
+            else:
+                widget = item[0]
+            if widget and hasattr(widget, 'relative_rect'):
+                max_h = max(max_h, widget.relative_rect.height)
+    return max_h
+
+
+def update_settings_positions():
+    y = default_offsets[settings.resolution_folder]['settings topleft'][1]
+    widget_offset = settings_buttons_coordinates.get('widget_vertical_offset', 0)
+    row_padding = settings_buttons_coordinates.get('row_vertical_padding', 10)
+
+    for row in settings_layout:
+        has_text = any(isinstance(item, tuple) and len(item) == 2 for item in row)
+
+        if has_text:
+            max_height = 0
+            for item in row:
+                if isinstance(item, tuple) and len(item) == 2:
+                    if font:
+                        max_height = max(max_height, font.get_height())
+        else:
+            max_height = 0
+            for item in row:
+                widget = item[0] if isinstance(item, tuple) else item
+                if widget and hasattr(widget, 'relative_rect'):
+                    max_height = max(max_height, widget.relative_rect.height)
+
+        if max_height == 0:
+            y += row_padding * 2
+            continue
+
+        current_x = default_offsets[settings.resolution_folder]['settings topleft'][0]
+        for item in row:
+            if isinstance(item, tuple) and len(item) == 2:
+                label_text, widget = item
+                label_width = font.size(label_text)[0] if font else 0
+                widget_x = current_x + label_width + settings_buttons_coordinates['label_widget_gap']
+            else:
+                widget = item[0]
+                widget_x = current_x
+
+            if widget and hasattr(widget, 'relative_rect'):
+                widget_height = widget.relative_rect.height
+                widget_y = y + (max_height - widget_height) // 2 + widget_offset
+                widget.set_relative_position((widget_x, widget_y))
+                current_x = widget_x + widget.relative_rect.width + settings_buttons_coordinates['widget_widget_gap']
+            else:
+                current_x += settings_buttons_coordinates['widget_widget_gap']
+
+        y += max_height + row_padding * 2
+
+    if start_game_button:
+        btn_rect = start_game_button.relative_rect
+        start_game_button.set_relative_position(((screen.get_width() - btn_rect.width) // 2,
+                                                 screen.get_height() - btn_rect.height - 20))
+
+
+def render_screen():
+    global prev_time, dt
+    if state['screen'] == 'settings start':
+        clock.tick(settings.FPS)
+        dt, prev_time = delta_time(prev_time)
+        screen.fill(settings.background_color_converted)
+        event_handler()
+
+        label_offset = settings_buttons_coordinates.get('label_vertical_offset', 0)
+        for row in settings_layout:
+            has_text = any(isinstance(item, tuple) and len(item) == 2 for item in row)
+
+            if has_text:
+                max_height = 0
+                for item in row:
+                    if isinstance(item, tuple) and len(item) == 2:
+                        if font:
+                            max_height = max(max_height, font.get_height())
+            else:
+                max_height = 0
+                for item in row:
+                    widget = item[0] if isinstance(item, tuple) else item
+                    if widget and hasattr(widget, 'relative_rect'):
+                        max_height = max(max_height, widget.relative_rect.height)
+
+            if max_height == 0:
+                continue
+
+            for item in row:
+                if isinstance(item, tuple) and len(item) == 2:
+                    label_text, widget = item
+                    if widget and hasattr(widget, 'relative_rect'):
+                        widget_rect = pg.Rect(widget.relative_rect)
+                        label_surf = font.render(label_text, False, 'black')
+                        label_rect = label_surf.get_rect()
+                        label_rect.right = widget_rect.left - settings_buttons_coordinates['label_widget_gap']
+                        label_rect.centery = widget_rect.y + max_height // 2 + label_offset
+                        screen.blit(label_surf, label_rect)
+
+        try:
+            manager.update(dt)
+            manager.draw_ui(screen)
+        except:
+            pass
+
+        pg.display.flip()
+
+    elif state['screen'] == 'board':
+        clock.tick(settings.FPS)
+        dt, prev_time = delta_time(prev_time)
+        screen.fill(settings.background_color_converted)
+        event_handler()
+
+        blit_board()
+        blit_board_above_prices()
+        log_textbox.render(screen)
+        try:
+            manager.update(dt)
+            manager.draw_ui(screen)
+        except:
+            pass
+        blit_board_above_interface()
+
+        average_fps = clock.get_fps()
+
+        average_fps_text = font.render(str(round(average_fps)), False, 'black')
+        screen.blit(average_fps_text, fps_coordinates)
+
+        pg.display.update()
+
+    elif state['screen'] == 'currency drawing':
+        clock.tick(settings.FPS)
+        dt, prev_time = delta_time(prev_time)
+        screen.fill(settings.background_color_converted)
+        event_handler()
+
+        for row in currency_drawing_widget_list:
+            for button in row:
+                button.render(screen)
+
+        try:
+            manager.update(dt)
+            manager.draw_ui(screen)
+        except:
+            pass
+
+        pg.display.update()
+
+
+def change_screen(new_screen):
+    current_screen = state['screen']
+    if current_screen != new_screen:
+        for element_list in screen_widgets[current_screen]:
+            element_list[1] = element_list[0].visible
+            element_list[0].hide()
+
+        for element_list in screen_widgets[new_screen]:
+            if element_list[1]:
+                element_list[0].show()
+
+        state['screen'] = new_screen
+
+
+def change_screen_to_draw_currency():
+    load_bmcf(f'resources/currency/{settings.resolution_folder}/{settings.currency}.bmcf')
+
+    currency_drawing_buttons()
+
+    change_screen('currency drawing')
+
+
+def save_character():
+    bitmap_ = []
+    for row in currency_drawing_widget_list:
+        row_ = []
+        for button in row:
+            row_.append(button.get_state())
+        bitmap_.append(row_)
+
+    # проверка на пустые столбцы
+    x_len = len(bitmap_[0])
+    y_len = len(bitmap_)
+
+    discard_cols = []
+    # ищем пустые столбцы слева
+    for j in range(x_len):
+        has_nonzero = False
+        for i in range(y_len):
+            if bitmap_[i][j] != 0:
+                has_nonzero = True
+                break
+        if not has_nonzero:
+            discard_cols.append(j)
+        else:
+            break
+
+    # ищем пустые столбцы справа
+    for j in range(x_len):
+        has_nonzero = False
+        for i in range(y_len):
+            if bitmap_[y_len - i - 1][x_len - j - 1] != 0:
+                has_nonzero = True
+                break
+        if not has_nonzero:
+            discard_cols.append(x_len - j - 1)
+        else:
+            break
+
+    keep_cols = list(range(x_len))
+    for x in discard_cols:
+        keep_cols.remove(x)
+
+    result = []
+    for row in bitmap_:
+        new_row = []
+        for j in keep_cols:
+            new_row.append(row[j])
+        result.append(new_row)
+
+    file_name = save_character_textbox.get_text()
+    save_path = f'resources/currency/{settings.resolution_folder}/{file_name}.bmcf'
+    write_bmcf(path=save_path, res_index=settings.resolution_index, dim_x=len(result[0]), dim_y=len(result), bitmap=result)
+    dropdown_save.add_options([file_name])
+    dropdown_load.add_options([file_name])
+
+
+def currency_drawing_buttons():
+    global save_button, back_button, dropdown_load, save_character_textbox, dropdown_save, set_char_button, restart_button
+
+    for element_list in screen_widgets['currency drawing']:
+        element_list[0].kill()
+
+    back_rect = pg.Rect(currency_drawing_coordinates['back'])
+    back_rect.midbottom = (screen.width // 2, screen.height - currency_drawing_coordinates['gap'])
+    back_button = pygame_gui.elements.UIButton(
+        relative_rect=back_rect,
+        text='Назад',
+        manager=manager)
+
+    options_list = os.listdir(f'resources/currency/{settings.resolution_folder}')
+    for i in range(len(options_list)):
+        option_split = options_list[i].split('.')
+        option = option_split[:-1]
+        options_list[i] = '.'.join(option)
+
+    dropdown_load_rect = pg.Rect(currency_drawing_coordinates['dropdown load'])
+    dropdown_load_rect.topleft = (currency_drawing_widget_list[-1][0].border_rect.left, currency_drawing_widget_list[-1][0].border_rect.bottom + currency_drawing_coordinates['gap'])
+    dropdown_load = pygame_gui.elements.UIDropDownMenu(
+        relative_rect=dropdown_load_rect,
+        starting_option=settings.currency,
+        options_list=options_list,
+        manager=manager)
+
+    save_character_textbox_rect = pg.Rect(currency_drawing_coordinates['char name textbox'])
+    save_character_textbox_rect.topleft = (dropdown_load_rect.left, dropdown_load_rect.bottom + currency_drawing_coordinates['gap'])
+    save_character_textbox = pygame_gui.elements.UITextEntryBox(
+        relative_rect=save_character_textbox_rect,
+        placeholder_text='Введите название символа',
+        initial_text='',
+        object_id='#settings_font',
+        manager=manager)
+
+    save_rect = pg.Rect(currency_drawing_coordinates['save char'])
+    save_rect.topleft = (save_character_textbox_rect.left, save_character_textbox_rect.bottom + currency_drawing_coordinates['gap'])
+    save_button = pygame_gui.elements.UIButton(
+        relative_rect=save_rect,
+        text='Сохранить символ',
+        manager=manager)
+
+    dropdown_save_rect = pg.Rect(currency_drawing_coordinates['dropdown save'])
+    dropdown_save_rect.topleft = (currency_drawing_widget_list[0][-1].border_rect.right + currency_drawing_coordinates['gap'], currency_drawing_widget_list[0][-1].border_rect.top)
+    dropdown_save = pygame_gui.elements.UIDropDownMenu(
+        relative_rect=dropdown_save_rect,
+        starting_option=settings.currency,
+        options_list=options_list,
+        manager=manager)
+
+    set_char_rect = pg.Rect(currency_drawing_coordinates['set char'])
+    set_char_rect.topleft = (dropdown_save_rect.left, dropdown_save_rect.bottom + currency_drawing_coordinates['gap'])
+    set_char_button = pygame_gui.elements.UIButton(
+        relative_rect=set_char_rect,
+        text='Установить',
+        manager=manager)
+
+    restart_rect = pg.Rect(currency_drawing_coordinates['restart'])
+    restart_rect.topleft = (set_char_rect.left, set_char_rect.bottom + currency_drawing_coordinates['gap'])
+    restart_button = pygame_gui.elements.UIButton(
+        relative_rect=restart_rect,
+        text='Перезапустить игру',
+        manager=manager)
+
+    # не надо позволять игроку перезапустить игру по время подключения
+    if state['connected']:
+        restart_button.disable()
+
+    theme = manager.create_new_theme(f'resources/{settings.resolution_folder}/gui_theme.json')
+    manager.set_ui_theme(theme)
+
+    screen_widgets['currency drawing'] = [
+        [save_button, save_button.visible],
+        [back_button, back_button.visible],
+        [dropdown_load, dropdown_load.visible],
+        [save_character_textbox, save_character_textbox.visible],
+        [dropdown_save, dropdown_save.visible],
+        [set_char_button, set_char_button.visible],
+        [restart_button, restart_button.visible]
+    ]
+
+
+def load_bmcf(bmcf_path):
+    res_index, dim_x, dim_y, bitmap_list = read_bmcf(bmcf_path)
+    global currency_drawing_widget_list
+    currency_drawing_widget_list = []
+    y = default_offsets[settings.resolution_folder]['currency drawing topleft'][1]
+    for row in bitmap_list:
+        x = default_offsets[settings.resolution_folder]['currency drawing topleft'][0]
+        widget_row = []
+        for bit in row:
+            widget_row.append(CurrencyDrawingButton(((x, y), currency_drawing_tile_size), bit))
+            x += currency_drawing_tile_size[0]
+        for i in range(abs(len(bitmap_list) - len(row))):
+            widget_row.append(CurrencyDrawingButton(((x, y), currency_drawing_tile_size), 0))
+            x += currency_drawing_tile_size[0]
+        currency_drawing_widget_list.append(widget_row)
+        y += currency_drawing_tile_size[1]
+
+
+def restart_game():
+    pg.quit()
+
+    if sys.platform == 'win32':  # windows
+        CREATE_NEW_PROCESS_GROUP = 0x00000200
+        DETACHED_PROCESS = 0x00000008
+        flags = DETACHED_PROCESS | CREATE_NEW_PROCESS_GROUP
+    else:
+        flags = 0  # linux/mac (не знаю зачем, всё равно поддержки нет)
+
+    if '__compiled__' in globals() and globals()['__compiled__']:
+        subprocess.Popen([sys.argv[0]] + sys.argv[1:], creationflags=flags)
+    else:
+        subprocess.Popen([sys.executable, __file__] + sys.argv[1:], creationflags=flags)
+
+    sys.exit()
+
+
 # Проверки
-# ¦
+# |
 # V
-
-
-def allowed_characters_check(text, allowed_characters):
-    new_text = text
-    for character in text:
-        if character not in allowed_characters:
-            new_text = new_text.replace(character, '')
-    return new_text
-
-
-def forbidden_characters_check(text, forbidden_characters):
-    new_text = text
-    for character in text:
-        if character in forbidden_characters:
-            new_text = new_text.replace(character, '')
-    return new_text
 
 
 def name_check():
@@ -2499,6 +2956,13 @@ def name_check():
         name = name[:-1]
     if name_textbox.get_text() != name:
         name_textbox.set_text(name)
+
+
+def fps_check(textbox):
+    fps = textbox.get_text()
+    fps = allowed_characters_check(fps, '0123456789.,')
+    if textbox.get_text() != fps:
+        textbox.set_text(fps)
 
 
 def log_entry_check():
@@ -2581,9 +3045,19 @@ def active_buttons_check():
     else:
         avatar_choose_button.enable()
 
+    if state['connected']:
+        log_text_send_button.enable()
+        log_audio_send_button.enable()
+        log_voice_message_send_button.enable()
+        log_image_send_button.enable()
+    else:
+        log_text_send_button.disable()
+        log_audio_send_button.disable()
+        log_voice_message_send_button.disable()
+        log_image_send_button.disable()
+
 
 running = True
-game_started = False
 
 monopoly_init()
 
@@ -2591,69 +3065,24 @@ past_second_fps = []
 prev_fps_time = time.time()
 average_fps = 0
 
-while running and not game_started:
-    clock.tick(FPS)
-    dt, prev_time = delta_time(prev_time)
-    screen.fill(settings_data['background color converted'])
-    event_handler()
-
-    screen.blit(font.render('Введите максимальный FPS:', False, 'black'), settings_buttons_coordinates['fps_text'])
-    screen.blit(font.render('Уменьшать FPS при сворачивании:', False, 'black'), settings_buttons_coordinates['minimize_window_fps_optimization_text_1'])
-    screen.blit(font.render('до:', False, 'black'), settings_buttons_coordinates['minimize_window_fps_optimization_text_2'])
-    screen.blit(font.render('Уменьшать FPS при бездействии:', False, 'black'), settings_buttons_coordinates['inactivity_fps_optimization_text_1'])
-    screen.blit(font.render('до:', False, 'black'), settings_buttons_coordinates['inactivity_fps_optimization_text_2'])
-    screen.blit(font.render('Полноэкранный режим:', False, 'black'), settings_buttons_coordinates['fullscreen_text'])
-    screen.blit(font.render('Растяжение экрана:', False, 'black'), settings_buttons_coordinates['scale_text'])
-    screen.blit(font.render('debug mode:', False, 'black'), settings_buttons_coordinates['debug_text'])
-
-    screen.blit(font.render(settings_message, False, 'black'), settings_buttons_coordinates['message'])
-
-    try:
-        manager.update(max(dt, 0.016))
-        manager.draw_ui(screen)
-    except:
-        pass
-
-    pg.display.flip()
-
 gc.collect()
 
 
 while running:
-    clock.tick(FPS)
-    dt, prev_time = delta_time(prev_time)
-    screen.fill(background_color)
-    event_handler()
+    render_screen()
 
-    blit_board()
-    blit_board_above_prices()
-    log_textbox.render(screen)
-    try:
-        manager.update(max(dt, 0.016))
-        manager.draw_ui(screen)
-    except:
-        pass
-    blit_board_above_interface()
-
-    average_fps = clock.get_fps()
-
-    average_fps_text = font.render(str(round(average_fps)), False, 'black')
-    screen.blit(average_fps_text, fps_coordinates)
-
-    pg.display.update()
+print('\nПрограмма завершена')
 
 if log_textbox:
     del log_textbox
-    if os.path.exists(f'resources/temp/audios/client'):
+    if os.path.exists('resources/temp/audios/client'):
         for file in os.listdir('resources/temp/audios/client'):
             try:
                 os.remove(f'resources/temp/audios/client/{file}')
             except:
                 pass
 
-print('\nПрограмма завершена')
-
-if debug_mode:
+if settings.debug:
     is_commanded = False
     for i in command_counter:
         if command_counter[i] > 0:
@@ -2663,8 +3092,12 @@ if debug_mode:
         os.makedirs('logs', exist_ok=True)
         sorted_dict = dict(sorted(command_counter.items(), key=lambda item: item[1], reverse=True))
         sorted_dict['unknown_commands'] = unknown_commands
-        time = datetime.datetime.now()
-        formatted_date = time.strftime("¥d.¥m.¥Y_¥H-¥M-¥S")
+        time_ = datetime.datetime.now()
+        formatted_date = time_.strftime("%d.%m.%Y_%H-%M-%S")
+        if os.path.exists(f'logs/commands_log_{formatted_date}.json'):
+            counter = 1
+            while os.path.exists(f'logs/commands_log_{formatted_date}_{counter}.json'):
+                counter += 1
         with open(f'logs/commands_log_{formatted_date}.json', 'w') as file:
             json.dump(sorted_dict, file, indent=4, ensure_ascii=False)
 

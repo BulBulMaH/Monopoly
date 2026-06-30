@@ -23,6 +23,7 @@ from classes.ProgressBar_Class import ProgressBar
 
 from functions.all_tiles_extraction import all_tiles_get
 from functions.colored_output import thread_open, new_connection, information_received, information_sent_to
+from functions.character_checks import forbidden_characters_check, allowed_characters_check
 
 
 class Player:
@@ -224,16 +225,18 @@ def receive_data():
             all_signs += signs
         return all_signs
 
-    buffer = ''
+    buffer = b''
+    encoded_separator = '¥'.encode('utf-8')
     while running:
         time.sleep(0.01)
         for player in players:
-
             try:
-                data_unsplit = player.conn.recv(1024).decode()
-                buffer += data_unsplit
-                while '¥' in buffer:
-                    single_command, buffer = buffer.split('¥', 1)
+                data_undecoded = player.conn.recv(1024)
+                buffer += data_undecoded
+
+                while encoded_separator in buffer:
+                    part, buffer = buffer.split(encoded_separator, 1)
+                    single_command = part.decode('utf-8')
                     data = single_command.split('¦')
 
                     if data[0] != '' and data[0] not in ['avatar', 'sound message', 'voice message', 'image message', 'pong']:
@@ -3623,14 +3626,6 @@ def log_entry_check():
     log_text = forbidden_characters_check(log_text, ['¦', '¥', '\n'])
     if log_entry_textbox.get_text() != log_text:
         log_entry_textbox.set_text(log_text)
-
-
-def forbidden_characters_check(text, forbidden_characters):
-    new_text = text
-    for character in text:
-        if character in forbidden_characters:
-            new_text = new_text.replace(character, '')
-    return new_text
 
 
 load_assets()

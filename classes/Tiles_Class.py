@@ -108,3 +108,12 @@ class Tiles:
         self.full_family = False
         self.mortgaged = False
         self.mortgaged_moves_count = 0
+
+    def change_resolution(self, positions, tile_size):
+        self.rect = pygame.Rect((int(positions['tile position x']), int(positions['tile position y'])), tile_size)
+        self.x_position = int(positions['tile position x'])
+        self.y_position = int(positions['tile position y'])
+        self.xText = int(positions['price text center x'])
+        self.yText = int(positions['price text center y'])
+        self.x_center = int(positions['tile center x'])
+        self.y_center = int(positions['tile center y'])
