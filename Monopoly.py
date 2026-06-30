@@ -1482,7 +1482,6 @@ def move_by_cubes(cube1, cube2, color):
         show_cubes(cube1, cube2)
     player = player_dict[color]
     # aver_time = []
-    start_dt = dt
     for i in range(abs(cube1 + cube2)):
         # now = time.time()
         players_on_tile = []
@@ -1507,7 +1506,7 @@ def move_by_cubes(cube1, cube2, color):
             else:
                 end_positions.append((all_tiles[player3.piece_position].x_center + offset_vertical[len(players_on_tile) - 1][players_on_tile.index(player3)][0],
                                       all_tiles[player3.piece_position].y_center + offset_vertical[len(players_on_tile) - 1][players_on_tile.index(player3)][1]))
-        move(players_on_tile, end_positions, cube1 + cube2, start_dt)
+        move(players_on_tile, end_positions, cube1 + cube2)
 
         position_update()
 
@@ -1518,7 +1517,7 @@ def move_by_cubes(cube1, cube2, color):
         information_sent('Информация отправлена', 'moved¦cubes¥')
 
 
-def move(players_on_tile, end_positions, cube_sum, start_dt):
+def move(players_on_tile, end_positions, cube_sum):
     if settings.inactive_fps_optimize:
         global inactive_window
         settings.FPS = settings.max_fps
@@ -1526,37 +1525,44 @@ def move(players_on_tile, end_positions, cube_sum, start_dt):
     if not players_on_tile:
         return
 
-    steps = []
+    start_positions = []
+    for player in players_on_tile:
+        start_positions.append((player.x, player.y))
 
-    for i in range(len(players_on_tile)):
+    first_player = players_on_tile[0]
+    diff_x = end_positions[0][0] - first_player.x
+    diff_y = end_positions[0][1] - first_player.y
+    cube_speed = math.sqrt(abs(7 / cube_sum))
+    distance = math.hypot(diff_x, diff_y)
 
-        start_position = (players_on_tile[i].x, players_on_tile[i].y)
-        diff_x = end_positions[i][0] - start_position[0]
-        diff_y = end_positions[i][1] - start_position[1]
-        print(diff_x, end_positions[i][0], start_position[0], '|||', diff_y, end_positions[i][1], start_position[1])
-        print(start_position, end_positions)
+    step_amount = round(distance * cube_speed * 10 * speed)
+    sleep_seconds = cube_speed * 25 * speed
 
-        if i == 0:
-            step_amount = abs(round(math.hypot(diff_x, diff_y) * math.sqrt(abs(7 / cube_sum)) * speed / start_dt))
-            print(math.hypot(diff_x, diff_y) * math.sqrt(abs(7 / cube_sum)) * speed / start_dt, step_amount, start_dt)
+    total_time = step_amount * sleep_seconds
+    start_time = time.time()
 
-        if step_amount != 0:
-            steps.append((diff_x / step_amount, diff_y / step_amount))
+    while True:
+        elapsed = time.time() - start_time
+        if elapsed >= total_time:
+            for i, player in enumerate(players_on_tile):
+                player.x = end_positions[i][0]
+                player.y = end_positions[i][1]
+                player.player_piece_rect = player.player_piece.get_rect(center=(player.x, player.y))
+            break
+
+        if total_time > 0:
+            t = elapsed / total_time
         else:
-            steps.append((0, 0))
+            t = 1
 
-    for i in range(step_amount):
-        for player in players_on_tile:
-            for player2 in players:
-                if player == player2:
-                    time.sleep(dt)
-                    step_index = players_on_tile.index(player)
-                    print(steps[step_index][0] * start_dt / dt, player2.x, steps[step_index][1] * start_dt / dt, player2.y)
-                    player2.x += steps[step_index][0] * start_dt / dt
-                    player2.y += steps[step_index][1] * start_dt / dt
-                    player2.player_piece_rect = player2.player_piece.get_rect(center=(player2.x, player2.y))
-    print('='*100)
+        for i, player in enumerate(players_on_tile):
+            sx, sy = start_positions[i]
+            ex, ey = end_positions[i]
+            player.x = sx + (ex - sx) * t
+            player.y = sy + (ey - sy) * t
+            player.player_piece_rect = player.player_piece.get_rect(center=(player.x, player.y))
 
+        time.sleep(0.01)
     if settings.inactive_fps_optimize:
         settings.FPS = settings.inactive_fps
         inactive_window = True
