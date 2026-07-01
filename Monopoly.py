@@ -1474,7 +1474,7 @@ def position_update():
                 else:
                     end_positions.append((all_tiles[player3.piece_position].x_center + offset_vertical[len(players_on_tile) - 1][players_on_tile.index(player3)][0],
                                           all_tiles[player3.piece_position].y_center + offset_vertical[len(players_on_tile) - 1][players_on_tile.index(player3)][1]))
-            move(players_on_tile, end_positions, 4, dt)
+            move(players_on_tile, end_positions, 4)
 
 
 def move_by_cubes(cube1, cube2, color):
@@ -1517,7 +1517,7 @@ def move_by_cubes(cube1, cube2, color):
         information_sent('Информация отправлена', 'moved¦cubes¥')
 
 
-def move(players_on_tile, end_positions, cube_sum):
+def move(players_on_tile, end_positions, cube_sum, mode='linear'):
     if settings.inactive_fps_optimize:
         global inactive_window
         settings.FPS = settings.max_fps
@@ -1558,8 +1558,12 @@ def move(players_on_tile, end_positions, cube_sum):
         for i, player in enumerate(players_on_tile):
             sx, sy = start_positions[i]
             ex, ey = end_positions[i]
-            player.x = sx + (ex - sx) * t
-            player.y = sy + (ey - sy) * t
+            if mode == 'smoothstep':
+                t_smooth = t * t * (3 - 2 * t)
+            elif mode == 'linear':
+                t_smooth = t
+            player.x = sx + (ex - sx) * t_smooth
+            player.y = sy + (ey - sy) * t_smooth
             player.player_piece_rect = player.player_piece.get_rect(center=(player.x, player.y))
 
         time.sleep(0.01)
@@ -1640,7 +1644,7 @@ def handle_connection():
                                     end_positions.append((all_tiles[player3.piece_position].x_center + offset_vertical[len(players_on_tile) - 1][players_on_tile.index(player3)][0],
                                                           all_tiles[player3.piece_position].y_center + offset_vertical[len(players_on_tile) - 1][players_on_tile.index(player3)][1]))
 
-                            move([player], end_positions, 10, dt)
+                            move([player], end_positions, 10, mode='smoothstep')
 
                             position_update()
 
